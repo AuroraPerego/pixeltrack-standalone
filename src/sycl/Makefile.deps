@@ -1,0 +1,5 @@
+sycl_EXTERNAL_DEPENDS := TBB SYCL
+SYCLCore_DEPENDS := Framework
+Test1_DEPENDS := Framework SYCLCore DataFormats
+Test2_DEPENDS := Framework SYCLCore
+BeamSpotProducer_DEPENDS := Framework SYCLCore DataFormats
