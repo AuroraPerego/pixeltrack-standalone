@@ -46,16 +46,16 @@ namespace cms {
     __forceinline void blockPrefixScan(VT const* ci,
                                        VT* co,
                                        uint32_t size,
-                                       T* ws
+                                       sycl::nd_item<3> item,
+				       T* ws
 #ifndef __CUDA_ARCH__
                                        = nullptr
 #endif
-                                       ,
-                                       sycl::nd_item<3> item) {
-#ifdef __CUDA_ARCH__ 
+    ) {
+#ifdef __CUDA_ARCH__
       assert(ws);
       assert(size <= 1024);
-      assert(0 == blockDim.x % 32);
+      assert(0 == item.get_local_range().get(2) % 32);
       auto first = item.get_local_id(2);
       auto mask = sycl::reduce_over_group(item.get_sub_group(),
                                           (0xffffffff & (0x1 << item.get_sub_group().get_local_linear_id())) && first < size
@@ -106,16 +106,16 @@ namespace cms {
     template <typename T>
     __forceinline void blockPrefixScan(T* c,
                                          uint32_t size,
+                                         sycl::nd_item<3> item,
                                          T* ws
 #ifndef __CUDA_ARCH__
                                          = nullptr
 #endif
-                                         ,
-                                         sycl::nd_item<3> item) {
+) {
 #ifdef __CUDA_ARCH__
       assert(ws);
       assert(size <= 1024);
-      assert(0 == blockDim.x % 32);
+      assert(0 == item.get_local_range().get(2) % 32);
       auto first = item.get_local_id(2);
       auto mask = sycl::reduce_over_group(item.get_sub_group(),
                                         (0xffffffff & (0x1 << item.get_sub_group().get_local_linear_id())) && first < size
@@ -153,7 +153,7 @@ namespace cms {
 #else
       for (uint32_t i = 1; i < size; ++i)
         c[i] += c[i - 1];
-#endif      
+#endif
     }
 
 #ifdef __CUDA_ARCH__
@@ -176,13 +176,13 @@ namespace cms {
       volatile T* co = ico;
 
 #ifdef __CUDA_ARCH__
-      assert(sizeof(T) * gridDim.x <= dynamic_smem_size());  // size of psum below
+      assert(sizeof(T) * item.get_group_range(2) <= dynamic_smem_size());  // size of psum below
 #endif
-      assert(blockDim.x * gridDim.x >= size);
+      assert(item.get_local_range().get(2) * item.get_group_range(2) >= size);
       // first each block does a scan
       int off = item.get_local_range().get(2) * item.get_group(2);
       if (size - off > 0)
-        blockPrefixScan(ci + off, co + off, std::min(int(item.get_local_range().get(2)), size - off), ws, item);
+        blockPrefixScan(ci + off, co + off, std::min(int(item.get_local_range().get(2)), size - off), item, ws);
 
       // count blocks that finished
 
@@ -205,7 +205,7 @@ namespace cms {
       if (!(*isLastBlockDone))
         return;
 
-      assert(int(gridDim.x) == *pc);
+      assert(int(item.get_group_range(2)) == *pc);
 
       // good each block has done its work and now we are left in last block
 

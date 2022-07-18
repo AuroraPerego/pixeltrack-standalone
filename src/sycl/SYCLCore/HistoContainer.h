@@ -120,7 +120,7 @@ namespace cms {
                                                                   uint32_t const *__restrict__ offsets,
                                                                   uint32_t totSize,
                                                                   int nthreads,
-                                                                  sycl::queue *stream
+                                                                  sycl::queue stream
 #ifndef SYCL_LANGUAGE_VERSION
                                                                   = sycl::queue(sycl::default_selector())
 #endif
@@ -224,9 +224,9 @@ namespace cms {
       }
 
       //analog of cuda atomicAdd
-      template T <typename T>
-      inline T atomicAdd(T* i, T* j){
-        return sycl::atomic<T>(sycl::global_ptr<T>(i)).fetch_add(j);
+      template <typename A>
+      inline A atomicAdd(A* i, A* j){
+        return sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_add(j);
       }
 
       __forceinline void add(CountersOnly const &co) {
