@@ -7,7 +7,7 @@
 
 #include <Eigen/Core>
 
-#include "SYCLCore/syclCompat.h"
+//#include "SYCLCore/syclCompat.h"
 
 namespace eigenSoA {
 

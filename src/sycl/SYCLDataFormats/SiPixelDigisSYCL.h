@@ -3,7 +3,7 @@
 
 #include "SYCLCore/device_unique_ptr.h"
 #include "SYCLCore/host_unique_ptr.h"
-#include "SYCLCore/syclCompat.h"
+//#include "SYCLCore/syclCompat.h"
 
 #include <CL/sycl.hpp>
 
@@ -59,11 +59,11 @@ public:
   public:
     // DeviceConstView() = default;
 
-    __device__ __forceinline__ uint16_t xx(int i) const { return __ldg(xx_ + i); }
-    __device__ __forceinline__ uint16_t yy(int i) const { return __ldg(yy_ + i); }
-    __device__ __forceinline__ uint16_t adc(int i) const { return __ldg(adc_ + i); }
-    __device__ __forceinline__ uint16_t moduleInd(int i) const { return __ldg(moduleInd_ + i); }
-    __device__ __forceinline__ int32_t clus(int i) const { return __ldg(clus_ + i); }
+    __forceinline uint16_t xx(int i) const { return __ldg(xx_ + i); }
+    __forceinline uint16_t yy(int i) const { return __ldg(yy_ + i); }
+    __forceinline uint16_t adc(int i) const { return __ldg(adc_ + i); }
+    __forceinline uint16_t moduleInd(int i) const { return __ldg(moduleInd_ + i); }
+    __forceinline int32_t clus(int i) const { return __ldg(clus_ + i); }
 
     friend class SiPixelDigisSYCL;
 

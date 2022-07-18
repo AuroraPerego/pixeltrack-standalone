@@ -4,7 +4,7 @@
 #include <CL/sycl.hpp>
 #include <cstdint>
 
-#include "SYCLCore/syclCompat.h"
+//#include "SYCLCore/syclCompat.h"
 #include "SYCLCore/sycl_assert.h"
 
 #ifdef __CUDA_ARCH__
