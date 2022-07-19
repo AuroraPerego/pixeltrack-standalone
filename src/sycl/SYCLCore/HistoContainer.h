@@ -96,15 +96,15 @@ namespace cms {
 
           cgh.parallel_for(
               sycl::nd_range<3>(nblocks * sycl::range<3>(1, 1, nthreads), sycl::range<3>(1, 1, nthreads)),
-              [=](sycl::nd_item<3> item) [[intel::reqd_sub_group_size(32)]] {
+              [=](sycl::nd_item<3> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
                     multiBlockPrefixScan(poff,
-                                          poff,
-                                          Histo_totbins_kernel,
-                                          ppsws,
-                                          item,
-                                          (uint8_t *)local_psum_acc.get_pointer(),
-                                          (uint32_t *)ws_acc.get_pointer(),
-                                          isLastBlockDone_acc.get_pointer());
+                                         poff,
+                                         Histo_totbins_kernel,
+                                         ppsws,
+                                         item,
+                                         (uint8_t *)local_psum_acc.get_pointer(),
+                                         (uint32_t *)ws_acc.get_pointer(),
+                                         isLastBlockDone_acc.get_pointer());
               });
                   });
       //cudaCheck(0);
@@ -221,12 +221,6 @@ namespace cms {
       void zero() {
         for (auto &i : off)
           i = 0;
-      }
-
-      //analog of cuda atomicAdd
-      template <typename A>
-      inline A atomicAdd(A* i, A* j){
-        return sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_add(j);
       }
 
       __forceinline void add(CountersOnly const &co) {

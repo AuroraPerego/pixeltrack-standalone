@@ -9,6 +9,17 @@
 namespace cms {
   namespace sycltools {
 
+    //analog of cuda atomicAdd
+    template <typename A>
+    inline A atomicAdd(A* i, A* j){
+      return sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_add(j);
+    }
+  
+    template <typename A>
+    inline A atomicSub(A* i, A* j){
+      return sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_add(-j);
+    }
+
     class AtomicPairCounter {
     public:
       using c_type = unsigned long long int;
@@ -41,9 +52,7 @@ namespace cms {
         c += incr;
         Atomic2 ret;
 #ifdef __CUDA_ARCH__
-        ret.ac = sycl::atomic<cms::sycltools::AtomicPairCounter::c_type>(
-                     sycl::global_ptr<cms::sycltools::AtomicPairCounter::c_type>(&counter.ac))
-                     .fetch_add(c);
+        ret.ac = atomicAdd<cms::sycltools::AtomicPairCounter::c_type>(&counter.ac, c);
 #else
         ret.ac = counter.ac;
         counter.ac += c;
