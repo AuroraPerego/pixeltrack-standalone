@@ -36,7 +36,7 @@ namespace gpuPixelDoublets {
     uint16_t d[maxCellsPerHit];  // uint8_t l[maxCellsPerHit];
     uint32_t cc[maxCellsPerHit];
 
-    for (int idy = firstY, nt = nHits; idy < nt; idy += gridDim.y * blockDim.y) {
+    for (int idy = firstY, nt = nHits; idy < nt; idy += item.get_group_range(1) * item.get_local_range().get(1)) {
       auto const& vc = isOuterHitOfCell[idy];
       auto s = vc.size();
       if (s < 2)
@@ -66,7 +66,7 @@ namespace gpuPixelDoublets {
       if (sg < 2)
         continue;
       // here we parallelize
-      for (int32_t ic = firstX; ic < sg - 1; ic += blockDim.x) {
+      for (int32_t ic = firstX; ic < sg - 1; ic += item.get_local_range().get(2)) {
         auto& ci = cells[cc[ic]];
         for (auto jc = ic + 1; jc < sg; ++jc) {
           auto& cj = cells[cc[jc]];

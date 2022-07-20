@@ -161,7 +161,7 @@ namespace gpuPixelDoublets {
         auto zo = hh.zGlobal(j);
         auto ro = hh.rGlobal(j);
         auto dr = ro - mer;
-        return dr > maxr[pairLayerId] || dr < 0 || sycl::fabs((mez * ro - mer * zo)) > z0cut * dr;
+        return dr > maxr[pairLayerId] || dr < 0 || std::abs((mez * ro - mer * zo)) > z0cut * dr;
       };
 
       auto zsizeCut = [&](int j) {
@@ -173,9 +173,9 @@ namespace gpuPixelDoublets {
         // FIXME move pred cut to z0cutoff to optmize loading of and computaiton ...
         auto zo = hh.zGlobal(j);
         auto ro = hh.rGlobal(j);
-        return onlyBarrel ? mes > 0 && so > 0 && sycl::abs(so - mes) > dy
+        return onlyBarrel ? mes > 0 && so > 0 && std::abs(so - mes) > dy
                           : (inner < 4) && mes > 0 &&
-                                sycl::abs(mes - int(sycl::fabs((mez - zo) / (mer - ro)) * dzdrFact + 0.5f)) > maxDYPred;
+                                std::abs(mes - int(std::abs((mez - zo) / (mer - ro)) * dzdrFact + 0.5f)) > maxDYPred;
       };
 
       auto iphicut = phicuts[pairLayerId];
@@ -202,7 +202,7 @@ namespace gpuPixelDoublets {
         auto const* __restrict__ e = hist.end(kk + hoff);
         p += first;
         for (; p < e; p += stride) {
-          auto oi = __ldg(p);
+          auto oi = *(p);
           assert(oi >= offsets[outer]);
           assert(oi < offsets[outer + 1]);
           auto mo = hh.detectorIndex(oi);
@@ -222,9 +222,9 @@ namespace gpuPixelDoublets {
           if (doPtCut && ptcut(oi, idphi))
             continue;
 
-          auto ind = cms::sycltools::atomicAdd(nCells, 1);
+          auto ind = cms::sycltools::AtomicAdd(nCells, 1);
           if (ind >= maxNumOfDoublets) {
-            cms::sycltools::atomicSub(nCells, 1);
+            cms::sycltools::AtomicSub(nCells, 1);
             break;
           }  // move to SimpleVector??
           // int layerPairId, int doubletId, int innerHitId, int outerHitId)

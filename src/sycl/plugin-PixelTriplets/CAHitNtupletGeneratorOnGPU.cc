@@ -83,25 +83,30 @@ CAHitNtupletGeneratorOnGPU::CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg
 #endif
 }
 
-PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecHit2DCUDA const& hits_d,
+PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecHit2DSYCL const& hits_d,
                                                                     float bfield,
                                                                     sycl::queue stream) const {
-  PixelTrackHeterogeneous tracks = cms::sycltools::make_device_unique<pixelTrack::TrackSoA>(stream);
+  PixelTrackHeterogeneous tracks(cms::sycltools::make_device_unique<pixelTrack::TrackSoA>(stream));
 
-  CAHitNtupletGeneratorKernelsGPU kernels(m_params, hits_d.nHits(), queue);
+  auto* soa = tracks.get();
+
+  CAHitNtupletGeneratorKernelsGPU kernels(m_params);
+  //kernels.counters_ = m_counters;
+
+  //kernels.allocateOnGPU(stream);
 
   kernels.buildDoublets(hits_d, stream);
-  kernels.launchKernels(hits_d, tracks.data(), stream);
-  kernels.fillHitDetIndices(hits_d.view(), tracks.data(), stream);  // in principle needed only if Hits not "available"
+  kernels.launchKernels(hits_d, soa, stream);
+  kernels.fillHitDetIndices(hits_d.view(), soa, stream);  // in principle needed only if Hits not "available"
 
   HelixFitOnGPU fitter(bfield, m_params.fit5as4_);
-  fitter.allocateOnGPU(&(tracks->hitIndices), kernels.tupleMultiplicity(), tracks.data());
+  fitter.allocateOnGPU(&(soa->hitIndices), kernels.tupleMultiplicity(), soa);
   if (m_params.useRiemannFit_) {
     fitter.launchRiemannKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
   } else {
     fitter.launchBrokenLineKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
   }
-  kernels.classifyTuples(hits_d, tracks.data(), stream);
+  kernels.classifyTuples(hits_d, soa, stream);
 
   return tracks;
 }

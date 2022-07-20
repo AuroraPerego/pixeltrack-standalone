@@ -6,7 +6,7 @@
 
 //#include "SYCLCore/syclCompat.h"
 #include "SYCLCore/sycl_assert.h"
-#include "AtomicPairCounter.h"
+#include "SYCLCore/AtomicPairCounter.h"
 
 #ifdef __CUDA_ARCH__
 

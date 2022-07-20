@@ -201,4 +201,6 @@ private:
   Params const& m_params;
 };
 
+using CAHitNtupletGeneratorKernelsGPU = CAHitNtupletGeneratorKernels<cms::syclcompat::GPUTraits>;
+
 #endif  // RecoPixelVertexing_PixelTriplets_plugins_CAHitNtupletGeneratorKernels_h

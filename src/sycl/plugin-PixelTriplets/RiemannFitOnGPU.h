@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-#include <CL/sycl.hpp.h>
+#include <CL/sycl.hpp>
 
 #include "SYCLDataFormats/TrackingRecHit2DSYCL.h"
 //#include "SYCLCore/syclCheck.h"

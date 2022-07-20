@@ -3,7 +3,7 @@
 //#include "SYCLCore/syclCheck.h"
 
 template <>
-void CAHitNtupletGeneratorKernels::allocateOnGPU(sycl::queue stream) {
+void CAHitNtupletGeneratorKernelsGPU::allocateOnGPU(sycl::queue stream) {
   //////////////////////////////////////////////////////////
   // ALLOCATIONS FOR THE INTERMEDIATE RESULTS (STAYS ON WORKER)
   //////////////////////////////////////////////////////////

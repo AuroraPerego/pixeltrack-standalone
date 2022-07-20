@@ -10,14 +10,24 @@ namespace cms {
   namespace sycltools {
 
     //analog of cuda atomicAdd
-    template <typename A>
-    inline A atomicAdd(A* i, A* j){
+    template <typename A, typename B>
+    inline A AtomicAdd(A* i, B j){
       return sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_add(j);
     }
+    
+    template <typename A, typename B>
+    inline A AtomicAdd(A i, B j){
+      return sycl::atomic<A>(sycl::global_ptr<A>(&i)).fetch_add(j);
+    }
   
-    template <typename A>
-    inline A atomicSub(A* i, A* j){
+    template <typename A, typename B>
+    inline A AtomicSub(A* i, B j){
       return sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_add(-j);
+    }
+
+    template <typename A, typename B>
+    inline A AtomicSub(A i, B j){
+      return sycl::atomic<A>(sycl::global_ptr<A>(&i)).fetch_add(-j);
     }
 
     class AtomicPairCounter {

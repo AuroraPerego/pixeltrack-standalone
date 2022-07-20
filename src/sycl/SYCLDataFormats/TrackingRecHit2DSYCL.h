@@ -1,1 +1,1 @@
-#include "CUDADataFormats/TrackingRecHit2DHeterogeneous.h"
+#include "SYCLDataFormats/TrackingRecHit2DHeterogeneous.h"

@@ -24,16 +24,22 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
   for (uint32_t offset = 0; offset < maxNumberOfTuples; offset += maxNumberOfConcurrentFits_) {
     // triplets
     stream.submit([&](sycl::handler &cgh) {
+      auto tuples_d_kernel = tuples_d;
+      auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+      auto hv_kernel = hv;
+      auto hitsGPU_kernel = hitsGPU_.get(); 
+      auto hits_geGPU_kernel = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-                kernelFastFit<3>(tuples_d, 
-                                 tupleMultiplicity_d, 
+                kernelFastFit<3>(tuples_d_kernel, 
+                                 tupleMultiplicity_d_kernel, 
                                  3, 
-                                 hv, 
-                                 hitsGPU_.get(), 
-                                 hits_geGPU_.get(), 
-                                 fast_fit_resultsGPU_.get(), 
+                                 hv_kernel, 
+                                 hitsGPU_kernel, 
+                                 hits_geGPU_kernel, 
+                                 fast_fit_resultsGPU_kernel, 
                                  offset, 
                                  item);
       });
@@ -41,16 +47,22 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
     //cudaCheck(cudaGetLastError());
     
     stream.submit([&](sycl::handler &cgh) {
+        auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+	auto bField_kernel = bField_;
+        auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
+      auto hitsGPU_kernel = hitsGPU_.get(); 
+      auto hits_geGPU_kernel = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-                kernelCircleFit<3>(tupleMultiplicity_d,
+                kernelCircleFit<3>(tupleMultiplicity_d_kernel,
                                    3,
-                                   bField_,
-                                   hitsGPU_.get(),
-                                   hits_geGPU_.get(),
-                                   fast_fit_resultsGPU_.get(),
-                                   circle_fit_resultsGPU_,
+                                   bField_kernel,
+                                   hitsGPU_kernel,
+                                   hits_geGPU_kernel,
+                                   fast_fit_resultsGPU_kernel,
+                                   circle_fit_resultsGPU_kernel,
                                    offset, 
                                    item);
       });
@@ -58,17 +70,24 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
     //cudaCheck(cudaGetLastError());
 
     stream.submit([&](sycl::handler &cgh) {
+        auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+	auto bField_kernel = bField_;
+	auto outputSoa_d_kernel = outputSoa_d;
+        auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
+      auto hitsGPU_kernel = hitsGPU_.get(); 
+      auto hits_geGPU_kernel = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-                kernelLineFit<3>(tupleMultiplicity_d,
+                kernelLineFit<3>(tupleMultiplicity_d_kernel,
                                  3,
-                                 bField_,
-                                 outputSoa_d,
-                                 hitsGPU_.get(),
-                                 hits_geGPU_.get(),
-                                 fast_fit_resultsGPU_.get(),
-                                 circle_fit_resultsGPU_,
+                                 bField_kernel,
+                                 outputSoa_d_kernel,
+                                 hitsGPU_kernel,
+                                 hits_geGPU_kernel,
+                                 fast_fit_resultsGPU_kernel,
+                                 circle_fit_resultsGPU_kernel,
                                  offset, 
                                  item);
       });
@@ -77,16 +96,22 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
 
     // quads
     stream.submit([&](sycl::handler &cgh) {
+      auto tuples_d_kernel = tuples_d;
+      auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+      auto hv_kernel = hv;
+      auto hitsGPU_kernel = hitsGPU_.get(); 
+      auto hits_geGPU_kernel = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-                kernelFastFit<4>(tuples_d, 
-                                 tupleMultiplicity_d, 
+                kernelFastFit<4>(tuples_d_kernel, 
+                                 tupleMultiplicity_d_kernel, 
                                  4, 
-                                 hv, 
-                                 hitsGPU_.get(), 
-                                 hits_geGPU_.get(), 
-                                 fast_fit_resultsGPU_.get(), 
+                                 hv_kernel, 
+                                 hitsGPU_kernel, 
+                                 hits_geGPU_kernel, 
+                                 fast_fit_resultsGPU_kernel, 
                                  offset, 
                                  item);
       });
@@ -94,16 +119,22 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
     //cudaCheck(cudaGetLastError());
     
     stream.submit([&](sycl::handler &cgh) {
+        auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+	auto bField_kernel = bField_;
+        auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
+      auto hitsGPU_kernel = hitsGPU_.get(); 
+      auto hits_geGPU_kernel = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-                kernelCircleFit<4>(tupleMultiplicity_d,
+                kernelCircleFit<4>(tupleMultiplicity_d_kernel,
                                    4,
-                                   bField_,
-                                   hitsGPU_.get(),
-                                   hits_geGPU_.get(),
-                                   fast_fit_resultsGPU_.get(),
-                                   circle_fit_resultsGPU_,
+                                   bField_kernel,
+                                   hitsGPU_kernel,
+                                   hits_geGPU_kernel,
+                                   fast_fit_resultsGPU_kernel,
+                                   circle_fit_resultsGPU_kernel,
                                    offset, 
                                    item);
       });
@@ -111,17 +142,24 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
     //cudaCheck(cudaGetLastError());
 
     stream.submit([&](sycl::handler &cgh) {
+        auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+	auto bField_kernel = bField_;
+	auto outputSoa_d_kernel = outputSoa_d;
+        auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
+      auto hitsGPU_kernel = hitsGPU_.get(); 
+      auto hits_geGPU_kernel = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-                kernelLineFit<4>(tupleMultiplicity_d,
+                kernelLineFit<4>(tupleMultiplicity_d_kernel,
                                  4,
-                                 bField_,
-                                 outputSoa_d,
-                                 hitsGPU_.get(),
-                                 hits_geGPU_.get(),
-                                 fast_fit_resultsGPU_.get(),
-                                 circle_fit_resultsGPU_,
+                                 bField_kernel,
+                                 outputSoa_d_kernel,
+                                 hitsGPU_kernel,
+                                 hits_geGPU_kernel,
+                                 fast_fit_resultsGPU_kernel,
+                                 circle_fit_resultsGPU_kernel,
                                  offset, 
                                  item);
       });
@@ -131,16 +169,22 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
     if (fit5as4_) {
       // penta
       stream.submit([&](sycl::handler &cgh) {
+      auto tuples_d_kernel = tuples_d;
+      auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+      auto hv_kernel = hv;
+      auto hitsGPU_kernel = hitsGPU_.get(); 
+      auto hits_geGPU_kernel = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-                kernelFastFit<4>(tuples_d, 
-                                 tupleMultiplicity_d, 
+                kernelFastFit<4>(tuples_d_kernel, 
+                                 tupleMultiplicity_d_kernel, 
                                  5, 
-                                 hv, 
-                                 hitsGPU_.get(), 
-                                 hits_geGPU_.get(), 
-                                 fast_fit_resultsGPU_.get(), 
+                                 hv_kernel, 
+                                 hitsGPU_kernel, 
+                                 hits_geGPU_kernel, 
+                                 fast_fit_resultsGPU_kernel, 
                                  offset, 
                                  item);
         });
@@ -148,16 +192,22 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       //cudaCheck(cudaGetLastError());
       
       stream.submit([&](sycl::handler &cgh) {
+        auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+	auto bField_kernel = bField_;
+        auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
+        auto hitsGPU_kernel = hitsGPU_.get(); 
+        auto hits_geGPU_kernel = hits_geGPU_.get(); 
+        auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
         cgh.parallel_for(
             sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
             [=](sycl::nd_item<3> item){ 
-                  kernelCircleFit<4>(tupleMultiplicity_d,
+                  kernelCircleFit<4>(tupleMultiplicity_d_kernel,
                                      5,
-                                     bField_,
-                                     hitsGPU_.get(),
-                                     hits_geGPU_.get(),
-                                     fast_fit_resultsGPU_.get(),
-                                     circle_fit_resultsGPU_,
+                                     bField_kernel,
+                                     hitsGPU_kernel,
+                                     hits_geGPU_kernel,
+                                     fast_fit_resultsGPU_kernel,
+                                     circle_fit_resultsGPU_kernel,
                                      offset, 
                                      item);
         });
@@ -165,17 +215,24 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       //cudaCheck(cudaGetLastError());
   
       stream.submit([&](sycl::handler &cgh) {
+        auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+	auto bField_kernel = bField_;
+	auto outputSoa_d_kernel = outputSoa_d;
+        auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
+        auto hitsGPU_kernel = hitsGPU_.get(); 
+        auto hits_geGPU_kernel = hits_geGPU_.get(); 
+        auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
         cgh.parallel_for(
             sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
             [=](sycl::nd_item<3> item){ 
-                  kernelLineFit<4>(tupleMultiplicity_d,
+                  kernelLineFit<4>(tupleMultiplicity_d_kernel,
                                    5,
-                                   bField_,
-                                   outputSoa_d,
-                                   hitsGPU_.get(),
-                                   hits_geGPU_.get(),
-                                   fast_fit_resultsGPU_.get(),
-                                   circle_fit_resultsGPU_,
+                                   bField_kernel,
+                                   outputSoa_d_kernel,
+                                   hitsGPU_kernel,
+                                   hits_geGPU_kernel,
+                                   fast_fit_resultsGPU_kernel,
+                                   circle_fit_resultsGPU_kernel,
                                    offset, 
                                    item);
         });
@@ -185,16 +242,22 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
     } else {
       // penta all 5
       stream.submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
+      auto tuples_d_kernel = tuples_d;
+      auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+      auto hv_kernel = hv;
+      auto hitsGPU_kernel = hitsGPU_.get(); 
+      auto hits_geGPU_kernel = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
+      cgh.parallel_for(
             sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
             [=](sycl::nd_item<3> item){ 
-                  kernelFastFit<5>(tuples_d, 
-                                   tupleMultiplicity_d, 
+                  kernelFastFit<5>(tuples_d_kernel, 
+                                   tupleMultiplicity_d_kernel, 
                                    5, 
-                                   hv, 
-                                   hitsGPU_.get(), 
-                                   hits_geGPU_.get(), 
-                                   fast_fit_resultsGPU_.get(), 
+                                   hv_kernel, 
+                                   hitsGPU_kernel, 
+                                   hits_geGPU_kernel, 
+                                   fast_fit_resultsGPU_kernel, 
                                    offset, 
                                    item);
           });
@@ -202,16 +265,22 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       //cudaCheck(cudaGetLastError());
       
       stream.submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
+        auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+	auto bField_kernel = bField_;
+        auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
+        auto hitsGPU_kernel = hitsGPU_.get(); 
+      auto hits_geGPU_kernel = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
+      cgh.parallel_for(
             sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
             [=](sycl::nd_item<3> item){ 
-                  kernelCircleFit<5>(tupleMultiplicity_d,
+                  kernelCircleFit<5>(tupleMultiplicity_d_kernel,
                                      5,
-                                     bField_,
-                                     hitsGPU_.get(),
-                                     hits_geGPU_.get(),
-                                     fast_fit_resultsGPU_.get(),
-                                     circle_fit_resultsGPU_,
+                                     bField_kernel,
+                                     hitsGPU_kernel,
+                                     hits_geGPU_kernel,
+                                     fast_fit_resultsGPU_kernel,
+                                     circle_fit_resultsGPU_kernel,
                                      offset, 
                                      item);
         });
@@ -219,17 +288,24 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       //cudaCheck(cudaGetLastError());
   
       stream.submit([&](sycl::handler &cgh) {
-        cgh.parallel_for(
+        auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+	auto bField_kernel = bField_;
+	auto outputSoa_d_kernel = outputSoa_d;
+        auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
+        auto hitsGPU_kernel = hitsGPU_.get(); 
+      auto hits_geGPU_kernel = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
+      cgh.parallel_for(
             sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
             [=](sycl::nd_item<3> item){ 
-                  kernelLineFit<5>(tupleMultiplicity_d,
+                  kernelLineFit<5>(tupleMultiplicity_d_kernel,
                                    5,
-                                   bField_,
-                                   outputSoa_d,
-                                   hitsGPU_.get(),
-                                   hits_geGPU_.get(),
-                                   fast_fit_resultsGPU_.get(),
-                                   circle_fit_resultsGPU_,
+                                   bField_kernel,
+                                   outputSoa_d_kernel,
+                                   hitsGPU_kernel,
+                                   hits_geGPU_kernel,
+                                   fast_fit_resultsGPU_kernel,
+                                   circle_fit_resultsGPU_kernel,
                                    offset, 
                                    item);
         });

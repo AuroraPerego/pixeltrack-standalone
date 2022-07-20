@@ -38,14 +38,14 @@ public:
   auto iphi() { return m_iphi; }
 
   // only the local coord and detector index
-  cms::cuda::host::unique_ptr<float[]> localCoordToHostAsync(sycl::queue stream) const;
-  cms::cuda::host::unique_ptr<uint16_t[]> detIndexToHostAsync(sycl::queue stream) const;
-  cms::cuda::host::unique_ptr<uint32_t[]> hitsModuleStartToHostAsync(sycl::queue stream) const;
+  cms::sycltools::host::unique_ptr<float[]> localCoordToHostAsync(sycl::queue stream) const;
+  cms::sycltools::host::unique_ptr<uint16_t[]> detIndexToHostAsync(sycl::queue stream) const;
+  cms::sycltools::host::unique_ptr<uint32_t[]> hitsModuleStartToHostAsync(sycl::queue stream) const;
 
   // for validation
-  cms::cuda::host::unique_ptr<float[]> globalCoordToHostAsync(sycl::queue stream) const;
-  cms::cuda::host::unique_ptr<int32_t[]> chargeToHostAsync(sycl::queue stream) const;
-  cms::cuda::host::unique_ptr<int16_t[]> sizeToHostAsync(sycl::queue stream) const;
+  cms::sycltools::host::unique_ptr<float[]> globalCoordToHostAsync(sycl::queue stream) const;
+  cms::sycltools::host::unique_ptr<int32_t[]> chargeToHostAsync(sycl::queue stream) const;
+  cms::sycltools::host::unique_ptr<int16_t[]> sizeToHostAsync(sycl::queue stream) const;
 
 private:
   static constexpr uint32_t n16 = 4;
@@ -87,7 +87,7 @@ TrackingRecHit2DHeterogeneous<Traits>::TrackingRecHit2DHeterogeneous(uint32_t nH
 
   // if empy do not bother
   if (0 == nHits) {
-    if constexpr (std::is_same<Traits, cms::cudacompat::GPUTraits>::value) {
+    if constexpr (std::is_same<Traits, cms::syclcompat::GPUTraits>::value) {
       stream.memcpy(m_view, view, sizeof(TrackingRecHit2DSOAView));
     } else {
       m_view.reset(view.release());  // NOLINT: std::move() breaks CUDA version
@@ -130,16 +130,16 @@ TrackingRecHit2DHeterogeneous<Traits>::TrackingRecHit2DHeterogeneous(uint32_t nH
   m_hitsLayerStart = view->m_hitsLayerStart = reinterpret_cast<uint32_t*>(get32(n32));
 
   // transfer view
-  if constexpr (std::is_same<Traits, cms::cudacompat::GPUTraits>::value) {
+  if constexpr (std::is_same<Traits, cms::syclcompat::GPUTraits>::value) {
     stream.memcpy(m_view, view, sizeof(TrackingRecHit2DSOAView));
   } else {
     m_view.reset(view.release());  // NOLINT: std::move() breaks CUDA version
   }
 }
 
-using TrackingRecHit2DGPU = TrackingRecHit2DHeterogeneous<cms::cudacompat::GPUTraits>;
-using TrackingRecHit2DSYCL = TrackingRecHit2DHeterogeneous<cms::cudacompat::GPUTraits>;
-using TrackingRecHit2DCPU = TrackingRecHit2DHeterogeneous<cms::cudacompat::CPUTraits>;
-using TrackingRecHit2DHost = TrackingRecHit2DHeterogeneous<cms::cudacompat::HostTraits>;
+using TrackingRecHit2DGPU = TrackingRecHit2DHeterogeneous<cms::syclcompat::GPUTraits>;
+using TrackingRecHit2DSYCL = TrackingRecHit2DHeterogeneous<cms::syclcompat::GPUTraits>;
+using TrackingRecHit2DCPU = TrackingRecHit2DHeterogeneous<cms::syclcompat::CPUTraits>;
+using TrackingRecHit2DHost = TrackingRecHit2DHeterogeneous<cms::syclcompat::HostTraits>;
 
 #endif  // SYCLDataFormats_TrackingRecHit_interface_TrackingRecHit2DHeterogeneous_h

@@ -77,10 +77,10 @@ public:
                                         sycl::ext::oneapi::memory_scope::device);
 #ifdef SYCL_LANGUAGE_VERSION
         auto zero = (ptrAsInt)(&cellNeighbors[0]);
-        // QUESTION what CUDA does here? associated to nothing but it should return sth
-        sycl::atomic_compare_exchange_strong((ptrAsInt*)(&theOuterNeighbors),
-                                             zero,
-                                             (ptrAsInt)(&cellNeighbors[i]));  // if fails we cannot give "i" back...
+        // QUESTION what CUDA does here? associated to nothing but it should return sth FIXME_ !!!!
+       	//sycl::ext::oneapi::atomic_ref<ptrAsInt*, sycl::ext::oneapi::memory_order::relaxed, sycl::ext::oneapi::memory_scope::work_group, sycl::access::address_space::global_space> pippo;
+	//auto pippo = sycl::ext::oneapi::atomic_ref<ptrAsInt*, sycl::ext::oneapi::memory_order::relaxed, sycl::ext::oneapi::memory_scope::work_group, sycl::access::address_space::global_space> (ptrAsInt*)(&theOuterNeighbors);
+	//pippo.compare_exchange_strong(zero, (ptrAsInt)(&cellNeighbors[i]));  // if fails we cannot give "i" back...
 #else
         theOuterNeighbors = &cellNeighbors[i];
 #endif
@@ -92,7 +92,7 @@ public:
     return outerNeighbors().push_back(t);
   }
 
-  __forceinline int addTrack(CellTracks::value_t t, CellTracksVector& cellTracks, sycl::nd_item<3> item) {
+  __forceinline int addTrack(CellTracks::value_t t, CellTracksVector& cellTracks) {
     if (tracks().empty()) {
       auto i = cellTracks.extend();  // maybe waisted....
       if (i > 0) {
@@ -101,7 +101,7 @@ public:
                                         sycl::ext::oneapi::memory_scope::device);
 #ifdef SYCL_LANGUAGE_VERSION
         auto zero = (ptrAsInt)(&cellTracks[0]);
-        sycl::atomic_compare_exchange_strong((ptrAsInt*)(&theTracks), zero, (ptrAsInt)(&cellTracks[i]));  // if fails we cannot give "i" back...
+        //sycl::atomic_compare_exchange_strong((ptrAsInt*)(&theTracks), zero, (ptrAsInt)(&cellTracks[i]));  // if fails we cannot give "i" back...
 #else
         theTracks = &cellTracks[i];
 #endif

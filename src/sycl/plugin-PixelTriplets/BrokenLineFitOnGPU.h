@@ -6,13 +6,13 @@
 
 #include <cstdint>
 
-#include <Cl/sycl.hpp>
+#include <CL/sycl.hpp>
 
 #include "SYCLDataFormats/TrackingRecHit2DSYCL.h"
 //#include "SYCLCore/syclCheck.h"
 #include "SYCLCore/sycl_assert.h"
 #include "CondFormats/pixelCPEforGPU.h"
-#include "AtomicPainCounter.h"
+#include "SYCLCore/AtomicPairCounter.h"
 
 #include "BrokenLine.h"
 #include "HelixFitOnGPU.h"

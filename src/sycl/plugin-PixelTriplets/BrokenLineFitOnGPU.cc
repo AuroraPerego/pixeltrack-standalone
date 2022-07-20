@@ -21,41 +21,50 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
   for (uint32_t offset = 0; offset < maxNumberOfTuples; offset += maxNumberOfConcurrentFits_) {
     // fit triplets
     stream.submit([&](sycl::handler &cgh) {
-      sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(cgh);   
-      uint32_t offset_kernel = offest;
-
+      sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(
+ 										sycl::range<1>(32), cgh);   
+      auto tuples_d_kernel            = tuples_d; 
+      auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
+      auto hv_kernel                  = hv;
+      auto hitsGPU_kernel             = hitsGPU_.get(); 
+      auto hits_geGPU_kernel          = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-                kernelBLFastFit<3>(tuples_d, 
-                                   tupleMultiplicity_d, 
-                                   hv, 
-                                   hitsGPU_.get(), 
-                                   hits_geGPU_.get(), 
-                                   fast_fit_resultsGPU_.get(), 
+                kernelBLFastFit<3>(tuples_d_kernel, 
+                                   tupleMultiplicity_d_kernel, 
+                                   hv_kernel, 
+                                   hitsGPU_kernel, 
+                                   hits_geGPU_kernel, 
+                                   fast_fit_resultsGPU_kernel, 
                                    3, 
-                                   offset_kernel,
+                                   offset,
                                    item,
-                                   done_acc);
+                                   (int)done_acc);
       });
     });
     //cudaCheck(cudaGetLastError());
     
     stream.submit([&](sycl::handler &cgh) {
-      uint32_t offset_kernel = offest;
-      double bField_kernel = bField_;
+      auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
+      auto bField_kernel              = bField_;
+      auto hitsGPU_kernel             = hitsGPU_.get(); 
+      auto hits_geGPU_kernel          = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
+      auto outputSoa_d_kernel         = outputSoa_d;
 
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-                kernelBLFit<3>(tupleMultiplicity_d,
+                kernelBLFit<3>(tupleMultiplicity_d_kernel,
                                bField_kernel,
-                               outputSoa_d,
+                               outputSoa_d_kernel,
                                hitsGPU_.get(),
                                hits_geGPU_.get(),
                                fast_fit_resultsGPU_.get(),
                                3,
-                               offset_kernel,
+                               offset,
                                item);
       });
     });
@@ -64,19 +73,24 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
     // fit quads
     stream.submit([&](sycl::handler &cgh) {
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(cgh);   
-      uint32_t offset_kernel = offest;
+      auto tuples_d_kernel            = tuples_d; 
+      auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
+      auto hv_kernel                  = hv;
+      auto hitsGPU_kernel             = hitsGPU_.get(); 
+      auto hits_geGPU_kernel          = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
 
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-                kernelBLFastFit<4>(tuples_d, 
-                                   tupleMultiplicity_d, 
-                                   hv, 
-                                   hitsGPU_.get(), 
-                                   hits_geGPU_.get(), 
-                                   fast_fit_resultsGPU_.get(), 
+                kernelBLFastFit<4>(tuples_d_kernel, 
+                                   tupleMultiplicity_d_kernel, 
+                                   hv_kernel, 
+                                   hitsGPU_kernel, 
+                                   hits_geGPU_kernel, 
+                                   fast_fit_resultsGPU_kernel, 
                                    4, 
-                                   offset_kernel,
+                                   offset,
                                    item,
                                    done_acc);
       });
@@ -85,20 +99,24 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
     //cudaCheck(cudaGetLastError());
 
     stream.submit([&](sycl::handler &cgh) {
-      uint32_t offset_kernel = offest;
-      double bField_kernel = bField_;
+      auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
+      auto bField_kernel              = bField_;
+      auto hitsGPU_kernel             = hitsGPU_.get(); 
+      auto hits_geGPU_kernel          = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
+      auto outputSoa_d_kernel         = outputSoa_d;
 
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-                kernelBLFit<4>(tupleMultiplicity_d,
+                kernelBLFit<4>(tupleMultiplicity_d_kernel,
                                bField_kernel,
-                               outputSoa_d,
+                               outputSoa_d_kernel,
                                hitsGPU_.get(),
                                hits_geGPU_.get(),
                                fast_fit_resultsGPU_.get(),
                                4,
-                               offset_kernel,
+                               offset,
                                item);
       });
     });
@@ -109,42 +127,51 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       // fit penta (only first 4)
       stream.submit([&](sycl::handler &cgh) {
         sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(cgh);   
-        uint32_t offset_kernel = offest;
+        auto tuples_d_kernel            = tuples_d; 
+        auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
+        auto hv_kernel                  = hv;
+        auto hitsGPU_kernel             = hitsGPU_.get(); 
+        auto hits_geGPU_kernel          = hits_geGPU_.get(); 
+        auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
   
         cgh.parallel_for(
             sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
             [=](sycl::nd_item<3> item){ 
-                  kernelBLFastFit<4>(tuples_d, 
-                                     tupleMultiplicity_d, 
-                                     hv, 
-                                     hitsGPU_.get(), 
-                                     hits_geGPU_.get(), 
-                                     fast_fit_resultsGPU_.get(), 
-                                     5, 
-                                     offset_kernel,
-                                     item,
-                                     done_acc);
+                  kernelBLFastFit<4>(tuples_d_kernel, 
+                                   tupleMultiplicity_d_kernel, 
+                                   hv_kernel, 
+                                   hitsGPU_kernel, 
+                                   hits_geGPU_kernel, 
+                                   fast_fit_resultsGPU_kernel, 
+                                   5, 
+                                   offset,
+                                   item,
+                                   done_acc);
           });
         });
 
       //cudaCheck(cudaGetLastError());
 
       stream.submit([&](sycl::handler &cgh) {
-        uint32_t offset_kernel = offest;
-        double bField_kernel = bField_;
+      auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
+      auto bField_kernel              = bField_;
+      auto hitsGPU_kernel             = hitsGPU_.get(); 
+      auto hits_geGPU_kernel          = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
+      auto outputSoa_d_kernel         = outputSoa_d;
   
         cgh.parallel_for(
             sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
             [=](sycl::nd_item<3> item){ 
-                  kernelBLFit<4>(tupleMultiplicity_d,
-                                 bField_kernel,
-                                 outputSoa_d,
-                                 hitsGPU_.get(),
-                                 hits_geGPU_.get(),
-                                 fast_fit_resultsGPU_.get(),
-                                 5,
-                                 offset_kernel,
-                                 item);
+                  kernelBLFit<4>(tupleMultiplicity_d_kernel,
+                               bField_kernel,
+                               outputSoa_d_kernel,
+                               hitsGPU_.get(),
+                               hits_geGPU_.get(),
+                               fast_fit_resultsGPU_.get(),
+                               5,
+                               offset,
+                               item);
         });
       });
 
@@ -153,42 +180,51 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       // fit penta (all 5)
       stream.submit([&](sycl::handler &cgh) {
         sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(cgh);   
-        uint32_t offset_kernel = offest;
+        auto tuples_d_kernel            = tuples_d; 
+        auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
+        auto hv_kernel                  = hv;
+        auto hitsGPU_kernel             = hitsGPU_.get(); 
+        auto hits_geGPU_kernel          = hits_geGPU_.get(); 
+        auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
   
         cgh.parallel_for(
             sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
             [=](sycl::nd_item<3> item){ 
-                  kernelBLFastFit<5>(tuples_d, 
-                                     tupleMultiplicity_d, 
-                                     hv, 
-                                     hitsGPU_.get(), 
-                                     hits_geGPU_.get(), 
-                                     fast_fit_resultsGPU_.get(), 
-                                     5, 
-                                     offset_kernel,
-                                     item,
-                                     done_acc);
+                  kernelBLFastFit<5>(tuples_d_kernel, 
+                                   tupleMultiplicity_d_kernel, 
+                                   hv_kernel, 
+                                   hitsGPU_kernel, 
+                                   hits_geGPU_kernel, 
+                                   fast_fit_resultsGPU_kernel, 
+                                   5, 
+                                   offset,
+                                   item,
+                                   done_acc);
           });
         });
 
       //cudaCheck(cudaGetLastError());
 
       stream.submit([&](sycl::handler &cgh) {
-        uint32_t offset_kernel = offest;
-        double bField_kernel = bField_;
+      auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
+      auto bField_kernel              = bField_;
+      auto hitsGPU_kernel             = hitsGPU_.get(); 
+      auto hits_geGPU_kernel          = hits_geGPU_.get(); 
+      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
+      auto outputSoa_d_kernel         = outputSoa_d;
   
         cgh.parallel_for(
             sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
             [=](sycl::nd_item<3> item){ 
-                  kernelBLFit<5>(tupleMultiplicity_d,
-                                 bField_kernel,
-                                 outputSoa_d,
-                                 hitsGPU_.get(),
-                                 hits_geGPU_.get(),
-                                 fast_fit_resultsGPU_.get(),
-                                 5,
-                                 offset_kernel,
-                                 item);
+                  kernelBLFit<5>(tupleMultiplicity_d_kernel,
+                               bField_kernel,
+                               outputSoa_d_kernel,
+                               hitsGPU_.get(),
+                               hits_geGPU_.get(),
+                               fast_fit_resultsGPU_.get(),
+                               5,
+                               offset,
+                               item);
         });
       });
 

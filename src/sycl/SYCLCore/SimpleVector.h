@@ -60,45 +60,45 @@ namespace cms {
 
       // thread-safe version of the vector, when used in a CUDA kernel
       int push_back(const T &element) {
-        auto previousSize = atomicAdd<int>(&m_size, 1);
+        auto previousSize = AtomicAdd<int>(&m_size, 1);
         if (previousSize < m_capacity) {
           m_data[previousSize] = element;
           return previousSize;
         } else {
-          atomicSub<int>(&m_size, 1);
+          AtomicSub<int>(&m_size, 1);
           return -1;
         }
       }
 
       template <class... Ts>
       int emplace_back(Ts &&... args) {
-        auto previousSize = atomicAdd<int>(&m_size, 1);
+        auto previousSize = AtomicAdd<int>(&m_size, 1);
         if (previousSize < m_capacity) {
           (new (&m_data[previousSize]) T(std::forward<Ts>(args)...));
           return previousSize;
         } else {
-          atomicSub<int>(&m_size, 1);
+          AtomicSub<int>(&m_size, 1);
           return -1;
         }
       }
 
       // thread safe version of resize
       int extend(int size = 1) {
-        auto previousSize = atomicAdd<int>(&m_size, size);
+        auto previousSize = AtomicAdd<int>(&m_size, size);
         if (previousSize < m_capacity) {
           return previousSize;
         } else {
-          atomicSub<int>(&m_size, size);
+          AtomicSub<int>(&m_size, size);
           return -1;
         }
       }
 
       int shrink(int size = 1) {
-        auto previousSize = atomicSub<int>(&m_size, size);
+        auto previousSize = AtomicSub<int>(&m_size, size);
         if (previousSize >= size) {
           return previousSize - size;
         } else {
-          atomicAdd<int>(&m_size, size);
+          AtomicAdd<int>(&m_size, size);
           return -1;
         }
       }
