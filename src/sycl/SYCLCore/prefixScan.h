@@ -6,6 +6,7 @@
 
 //#include "SYCLCore/syclCompat.h"
 #include "SYCLCore/sycl_assert.h"
+#include "AtomicPairCounter.h"
 
 #ifdef __CUDA_ARCH__
 
@@ -195,7 +196,7 @@ namespace cms {
         /*
         DPCT1039:14: The generated code assumes that "pc" points to the global memory address space. If it points to a local memory address space, replace "sycl::global_ptr" with "sycl::local_ptr".
         */
-        auto value = sycl::atomic<int32_t>(sycl::global_ptr<int32_t>(pc)).fetch_add(1);  // block counter
+        auto value = cms::sycltools::AtomicAdd(pc, 1);  // block counter
         *isLastBlockDone = (value == (int(item.get_group_range(2)) - 1));
       }
 

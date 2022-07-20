@@ -53,7 +53,7 @@ namespace cms {
           m_data[previousSize] = element;
           return previousSize;
         } else {
-          atomicSub<int>(&m_size, 1); //FIXME_ does it change if I put AtomicAdd(.., -1)?
+          atomicSub<int>(&m_size, 1); 
           return -1;
         }
       }

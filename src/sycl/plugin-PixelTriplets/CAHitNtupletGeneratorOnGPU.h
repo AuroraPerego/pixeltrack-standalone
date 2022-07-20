@@ -35,11 +35,9 @@ public:
 public:
   CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg);
 
-  ~CAHitNtupletGeneratorOnGPU();
+  ~CAHitNtupletGeneratorOnGPU() = default;
 
   PixelTrackHeterogeneous makeTuplesAsync(TrackingRecHit2DGPU const& hits_d, float bfield, sycl::queue stream) const;
-
-  PixelTrackHeterogeneous makeTuples(TrackingRecHit2DCPU const& hits_d, float bfield) const;
 
 private:
   void buildDoublets(HitsOnCPU const& hh, sycl::queue stream) const;
@@ -49,8 +47,7 @@ private:
   void launchKernels(HitsOnCPU const& hh, bool useRiemannFit, sycl::queue cudaStream) const;
 
   Params m_params;
-
-  Counters* m_counters = nullptr;
+  
 };
 
 #endif  // RecoPixelVertexing_PixelTriplets_plugins_CAHitNtupletGeneratorOnGPU_h

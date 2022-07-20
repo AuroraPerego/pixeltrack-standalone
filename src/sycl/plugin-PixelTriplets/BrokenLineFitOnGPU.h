@@ -12,6 +12,7 @@
 //#include "SYCLCore/syclCheck.h"
 #include "SYCLCore/sycl_assert.h"
 #include "CondFormats/pixelCPEforGPU.h"
+#include "AtomicPainCounter.h"
 
 #include "BrokenLine.h"
 #include "HelixFitOnGPU.h"
@@ -71,7 +72,7 @@ void kernelBLFastFit(Tuples const *__restrict__ foundNtuplets,
 #ifdef BL_DUMP_HITS
     done = 0;
     item.barrier();
-    bool dump = (foundNtuplets->size(tkid) == 5 && 0 == sycl::atomic<int>(sycl::global_ptr<int>(&done)).fetch_add(1));
+    bool dump = (foundNtuplets->size(tkid) == 5 && 0 == cms::sycltools::atomicAdd(&done, 1);
 #endif
 
     // Prepare data structure

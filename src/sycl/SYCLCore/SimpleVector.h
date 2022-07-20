@@ -65,7 +65,7 @@ namespace cms {
           m_data[previousSize] = element;
           return previousSize;
         } else {
-          atomicAdd<int>(&m_size, -1);
+          atomicSub<int>(&m_size, 1);
           return -1;
         }
       }
@@ -77,7 +77,7 @@ namespace cms {
           (new (&m_data[previousSize]) T(std::forward<Ts>(args)...));
           return previousSize;
         } else {
-          atomicAdd<int>(&m_size, -1);
+          atomicSub<int>(&m_size, 1);
           return -1;
         }
       }
@@ -88,13 +88,13 @@ namespace cms {
         if (previousSize < m_capacity) {
           return previousSize;
         } else {
-          atomicAdd<int>(&m_size, -size);
+          atomicSub<int>(&m_size, size);
           return -1;
         }
       }
 
       int shrink(int size = 1) {
-        auto previousSize = atomicAdd<int>(&m_size, -size);
+        auto previousSize = atomicSub<int>(&m_size, size);
         if (previousSize >= size) {
           return previousSize - size;
         } else {

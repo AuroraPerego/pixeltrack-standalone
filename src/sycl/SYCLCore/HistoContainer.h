@@ -245,7 +245,7 @@ namespace cms {
 
       static __forceinline uint32_t atomicDecrement(Counter &x) {
 #ifdef __CUDA_ARCH__
-        return atomicAdd<cms::sycltools::HistoContainer<T, NBINS, SIZE, S, I, NHISTS>::Counter>>(&x, -1);
+        return atomicSub<cms::sycltools::HistoContainer<T, NBINS, SIZE, S, I, NHISTS>::Counter>>(&x, 1);
 #else
         auto &a = (std::atomic<Counter> &)(x);
         return a--;
