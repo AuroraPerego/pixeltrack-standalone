@@ -1,8 +1,10 @@
-sycl_EXTERNAL_DEPENDS := TBB EIGEN SYCL
+sycl_EXTERNAL_DEPENDS := TBB SYCL EIGEN BOOST BACKTRACE 
+BeamSpotProducer_DEPENDS := Framework SYCLCore SYCLDataFormats
 SYCLCore_DEPENDS := Framework
-Test1_DEPENDS := Framework SYCLCore DataFormats
-Test2_DEPENDS := Framework SYCLCore
-BeamSpotProducer_DEPENDS := Framework SYCLCore DataFormats
+SYCLDataFormats_DEPENDS := SYCLCore DataFormats
+CondFormats_DEPENDS := SYCLCore
 PixelTriplets_DEPENDS := Framework SYCLCore SYCLDataFormats
 PixelTrackFitting_DEPENDS := Framework SYCLCore SYCLDataFormats
 SiPixelRawToDigi_DEPENDS := Framework SYCLCore SYCLDataFormats CondFormats DataFormats
+Test1_DEPENDS := Framework SYCLCore DataFormats
+Test2_DEPENDS := Framework SYCLCore

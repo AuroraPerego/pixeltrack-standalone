@@ -22,7 +22,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
     // fit triplets
     stream.submit([&](sycl::handler &cgh) {
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(
- 										sycl::range<1>(32), cgh);   
+ 										sycl::range<1>(32), cgh); //FIXME_ range 32
       auto tuples_d_kernel            = tuples_d; 
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
       auto hv_kernel                  = hv;
@@ -41,7 +41,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                    3, 
                                    offset,
                                    item,
-                                   (int)done_acc);
+                                   (int *)done_acc.get_pointer());
       });
     });
     //cudaCheck(cudaGetLastError());
@@ -60,9 +60,9 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                 kernelBLFit<3>(tupleMultiplicity_d_kernel,
                                bField_kernel,
                                outputSoa_d_kernel,
-                               hitsGPU_.get(),
-                               hits_geGPU_.get(),
-                               fast_fit_resultsGPU_.get(),
+                               hitsGPU_kernel,
+                               hits_geGPU_kernel,
+                               fast_fit_resultsGPU_kernel,
                                3,
                                offset,
                                item);
@@ -72,7 +72,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
 
     // fit quads
     stream.submit([&](sycl::handler &cgh) {
-      sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(cgh);   
+      sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(sycl::range<1>(32), cgh);  //FIXME_ range 32 
       auto tuples_d_kernel            = tuples_d; 
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
       auto hv_kernel                  = hv;
@@ -92,7 +92,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                    4, 
                                    offset,
                                    item,
-                                   done_acc);
+                                   (int *)done_acc.get_pointer());
       });
     });
 
@@ -112,9 +112,9 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                 kernelBLFit<4>(tupleMultiplicity_d_kernel,
                                bField_kernel,
                                outputSoa_d_kernel,
-                               hitsGPU_.get(),
-                               hits_geGPU_.get(),
-                               fast_fit_resultsGPU_.get(),
+                               hitsGPU_kernel,
+                               hits_geGPU_kernel,
+                               fast_fit_resultsGPU_kernel,
                                4,
                                offset,
                                item);
@@ -126,7 +126,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
     if (fit5as4_) {
       // fit penta (only first 4)
       stream.submit([&](sycl::handler &cgh) {
-        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(cgh);   
+        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(sycl::range<1>(32), cgh); //FIXME_ range 32  
         auto tuples_d_kernel            = tuples_d; 
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
         auto hv_kernel                  = hv;
@@ -146,7 +146,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                    5, 
                                    offset,
                                    item,
-                                   done_acc);
+                                   (int *)done_acc.get_pointer());
           });
         });
 
@@ -166,9 +166,9 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                   kernelBLFit<4>(tupleMultiplicity_d_kernel,
                                bField_kernel,
                                outputSoa_d_kernel,
-                               hitsGPU_.get(),
-                               hits_geGPU_.get(),
-                               fast_fit_resultsGPU_.get(),
+                               hitsGPU_kernel,
+                               hits_geGPU_kernel,
+                               fast_fit_resultsGPU_kernel,
                                5,
                                offset,
                                item);
@@ -179,7 +179,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
     } else {
       // fit penta (all 5)
       stream.submit([&](sycl::handler &cgh) {
-        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(cgh);   
+        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(sycl::range<1>(32), cgh);  //FIXME_ range 32 
         auto tuples_d_kernel            = tuples_d; 
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
         auto hv_kernel                  = hv;
@@ -199,7 +199,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                    5, 
                                    offset,
                                    item,
-                                   done_acc);
+                                   (int *)done_acc.get_pointer());
           });
         });
 
@@ -219,9 +219,9 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                   kernelBLFit<5>(tupleMultiplicity_d_kernel,
                                bField_kernel,
                                outputSoa_d_kernel,
-                               hitsGPU_.get(),
-                               hits_geGPU_.get(),
-                               fast_fit_resultsGPU_.get(),
+                               hitsGPU_kernel,
+                               hits_geGPU_kernel,
+                               fast_fit_resultsGPU_kernel,
                                5,
                                offset,
                                item);

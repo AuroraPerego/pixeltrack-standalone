@@ -147,8 +147,8 @@ namespace cms {
     }
 
     template <typename Assoc>
-    void finalizeBulk(AtomicPairCounter const *apc, Assoc *__restrict__ assoc) {
-      assoc->bulkFinalizeFill(*apc);
+    void finalizeBulk(AtomicPairCounter const *apc, Assoc *__restrict__ assoc, sycl::nd_item<3> item) {
+      assoc->bulkFinalizeFill(*apc, item);
     }
 
     // iteratate over N bins left and right of the one containing "v"

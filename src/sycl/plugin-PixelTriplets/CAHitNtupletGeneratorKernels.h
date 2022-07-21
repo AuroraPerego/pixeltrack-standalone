@@ -174,7 +174,7 @@ public:
   void allocateOnGPU(sycl::queue stream);
   void cleanup(sycl::queue stream);
 
-  static void printCounters(Counters const* counters);
+  static void printCounters(Counters const* counters, sycl::queue stream);
   Counters* counters_ = nullptr;
  
 private:

@@ -12,7 +12,7 @@ void CAHitNtupletGeneratorKernelsGPU::fillHitDetIndices(HitsView const *hv, TkSo
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-                kernel_fillHitDetIndices(&tracks_d->hitIndices, hv, &tracks_d->detIndices, item);
+                kernel_fillHitDetIndices(hitIndices_kernel, hv_kernel, detIndices_kernel, item);
       });
     });
   
@@ -101,7 +101,7 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
           [=](sycl::nd_item<3> item){ 
               gpuPixelDoublets::fishbone(hh_kernel, 
                                          device_theCells_kernel, 
-                                         device_nCells_, 
+                                         device_nCells_kernel, 
                                          device_isOuterHitOfCell_kernel, 
                                          nhits, 
                                          false,
@@ -121,7 +121,6 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
       auto device_theCells_kernel         = device_theCells_.get();
       auto device_nCells_kernel           = device_nCells_;
       auto device_theCellTracks_kernel    = device_theCellTracks_.get();
-      auto device_isOuterHitOfCell_kernel = device_isOuterHitOfCell_.get();
       auto tuples_d_kernel                = tuples_d;
       auto device_hitTuple_apc_kernel     = device_hitTuple_apc_;
       auto quality_d_kernel               = quality_d;
@@ -169,7 +168,7 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-              cms::sycltools::finalizeBulk(device_hitTuple_apc_kernel, tuples_d_kernel);
+              cms::sycltools::finalizeBulk(device_hitTuple_apc_kernel, tuples_d_kernel, item);
       });
     });
 
@@ -233,7 +232,7 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
           [=](sycl::nd_item<3> item){ 
               gpuPixelDoublets::fishbone(hh_kernel, 
                                          device_theCells_kernel, 
-                                         device_nCells_, 
+                                         device_nCells_kernel, 
                                          device_isOuterHitOfCell_kernel, 
                                          nhits, 
                                          true,
@@ -256,20 +255,21 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
       auto device_theCellTracks_kernel     = device_theCellTracks_.get();
       auto device_isOuterHitOfCell_kernel  = device_isOuterHitOfCell_.get();
       auto m_params_kernel                 = m_params;
+      auto counters_kernel                 = counters_;
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
               kernel_checkOverflows(tuples_d_kernel,
-                                    device_tupleMultiplicity_.get(),
-                                    device_hitTuple_apc_,
-                                    device_theCells_.get(),
-                                    device_nCells_,
-                                    device_theCellNeighbors_.get(),
-                                    device_theCellTracks_.get(),
-                                    device_isOuterHitOfCell_.get(),
+                                    device_tupleMultiplicity_kernel,
+                                    device_hitTuple_apc_kernel,
+                                    device_theCells_kernel,
+                                    device_nCells_kernel,
+                                    device_theCellNeighbors_kernel,
+                                    device_theCellTracks_kernel,
+                                    device_isOuterHitOfCell_kernel,
                                     nhits,
                                     m_params_kernel.maxNumberOfDoublets_,
-                                    counters_,
+                                    counters_kernel,
                                     item);  
       });
     });
@@ -316,9 +316,8 @@ void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, sycl::q
     int blocks = (std::max(1U, nhits) + threadsPerBlock - 1) / threadsPerBlock;
     stream.submit([&](sycl::handler &cgh) {
       auto device_theCellNeighbors_kernel  = device_theCellNeighbors_.get();
+      auto device_theCellNeighborsContainer_kernel  = device_theCellNeighborsContainer_;
       auto device_isOuterHitOfCell_kernel  = device_isOuterHitOfCell_.get();
-      auto m_params_kernel                 = m_params;
-      auto device_theCellNeighborsContainer_kernel = device_theCellNeighborsContainer_;
       auto device_theCellTracks_kernel = device_theCellTracks_.get();
       auto device_theCellTracksContainer_kernel = device_theCellTracksContainer_;
       cgh.parallel_for(
@@ -371,27 +370,27 @@ void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, sycl::q
       auto device_isOuterHitOfCell_kernel  = device_isOuterHitOfCell_.get();
       auto m_params_kernel                 = m_params;
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              innerLayerCumulativeSize_acc(sycl::range<1>(32), cgh);
+              innerLayerCumulativeSize_acc(sycl::range<1>(32), cgh); //FIXME_
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
               ntot_acc(sycl::range<1>(32), cgh);  //FIXME_ no idea if the arguments passed to the accessors are correct                   
       cgh.parallel_for(
           sycl::nd_range<3>(blks * thrs, thrs),
           [=](sycl::nd_item<3> item){ 
-              gpuPixelDoublets::getDoubletsFromHisto(device_theCells_.get(),
-                                                     device_nCells_,
-                                                     device_theCellNeighbors_.get(),
-                                                     device_theCellTracks_.get(),
-                                                     hh.view(),
-                                                     device_isOuterHitOfCell_.get(),
-                                                     nActualPairs,
+              gpuPixelDoublets::getDoubletsFromHisto(device_theCells_kernel,
+                                                     device_nCells_kernel,
+                                                     device_theCellNeighbors_kernel,
+                                                     device_theCellTracks_kernel,
+                                                     hh_kernel,
+                                                     device_isOuterHitOfCell_kernel,
+                                                     nActualPairs_kernel,
                                                      m_params_kernel.idealConditions_,
                                                      m_params_kernel.doClusterCut_,
                                                      m_params_kernel.doZ0Cut_,
                                                      m_params_kernel.doPtCut_,
                                                      m_params_kernel.maxNumberOfDoublets_,
                                                      item,
-                                                     innerLayerCumulativeSize_acc,
-                                                     ntot_acc);   
+                                                     (uint32_t *)innerLayerCumulativeSize_acc.get_pointer(),
+                                                     (uint32_t *)ntot_acc.get_pointer());   
       });
     });
   
@@ -457,7 +456,7 @@ void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA 
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-              kernel_fastDuplicateRemover(device_theCells_.get(), device_nCells_, tuples_d, tracks_d, item);
+              kernel_fastDuplicateRemover(device_theCells_kernel, device_nCells_kernel, tuples_d_kernel, tracks_d_kernel, item);
       });
     });
   
@@ -561,7 +560,7 @@ void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA 
 }
 
 template <>
-void CAHitNtupletGeneratorKernelsGPU::printCounters(Counters const *counters) {
+void CAHitNtupletGeneratorKernelsGPU::printCounters(Counters const *counters, sycl::queue stream) {
   stream.submit([&](sycl::handler &cgh) {
       auto counters_kernel = counters;
       cgh.parallel_for(
@@ -572,4 +571,5 @@ void CAHitNtupletGeneratorKernelsGPU::printCounters(Counters const *counters) {
     });
   
 }
+
 

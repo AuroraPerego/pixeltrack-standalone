@@ -80,6 +80,7 @@ public:
         // QUESTION what CUDA does here? associated to nothing but it should return sth FIXME_ !!!!
        	//sycl::ext::oneapi::atomic_ref<ptrAsInt*, sycl::ext::oneapi::memory_order::relaxed, sycl::ext::oneapi::memory_scope::work_group, sycl::access::address_space::global_space> pippo;
 	//auto pippo = sycl::ext::oneapi::atomic_ref<ptrAsInt*, sycl::ext::oneapi::memory_order::relaxed, sycl::ext::oneapi::memory_scope::work_group, sycl::access::address_space::global_space> (ptrAsInt*)(&theOuterNeighbors);
+	//std::atomic<ptrAsInt *> pippo = (ptrAsInt *)(&theOuterNeighbors);
 	//pippo.compare_exchange_strong(zero, (ptrAsInt)(&cellNeighbors[i]));  // if fails we cannot give "i" back...
 #else
         theOuterNeighbors = &cellNeighbors[i];

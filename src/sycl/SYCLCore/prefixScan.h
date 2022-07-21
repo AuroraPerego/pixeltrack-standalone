@@ -179,7 +179,7 @@ namespace cms {
 #ifdef __CUDA_ARCH__
       assert(sizeof(T) * item.get_group_range(2) <= dynamic_smem_size());  // size of psum below
 #endif
-      assert(item.get_local_range().get(2) * item.get_group_range(2) >= size);
+      assert((int32_t)(item.get_local_range().get(2) * item.get_group_range(2)) >= size);
       // first each block does a scan
       int off = item.get_local_range().get(2) * item.get_group(2);
       if (size - off > 0)
@@ -214,7 +214,7 @@ namespace cms {
       auto psum = (T*)local_psum;
       for (int i = item.get_local_id(2), ni = item.get_group_range(2); i < ni;
            i += item.get_local_range().get(2)) {
-        auto j = item.get_local_range().get(2) * i + item.get_local_range().get(2) - 1;
+        int32_t j = item.get_local_range().get(2) * i + item.get_local_range().get(2) - 1;
         psum[i] = (j < size) ? co[j] : T(0);
       }
       //Same as above (2)
