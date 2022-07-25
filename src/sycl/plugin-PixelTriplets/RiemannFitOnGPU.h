@@ -115,8 +115,9 @@ void kernelCircleFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMul
 
     Rfit::Matrix2Nd<N> hits_cov = Rfit::Matrix2Nd<N>::Zero();
     Rfit::loadCovariance2D(hits_ge, hits_cov);
-
-    //circle_fit[local_idx] = Rfit::Circle_fit(hits.block(0, 0, 2, N), hits_cov, fast_fit, rad, B, true);
+    
+    //Rfit::CircleFit pippo;
+    circle_fit[local_idx] = Rfit::Circle_fit(hits.block(0, 0, 2, N), hits_cov, fast_fit, rad, B, true);
 
 #ifdef RIEMANN_DEBUG
 //    auto tkid = *(tupleMultiplicity->begin(nHits) + tuple_idx);

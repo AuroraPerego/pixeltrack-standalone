@@ -24,12 +24,12 @@ using OutputSoA = pixelTrack::TrackSoA;
 // #define BL_DUMP_HITS
 
 template <int N>
-void kernelBLFastFit(Tuples const *__restrict__ foundNtuplets,
-                     CAConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
-                     HitsOnGPU const *__restrict__ hhp,
-                     double *__restrict__ phits,
-                     float *__restrict__ phits_ge,
-                     double *__restrict__ pfast_fit,
+void kernelBLFastFit(Tuples const * foundNtuplets,
+                     CAConstants::TupleMultiplicity const * tupleMultiplicity,
+                     HitsOnGPU const * hhp,
+                     double * phits,
+                     float * phits_ge,
+                     double * pfast_fit,
                      uint32_t nHits,
                      uint32_t offset,
                      sycl::nd_item<3> item,

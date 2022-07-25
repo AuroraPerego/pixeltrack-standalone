@@ -8,6 +8,7 @@
 // #define ONLY_TRIPLETS_IN_HOLE
 
 #include <CL/sycl.hpp>
+#include <stdatomic.h>
 
 #include "SYCLCore/SimpleVector.h"
 #include "SYCLCore/VecArray.h"
@@ -77,11 +78,13 @@ public:
                                         sycl::ext::oneapi::memory_scope::device);
 #ifdef SYCL_LANGUAGE_VERSION
         auto zero = (ptrAsInt)(&cellNeighbors[0]);
-        // QUESTION what CUDA does here? associated to nothing but it should return sth FIXME_ !!!!
-       	//sycl::ext::oneapi::atomic_ref<ptrAsInt*, sycl::ext::oneapi::memory_order::relaxed, sycl::ext::oneapi::memory_scope::work_group, sycl::access::address_space::global_space> pippo;
-	//auto pippo = sycl::ext::oneapi::atomic_ref<ptrAsInt*, sycl::ext::oneapi::memory_order::relaxed, sycl::ext::oneapi::memory_scope::work_group, sycl::access::address_space::global_space> (ptrAsInt*)(&theOuterNeighbors);
-	//std::atomic<ptrAsInt *> pippo = (ptrAsInt *)(&theOuterNeighbors);
-	//pippo.compare_exchange_strong(zero, (ptrAsInt)(&cellNeighbors[i]));  // if fails we cannot give "i" back...
+	ptrAsInt* zero_pointer = &zero;
+	auto val = (ptrAsInt)(&cellNeighbors[i]);
+	ptrAsInt* val_pointer = &val;
+	auto obj_arg = (ptrAsInt*)(&theOuterNeighbors); 
+	sycl::ext::oneapi::atomic_ref<ptrAsInt*, sycl::ext::oneapi::memory_order::relaxed, sycl::ext::oneapi::memory_scope::device, sycl::access::address_space::ext_intel_global_device_space> obj_atomic(obj_arg);
+	obj_atomic.compare_exchange_strong(zero_pointer, val_pointer, sycl::ext::oneapi::detail::memory_order::relaxed, sycl::ext::oneapi::detail::memory_scope::device);
+	 // if fails we cannot give "i" back...
 #else
         theOuterNeighbors = &cellNeighbors[i];
 #endif
@@ -102,7 +105,13 @@ public:
                                         sycl::ext::oneapi::memory_scope::device);
 #ifdef SYCL_LANGUAGE_VERSION
         auto zero = (ptrAsInt)(&cellTracks[0]);
-        //sycl::atomic_compare_exchange_strong((ptrAsInt*)(&theTracks), zero, (ptrAsInt)(&cellTracks[i]));  // if fails we cannot give "i" back...
+	ptrAsInt* zero_pointer = &zero;
+	auto val = (ptrAsInt)(&cellTracks[i]);
+	ptrAsInt* val_pointer = &val;
+	auto obj_arg = (ptrAsInt*)(&theTracks); 
+	sycl::ext::oneapi::atomic_ref<ptrAsInt*, sycl::ext::oneapi::memory_order::relaxed, sycl::ext::oneapi::memory_scope::device, sycl::access::address_space::ext_intel_global_device_space> obj_atomic(obj_arg);
+	obj_atomic.compare_exchange_strong(zero_pointer, val_pointer, sycl::ext::oneapi::detail::memory_order::relaxed, sycl::ext::oneapi::detail::memory_scope::device);
+	 // if fails we cannot give "i" back...
 #else
         theTracks = &cellTracks[i];
 #endif
