@@ -34,8 +34,8 @@ namespace cms {
       template <typename F>
       const T& dataForCurrentDeviceAsync(sycl::queue stream, F transferAsync) const {
         sycl::device device = stream.get_device();
-        vector<sycl::device> device_list = sycl::device::get_devices(sycl::info::device_type::all);
-	      int dev_idx = distance(device_list.begin(), find(device_list.begin(), device_list.end(), dev));
+        std::vector<sycl::device> device_list = sycl::device::get_devices(sycl::info::device_type::all);
+	      int dev_idx = distance(device_list.begin(), find(device_list.begin(), device_list.end(), device));
         auto& data = gpuDataPerDevice_[dev_idx];
 
         // If the GPU data has already been filled, we can return it immediately
@@ -52,7 +52,7 @@ namespace cms {
             // Someone else is filling
 
             // Check first if the recorded event has occurred
-            if (eventWorkHasCompleted(data.m_event.get())) {
+            if (eventWorkHasCompleted(*data.m_event.get())) {
               // It was, so data is accessible from all CUDA streams on
               // the device. Set the 'filled' for all subsequent calls and
               // return the value
@@ -74,7 +74,7 @@ namespace cms {
           } else {
             // Now we can be sure that the data is not yet on the GPU, and
             // this thread is the first to try that.
-            transferAsync(data.m_data, &stream);
+            transferAsync(data.m_data, stream);
             assert(data.m_fillingStream == nullptr);
             data.m_fillingStream = &stream;
             // Record in the cudaStream an event to mark the readiness of the
@@ -97,7 +97,7 @@ namespace cms {
         mutable std::mutex m_mutex;
         mutable SharedEventPtr m_event;  // guarded by m_mutex
         // non-null if some thread is already filling (cudaStream_t is just a pointer)
-        mutable sycl::queue m_fillingStream = nullptr;  // guarded by m_mutex
+        mutable sycl::queue* m_fillingStream = nullptr;  // guarded by m_mutex
         mutable std::atomic<bool> m_filled = false;      // easy check if data has been filled already or not
         mutable T m_data;                                // guarded by m_mutex
       };

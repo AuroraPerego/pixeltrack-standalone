@@ -6,43 +6,43 @@
 //#include "SYCLCore/syclCheck.h"
 
 #include <CL/sycl.hpp>
+#include <vector>
 
 namespace cms {
   namespace sycltools {
     class ScopedSetDevice {
     public:
       // Store the original device, without setting a new one
-      ScopedSetDevice() {
+      ScopedSetDevice(sycl::queue stream) {
         // Store the original device
-        stream.get_device());
+        originalDevice_ = stream.get_device();
+	stream_ = stream;
       }
 
       // Store the original device, and set a new current device
-      explicit ScopedSetDevice(sycl::device device) : ScopedSetDevice() {
+      explicit ScopedSetDevice(sycl::device device, sycl::queue stream){
+	originalDevice_ = stream.get_device();
         // Change the current device
-        set(device);
+        stream = sycl::queue(device);
       }
 
       // Restore the original device
       ~ScopedSetDevice() {
-        // Intentionally don't check the return value to avoid
-        // exceptions to be thrown. If this call fails, the process is
-        // doomed anyway.
-        cudaSetDevice(originalDevice_);
+        stream_ = sycl::queue(originalDevice_);
       }
 
       // Set a new current device, without changing the original device
       // that will be restored when this object is destroyed
-      void set(int device) {
+      //void set(int device) {
         // Change the current device
-        vector<sycl::device> device_list = sycl::device::get_devices(sycl::info::device_type::all);
-	      int dev_idx = distance(device_list.begin(), find(device_list.begin(), device_list.end(), dev));
-
-        cudaCheck(cudaSetDevice(device));
-      }
+        //std::vector<sycl::device> device_list = sycl::device::get_devices(sycl::info::device_type::all);
+	//int dev_idx = distance(device_list.begin(), find(device_list.begin(), device_list.end(), device));
+        //cudaCheck(cudaSetDevice(device));
+      //}
 
     private:
       sycl::device originalDevice_;
+      sycl::queue stream_;
     };
   }  // namespace sycltools
 }  // namespace cms

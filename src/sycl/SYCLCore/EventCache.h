@@ -26,7 +26,7 @@ namespace cms {
       // captured work has completed, i.e. cudaEventQuery() == cudaSuccess.
       //
       // This function is thread safe
-      SharedEventPtr get(sycl::queue stream);
+      SharedEventPtr get(sycl::device device);
 
     private:
       friend class ::SYCLService;
@@ -40,11 +40,7 @@ namespace cms {
       class Deleter {
       public:
         Deleter() = default;
-        Deleter(int d) : device_{d} {}
-        void operator()(sycl::event event) const;
-
-      private:
-        int device_ = -1; 
+        void operator()(sycl::event* event) const;
       };
 
       std::vector<edm::ReusableObjectHolder<BareEvent, Deleter>> cache_;

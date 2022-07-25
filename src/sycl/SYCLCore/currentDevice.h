@@ -7,8 +7,8 @@
 
 namespace cms {
   namespace sycltools {
-    inline DeviceSelector currentDevice(sycl::queue stream) {
-      DeviceSelector dev;
+    inline sycl::device currentDevice(sycl::queue stream) {
+      sycl::device dev;
       dev = stream.get_device();
       //sycl::device::device(&dev);
       return dev;

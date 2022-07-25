@@ -1,3 +1,5 @@
+#include <CL/sycl.hpp>
+
 #include "SYCLDataFormats/SiPixelClustersSYCL.h"
 
 #include "SYCLCore/device_unique_ptr.h"
@@ -16,5 +18,5 @@ SiPixelClustersSYCL::SiPixelClustersSYCL(size_t maxClusters, sycl::queue stream)
   view->clusModuleStart_ = clusModuleStart_d.get();
 
   view_d = cms::sycltools::make_device_unique<DeviceConstView>(stream);
-  stream.memcpy(view_d, view, sizeof(DeviceConstView));
+  stream.memcpy(view_d.get(), view.get(), sizeof(DeviceConstView));
 }

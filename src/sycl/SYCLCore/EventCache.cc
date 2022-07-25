@@ -1,5 +1,3 @@
-//TODO
-
 #include "SYCLCore/EventCache.h"
 //#include "SYCLCore/syclCheck.h"
 #include "SYCLCore/currentDevice.h"
@@ -7,13 +5,12 @@
 #include "SYCLCore/eventWorkHasCompleted.h"
 #include "SYCLCore/ScopedSetDevice.h"
 
+#include <vector>
+
 namespace cms::sycltools {
-  /*void EventCache::Deleter::operator()(sycl::event event) const {
-    if (device_ != -1) {
-      ScopedSetDevice deviceGuard{device_};
-      cudaCheck(cudaEventDestroy(event));
-    }
-  }*/
+  void EventCache::Deleter::operator()(sycl::event* event) const {
+
+  }
 
   // EventCache should be constructed by the first call to
   // getEventCache() only if we have CUDA devices present
@@ -21,11 +18,11 @@ namespace cms::sycltools {
 
   SharedEventPtr EventCache::get(sycl::device dev) {
     //const auto dev = stream.get_device();
-    vector<sycl::device> device_list = sycl::device::get_devices(sycl::info::device_type::all);
-	  int dev_idx = distance(device_list.begin(), find(device_list.begin(), device_list.end(), dev));
+    std::vector<sycl::device> device_list = sycl::device::get_devices(sycl::info::device_type::all);
+    int dev_idx = distance(device_list.begin(), find(device_list.begin(), device_list.end(), dev));
     auto event = makeOrGet(dev_idx);
     // captured work has completed, or a just-created event
-    if (eventWorkHasCompleted(event.get())) {
+    if (eventWorkHasCompleted(*event.get())) {
       return event;
     }
 
@@ -37,7 +34,7 @@ namespace cms::sycltools {
     bool completed;
     do {
       event = makeOrGet(dev_idx);
-      completed = eventWorkHasCompleted(event.get());
+      completed = eventWorkHasCompleted(*event.get());
       if (not completed) {
         ptrs.emplace_back(std::move(event));
       }
@@ -46,13 +43,21 @@ namespace cms::sycltools {
   }
 
   SharedEventPtr EventCache::makeOrGet(int dev) {
-    return cache_[dev].makeOrGet([dev]() {
+    return cache_[dev].makeOrGet([]() {
       sycl::event event;
-      // it should be a bit faster to ignore timings
-      //cudaCheck(cudaEventCreateWithFlags(&event, cudaEventDisableTiming));
-      return std::unique_ptr<BareEvent, Deleter>(event, Deleter{dev});
+      return std::unique_ptr<BareEvent, Deleter>(&event, Deleter());
     });
   }
+
+/*  SharedEventPtr EventCache::makeOrGet(int dev) {
+    return cache_[dev].makeOrGet([dev]() {
+      sycl::event* event = nullptr;
+      // it should be a bit faster to ignore timings
+      //cudaCheck(cudaEventCreateWithFlags(&event, cudaEventDisableTiming));
+      //return std::unique_ptr<BareEvent, Deleter>(&event, Deleter{dev});
+      return std::unique_ptr<BareEvent>(event);
+    });
+  }*/
 
   void EventCache::clear() {
     // Reset the contents of the caches, but leave an
