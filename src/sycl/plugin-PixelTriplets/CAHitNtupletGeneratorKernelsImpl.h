@@ -40,7 +40,8 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
                            uint32_t nHits,
                            uint32_t maxNumberOfDoublets,
                            CAHitNtupletGeneratorKernelsGPU::Counters *counters,
-                           sycl::nd_item<3> item) {
+                           sycl::nd_item<3> item,
+			   sycl::stream out) {
   auto first = item.get_local_id(2) + item.get_group(2) * item.get_local_range().get(2);
 
   auto &c = *counters;
@@ -55,11 +56,7 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
 
 #ifdef NTUPLE_DEBUG
   if (0 == first) {
-    printf("number of found cells %d, found tuples %d with total hits %d out of %d\n",
-           *nCells,
-           apc->get().m,
-           apc->get().n,
-           nHits);
+    out <<"number of found cells " << *nCells <<", found tuples " << apc->get().m << " with total hits " << apc->get().n << " out of " << nHits << "\n";
     if (apc->get().m < CAConstants::maxNumberOfQuadruplets()) {
       assert(foundNtuplets->size(apc->get().m) == 0);
       assert(foundNtuplets->size() == apc->get().n);
@@ -69,7 +66,7 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
   for (int idx = first, nt = foundNtuplets->nbins(); idx < nt; 
        idx += item.get_group_range(2) * item.get_local_range().get(2) {
     if (foundNtuplets->size(idx) > 5)
-      printf("ERROR %d, %d\n", idx, foundNtuplets->size(idx));
+      out << "ERROR " << idx << ", " << foundNtuplets->size(idx) << "\n";
     assert(foundNtuplets->size(idx) < 6);
     for (auto ih = foundNtuplets->begin(idx); ih != foundNtuplets->end(idx); ++ih)
       assert(*ih < nHits);
@@ -78,22 +75,22 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
 
   if (0 == first) {
     if (apc->get().m >= CAConstants::maxNumberOfQuadruplets())
-      printf("Tuples overflow\n");
+      out << "Tuples overflow\n";
     if (*nCells >= maxNumberOfDoublets)
-      printf("Cells overflow\n");
+      out << "Cells overflow\n";
     if (cellNeighbors && cellNeighbors->full())
-      printf("cellNeighbors overflow\n");
+      out << "cellNeighbors overflow\n";
     if (cellTracks && cellTracks->full())
-      printf("cellTracks overflow\n");
+      out << "cellTracks overflow\n";
   }
 
   for (int idx = first, nt = (*nCells); idx < nt;
        idx += item.get_group_range(2) * item.get_local_range().get(2)) {
     auto const &thisCell = cells[idx];
     if (thisCell.outerNeighbors().full())  //++tooManyNeighbors[thisCell.theLayerPairId];
-      printf("OuterNeighbors overflow %d in %d\n", idx, thisCell.theLayerPairId);
+      out << "OuterNeighbors overflow " << idx << " in " << thisCell.theLayerPairId << "\n";
     if (thisCell.tracks().full())  //++tooManyTracks[thisCell.theLayerPairId];
-      printf("Tracks overflow %d in %d\n", idx, thisCell.theLayerPairId);
+      out << "Tracks overflow " <<idx << " in " << thisCell.theLayerPairId << "\n";
     if (thisCell.theDoubletId < 0)
       cms::sycltools::AtomicAdd(&c.nKilledCells, 1);
     if (0 == thisCell.theUsed)
@@ -105,7 +102,7 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
   for (int idx = first, nt = nHits; idx < nt; 
        idx += item.get_group_range(2) * item.get_local_range().get(2)) {
     if (isOuterHitOfCell[idx].full())  // ++tooManyOuterHitOfCell;
-      printf("OuterHitOfCell overflow %d\n", idx);
+      out << "OuterHitOfCell overflow " << idx << "/n";
   }
 }
 
@@ -284,7 +281,8 @@ void kernel_find_ntuplets(GPUCACell::Hits const *__restrict__ hhp,
                           cms::sycltools::AtomicPairCounter *apc,
                           Quality *__restrict__ quality,
                           unsigned int minHitsPerNtuplet,
-                          sycl::nd_item<3> item) {
+                          sycl::nd_item<3> item,
+			  sycl::stream out) {
   // recursive: not obvious to widen
   auto const &hh = *hhp;
 
@@ -301,9 +299,9 @@ void kernel_find_ntuplets(GPUCACell::Hits const *__restrict__ hhp,
       GPUCACell::TmpTuple stack;
       stack.reset();
       thisCell.find_ntuplets<6>(
-          hh, cells, *cellTracks, *foundNtuplets, *apc, quality, stack, minHitsPerNtuplet, pid < 3);
+          hh, cells, *cellTracks, *foundNtuplets, *apc, quality, stack, minHitsPerNtuplet, pid < 3, out);
       assert(stack.empty());
-      // printf("in %d found quadruplets: %d\n", cellIndex, apc->get());
+      // out << "in " << cellIndex << " found quadruplets: " << apc->get() << "\n";
     }
   }
 }
@@ -325,7 +323,8 @@ void kernel_mark_used(GPUCACell::Hits const *__restrict__ hhp,
 void kernel_countMultiplicity(HitContainer const *__restrict__ foundNtuplets,
                               Quality const *__restrict__ quality,
                               CAConstants::TupleMultiplicity *tupleMultiplicity,
-                              sycl::nd_item<3> item) {
+                              sycl::nd_item<3> item,
+			      sycl::stream out) {
   auto first = item.get_group(2) * item.get_local_range().get(2) + item.get_local_id(2);
   for (int it = first, nt = foundNtuplets->nbins(); it < nt;
        it += item.get_group_range(2) * item.get_local_range().get(2)) {
@@ -336,7 +335,7 @@ void kernel_countMultiplicity(HitContainer const *__restrict__ foundNtuplets,
       continue;
     assert(quality[it] == trackQuality::bad);
     if (nhits > 5)
-      printf("wrong mult %d %d\n", it, nhits);
+      out << "wrong mult " << it << nhits << "\n";
     assert(nhits < 8);
     tupleMultiplicity->countDirect(nhits);
   }
@@ -345,7 +344,8 @@ void kernel_countMultiplicity(HitContainer const *__restrict__ foundNtuplets,
 void kernel_fillMultiplicity(HitContainer const *__restrict__ foundNtuplets,
                              Quality const *__restrict__ quality,
                              CAConstants::TupleMultiplicity *tupleMultiplicity,
-                             sycl::nd_item<3> item) {
+                             sycl::nd_item<3> item,
+			     sycl::stream out) {
   auto first = item.get_group(2) * item.get_local_range().get(2) + item.get_local_id(2);
   for (int it = first, nt = foundNtuplets->nbins(); it < nt;
        it += item.get_group_range(2) * item.get_local_range().get(2)) {
@@ -356,7 +356,7 @@ void kernel_fillMultiplicity(HitContainer const *__restrict__ foundNtuplets,
       continue;
     assert(quality[it] == trackQuality::bad);
     if (nhits > 5)
-      printf("wrong mult %d %d\n", it, nhits);
+      out << "wrong mult " << it << nhits << "\n";
     assert(nhits < 8);
     tupleMultiplicity->fillDirect(nhits, it);
   }
@@ -366,7 +366,8 @@ void kernel_classifyTracks(HitContainer const *__restrict__ tuples,
                            TkSoA const *__restrict__ tracks,
                            CAHitNtupletGeneratorKernelsGPU::QualityCuts cuts,
                            Quality *__restrict__ quality,
-                           sycl::nd_item<3> item) {
+                           sycl::nd_item<3> item,
+			   sycl::stream out) {
   int first = item.get_local_range().get(2) * item.get_group(2) + item.get_local_id(2);
   for (int it = first, nt = tuples->nbins(); it < nt;
        it += item.get_group_range(2) * item.get_local_range().get(2)) {
@@ -391,7 +392,7 @@ void kernel_classifyTracks(HitContainer const *__restrict__ tuples,
     }
     if (isNaN) {
 #ifdef NTUPLE_DEBUG
-      printf("NaN in fit %d size %d chi2 %f\n", it, tuples->size(it), tracks->chi2(it));
+      out <<"NaN in fit " << it << " size " << tuples->size(it) << " chi2 " << tracks->chi2(it) << "\n";
 #endif
       continue;
     }
@@ -408,12 +409,7 @@ void kernel_classifyTracks(HitContainer const *__restrict__ tuples,
     // above number were for Quads not normalized so for the time being just multiple by ndof for Quads  (triplets to be understood)
     if (3.f * tracks->chi2(it) >= chi2Cut) {
 #ifdef NTUPLE_DEBUG
-      printf("Bad fit %d size %d pt %f eta %f chi2 %f\n",
-             it,
-             tuples->size(it),
-             tracks->pt(it),
-             tracks->eta(it),
-             3.f * tracks->chi2(it));
+      out <<"Bad fit " << it << " size " << tuples->size(it) << " pt " << tracks->pt(it) << " eta " << tracks->eta(it) << " chi2 " << 3.f * tracks->chi2(it) << "\n";
 #endif
       continue;
     }
@@ -580,7 +576,8 @@ void kernel_print_found_ntuplets(TrackingRecHit2DSOAView const *__restrict__ hhp
                                  CAHitNtupletGeneratorKernelsGPU::HitToTuple const *__restrict__ phitToTuple,
                                  uint32_t maxPrint,
                                  int iev,
-                                 sycl::nd_item<3> item) {
+                                 sycl::nd_item<3> item,
+				 sycl::stream out) {
   auto const &foundNtuplets = *ptuples;
   auto const &tracks = *ptracks;
   int first = item.get_local_range().get(2) * item.get_group(2) + item.get_local_id(2);
@@ -589,54 +586,56 @@ void kernel_print_found_ntuplets(TrackingRecHit2DSOAView const *__restrict__ hhp
     auto nh = foundNtuplets.size(i);
     if (nh < 3)
       continue;
-    printf("TK: %d %d %d %f %f %f %f %f %f %f %d %d %d %d %d\n",
-           10000 * iev + i,
-           int(quality[i]),
-           nh,
-           tracks.charge(i),
-           tracks.pt(i),
-           tracks.eta(i),
-           tracks.phi(i),
-           tracks.tip(i),
-           tracks.zip(i),
-           //           asinhf(fit_results[i].par(3)),
-           tracks.chi2(i),
-           *foundNtuplets.begin(i),
-           *(foundNtuplets.begin(i) + 1),
-           *(foundNtuplets.begin(i) + 2),
-           nh > 3 ? int(*(foundNtuplets.begin(i) + 3)) : -1,
-           nh > 4 ? int(*(foundNtuplets.begin(i) + 4)) : -1);
+    out <<"TK: "
+        << 10000 * iev + i
+        << int(quality[i])
+        << nh
+        << tracks.charge(i)
+        << tracks.pt(i)
+        << tracks.eta(i)
+        << tracks.phi(i)
+        << tracks.tip(i)
+        << tracks.zip(i)
+//      << asinhf(fit_results[i].par(3))
+        << tracks.chi2(i)
+        << *foundNtuplets.begin(i)
+        << *(foundNtuplets.begin(i) + 1)
+        << *(foundNtuplets.begin(i) + 2)
+        << (nh > 3 ? int(*(foundNtuplets.begin(i) + 3)) : -1)
+        << (nh > 4 ? int(*(foundNtuplets.begin(i) + 4)) : -1)
+        << "\n";
   }
 }
 
-void kernel_printCounters(cAHitNtupletGenerator::Counters const *counters) {
+void kernel_printCounters(cAHitNtupletGenerator::Counters const *counters, sycl::stream out) {
   auto const &c = *counters;
-  printf(
-      "||Counters | nEvents | nHits | nCells | nTuples | nFitTacks  |  nGoodTracks | nUsedHits | nDupHits | "
-      "nKilledCells | "
-      "nEmptyCells | nZeroTrackCells ||\n");
-  printf("Counters Raw %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n",
-         c.nEvents,
-         c.nHits,
-         c.nCells,
-         c.nTuples,
-         c.nGoodTracks,
-         c.nFitTracks,
-         c.nUsedHits,
-         c.nDupHits,
-         c.nKilledCells,
-         c.nEmptyCells,
-         c.nZeroTrackCells);
-  printf("Counters Norm %lld ||  %.1f|  %.1f|  %.1f|  %.1f|  %.1f|  %.1f|  %.1f|  %.1f|  %.3f|  %.3f||\n",
-         c.nEvents,
-         c.nHits / double(c.nEvents),
-         c.nCells / double(c.nEvents),
-         c.nTuples / double(c.nEvents),
-         c.nFitTracks / double(c.nEvents),
-         c.nGoodTracks / double(c.nEvents),
-         c.nUsedHits / double(c.nEvents),
-         c.nDupHits / double(c.nEvents),
-         c.nKilledCells / double(c.nEvents),
-         c.nEmptyCells / double(c.nCells),
-         c.nZeroTrackCells / double(c.nCells));
+  out << "||Counters | nEvents | nHits | nCells | nTuples | nFitTacks  |  nGoodTracks | nUsedHits | nDupHits | "
+      << "nKilledCells | "
+      << "nEmptyCells | nZeroTrackCells ||\n";
+  out << "Counters Raw "
+      << c.nEvents
+      << c.nHits
+      << c.nCells
+      << c.nTuples
+      << c.nGoodTracks
+      << c.nFitTracks
+      << c.nUsedHits
+      << c.nDupHits
+      << c.nKilledCells
+      << c.nEmptyCells
+      << c.nZeroTrackCells
+      << "\n";
+  out << "Counters Norm "
+      << c.nEvents
+      << c.nHits / double(c.nEvents)
+      << c.nCells / double(c.nEvents)
+      << c.nTuples / double(c.nEvents)
+      << c.nFitTracks / double(c.nEvents)
+      << c.nGoodTracks / double(c.nEvents)
+      << c.nUsedHits / double(c.nEvents)
+      << c.nDupHits / double(c.nEvents)
+      << c.nKilledCells / double(c.nEvents)
+      << c.nEmptyCells / double(c.nCells)
+      << c.nZeroTrackCells / double(c.nCells)
+      << "\n";
 }

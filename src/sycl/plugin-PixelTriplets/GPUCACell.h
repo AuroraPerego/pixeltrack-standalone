@@ -304,7 +304,8 @@ public:
                             Quality* __restrict__ quality,
                             TmpTuple& tmpNtuplet,
                             const unsigned int minHitsPerNtuplet,
-                            bool startAt0) const {
+                            bool startAt0,
+			    sycl::stream out) const {
     // the building process for a track ends if:
     // it has no right neighbor
     // it has no compatible neighbor
@@ -321,7 +322,7 @@ public:
         continue;  // killed by earlyFishbone
       last = false;
       cells[otherCell].find_ntuplets<DEPTH - 1>(
-          hh, cells, cellTracks, foundNtuplets, apc, quality, tmpNtuplet, minHitsPerNtuplet, startAt0);
+          hh, cells, cellTracks, foundNtuplets, apc, quality, tmpNtuplet, minHitsPerNtuplet, startAt0, out);
     }
     if (last) {  // if long enough save...
       if ((unsigned int)(tmpNtuplet.size()) >= minHitsPerNtuplet - 1) {
@@ -375,8 +376,10 @@ inline void GPUCACell::find_ntuplets<0>(Hits const& hh,
                                                    Quality* __restrict__ quality,
                                                    TmpTuple& tmpNtuplet,
                                                    const unsigned int minHitsPerNtuplet,
-                                                   bool startAt0) const {
-  printf("ERROR: GPUCACell::find_ntuplets reached full depth!\n");
+                                                   bool startAt0,
+						   sycl::stream out) const {
+  //printf("ERROR: GPUCACell::find_ntuplets reached full depth!\n");
+    out << "ERROR: GPUCACell::find_ntuplets reached full depth!\n";
 #ifdef __CUDA_ARCH__
   __trap();
 #else
