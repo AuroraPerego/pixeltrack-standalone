@@ -16,12 +16,12 @@ namespace gpuPixelRecHits {
 
   void getHits(pixelCPEforGPU::ParamsOnGPU const* __restrict__ cpeParams,
                           BeamSpotPOD const* __restrict__ bs,
-                          SiPixelDigisCUDA::DeviceConstView const* __restrict__ pdigis,
+                          SiPixelDigisSYCL::DeviceConstView const* __restrict__ pdigis,
                           int numElements,
-                          SiPixelClustersCUDA::DeviceConstView const* __restrict__ pclusters,
+                          SiPixelClustersSYCL::DeviceConstView const* __restrict__ pclusters,
                           TrackingRecHit2DSOAView* phits,
                           sycl::nd_item<3> item,
-                          ClusParams *clusParams) {
+                          pixelCPEforGPU::ClusParams *clusParams) {
     // FIXME
     // the compiler seems NOT to optimize loads from views (even in a simple test case)
     // The whole gimnastic here of copying or not is a pure heuristic exercise that seems to produce the fastest code with the above signature
@@ -98,15 +98,15 @@ namespace gpuPixelRecHits {
 
       // init
       for (int ic = item.get_local_id(2); ic < nClusInIter; ic += item.get_local_range().get(2)) {
-        clusParams.minRow[ic] = std::numeric_limits<uint32_t>::max();
-        clusParams.maxRow[ic] = 0;
-        clusParams.minCol[ic] = std::numeric_limits<uint32_t>::max();
-        clusParams.maxCol[ic] = 0;
-        clusParams.charge[ic] = 0;
-        clusParams.Q_f_X[ic] = 0;
-        clusParams.Q_l_X[ic] = 0;
-        clusParams.Q_f_Y[ic] = 0;
-        clusParams.Q_l_Y[ic] = 0;
+        clusParams->minRow[ic] = std::numeric_limits<uint32_t>::max();
+        clusParams->maxRow[ic] = 0;
+        clusParams->minCol[ic] = std::numeric_limits<uint32_t>::max();
+        clusParams->maxCol[ic] = 0;
+        clusParams->charge[ic] = 0;
+        clusParams->Q_f_X[ic] = 0;
+        clusParams->Q_l_X[ic] = 0;
+        clusParams->Q_f_Y[ic] = 0;
+        clusParams->Q_l_Y[ic] = 0;
       }
 
       first += item.get_local_id(2);
@@ -132,10 +132,10 @@ namespace gpuPixelRecHits {
         cl -= startClus;
         assert(cl >= 0);
         assert(cl < MaxHitsInIter);
-        atomicMin(&clusParams.minRow[cl], x);
-        atomicMax(&clusParams.maxRow[cl], x);
-        atomicMin(&clusParams.minCol[cl], y);
-        atomicMax(&clusParams.maxCol[cl], y);
+        cms::sycltools::AtomicMin(&clusParams->minRow[cl], x);
+        cms::sycltools::AtomicMax(&clusParams->maxRow[cl], x);
+        cms::sycltools::AtomicMin(&clusParams->minCol[cl], y);
+        cms::sycltools::AtomicMax(&clusParams->maxCol[cl], y);
       }
 
       /*
@@ -161,15 +161,15 @@ namespace gpuPixelRecHits {
         auto x = digis.xx(i);
         auto y = digis.yy(i);
         auto ch = std::min(digis.adc(i), pixmx);
-        cms::sycltools::AtomicAdd(&clusParams.charge[cl], ch);
-        if (clusParams.minRow[cl] == x)
-          cms::sycltools::AtomicAdd(&clusParams.Q_f_X[cl], ch);
-        if (clusParams.maxRow[cl] == x)
-          cms::sycltools::AtomicAdd(&clusParams.Q_l_X[cl], ch);
-        if (clusParams.minCol[cl] == y)
-          cms::sycltools::AtomicAdd(&clusParams.Q_f_Y[cl], ch);
-        if (clusParams.maxCol[cl] == y)
-          cms::sycltools::AtomicAdd(&clusParams.Q_l_Y[cl], ch);
+        cms::sycltools::AtomicAdd(&clusParams->charge[cl], ch);
+        if (clusParams->minRow[cl] == x)
+          cms::sycltools::AtomicAdd(&clusParams->Q_f_X[cl], ch);
+        if (clusParams->maxRow[cl] == x)
+          cms::sycltools::AtomicAdd(&clusParams->Q_l_X[cl], ch);
+        if (clusParams->minCol[cl] == y)
+          cms::sycltools::AtomicAdd(&clusParams->Q_f_Y[cl], ch);
+        if (clusParams->maxCol[cl] == y)
+          cms::sycltools::AtomicAdd(&clusParams->Q_l_Y[cl], ch);
       }
 
       /*
@@ -190,24 +190,24 @@ namespace gpuPixelRecHits {
         assert(h < hits.nHits());
         assert(h < clusters.clusModuleStart(me + 1));
 
-        pixelCPEforGPU::position(cpeParams->commonParams(), cpeParams->detParams(me), clusParams, ic);
-        pixelCPEforGPU::errorFromDB(cpeParams->commonParams(), cpeParams->detParams(me), clusParams, ic);
+        pixelCPEforGPU::position(cpeParams->commonParams(), cpeParams->detParams(me), *clusParams, ic);
+        pixelCPEforGPU::errorFromDB(cpeParams->commonParams(), cpeParams->detParams(me), *clusParams, ic);
 
         // store it
 
-        hits.charge(h) = clusParams.charge[ic];
+        hits.charge(h) = clusParams->charge[ic];
 
         hits.detectorIndex(h) = me;
 
         float xl, yl;
-        hits.xLocal(h) = xl = clusParams.xpos[ic];
-        hits.yLocal(h) = yl = clusParams.ypos[ic];
+        hits.xLocal(h) = xl = clusParams->xpos[ic];
+        hits.yLocal(h) = yl = clusParams->ypos[ic];
 
-        hits.clusterSizeX(h) = clusParams.xsize[ic];
-        hits.clusterSizeY(h) = clusParams.ysize[ic];
+        hits.clusterSizeX(h) = clusParams->xsize[ic];
+        hits.clusterSizeY(h) = clusParams->ysize[ic];
 
-        hits.xerrLocal(h) = clusParams.xerr[ic] * clusParams.xerr[ic];
-        hits.yerrLocal(h) = clusParams.yerr[ic] * clusParams.yerr[ic];
+        hits.xerrLocal(h) = clusParams->xerr[ic] * clusParams->xerr[ic];
+        hits.yerrLocal(h) = clusParams->yerr[ic] * clusParams->yerr[ic];
 
         // keep it local for computations
         float xg, yg, zg;

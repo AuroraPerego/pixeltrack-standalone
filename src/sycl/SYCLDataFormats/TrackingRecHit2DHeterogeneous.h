@@ -88,7 +88,7 @@ TrackingRecHit2DHeterogeneous<Traits>::TrackingRecHit2DHeterogeneous(uint32_t nH
   // if empy do not bother
   if (0 == nHits) {
     if constexpr (std::is_same<Traits, cms::syclcompat::GPUTraits>::value) {
-      stream.memcpy(m_view, view, sizeof(TrackingRecHit2DSOAView));
+      stream.memcpy(m_view.get(), view.get(), sizeof(TrackingRecHit2DSOAView));
     } else {
       m_view.reset(view.release());  // NOLINT: std::move() breaks CUDA version
     }
@@ -131,7 +131,7 @@ TrackingRecHit2DHeterogeneous<Traits>::TrackingRecHit2DHeterogeneous(uint32_t nH
 
   // transfer view
   if constexpr (std::is_same<Traits, cms::syclcompat::GPUTraits>::value) {
-    stream.memcpy(m_view, view, sizeof(TrackingRecHit2DSOAView));
+    stream.memcpy(m_view.get(), view.get(), sizeof(TrackingRecHit2DSOAView));
   } else {
     m_view.reset(view.release());  // NOLINT: std::move() breaks CUDA version
   }

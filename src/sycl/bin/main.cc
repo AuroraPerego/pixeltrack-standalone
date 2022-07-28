@@ -104,8 +104,10 @@ int main(int argc, char** argv) try {
   std::vector<std::string> edmodules;
   std::vector<std::string> esmodules;
   if (not empty) {
-    edmodules = {"TestProducer", "TestProducer3", "TestProducer2", "BeamSpotToSYCL"};
-    esmodules = {"IntESProducer", "BeamSpotESProducer"};
+    edmodules = {"TestProducer", "TestProducer3", "TestProducer2", "BeamSpotToSYCL",  "SiPixelRawToClusterSYCL", "SiPixelRecHitSYCL", "CAHitNtupletSYCL"};
+    esmodules = {"IntESProducer", "BeamSpotESProducer", "SiPixelFedCablingMapGPUWrapperESProducer",
+                 "SiPixelGainCalibrationForHLTGPUESProducer", "PixelCPEFastESProducer"};
+
     if (transfer) {
       // add modules for transfer
     }
