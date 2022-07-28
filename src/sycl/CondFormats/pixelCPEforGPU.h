@@ -62,8 +62,8 @@ namespace pixelCPEforGPU {
       CommonParams const* __restrict__ l = m_commonParams;
       return *l;
     }
-    constexpr DetParams const& __restrict__ detParams(int i) const {
-      DetParams const* __restrict__ l = m_detParams;
+    constexpr DetParams const& detParams(int i) const {
+      DetParams const* l = m_detParams;
       return l[i];
     }
     constexpr LayerGeometry const& __restrict__ layerGeometry() const { return *m_layerGeometry; }

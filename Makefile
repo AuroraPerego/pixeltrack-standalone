@@ -130,8 +130,7 @@ endif
 
 EIGEN_BASE := $(EXTERNAL_BASE)/eigen
 export EIGEN_DEPS := $(EIGEN_BASE)
-export EIGEN_CXXFLAGS := -isystem $(EIGEN_BASE) -DEIGEN_DONT_PARALLELIZE # -DEIGEN_USE_SYCL
-# FIXME_ last flag should be enabled only for make sycl
+export EIGEN_CXXFLAGS := -isystem $(EIGEN_BASE) -DEIGEN_DONT_PARALLELIZE #-DEIGEN_USE_SYCL
 export EIGEN_LDFLAGS :=
 export EIGEN_NVCC_CXXFLAGS := --diag-suppress 20014
 
@@ -257,16 +256,13 @@ endif
 export KOKKOS_DEPS := $(KOKKOS_LIB)
 
 # Intel oneAPI
-ONEAPI_BASE := /cvmfs/projects.cern.ch/intelsw/oneAPI/linux/x86_64/2022
-# /cvmfs/projects.cern.ch/intelsw/oneAPI/linux/x86_64/2022
-# /opt/intel/oneapi
+ONEAPI_BASE := /opt/intel/oneapi
 ifneq ($(wildcard $(ONEAPI_BASE)),)
 # OneAPI platform found
-SYCL_VERSION  := 2022.1.0
 ONEAPI_ENV    := $(ONEAPI_BASE)/setvars.sh
-DPCT_BASE     := $(ONEAPI_BASE)/dpcpp-ct/$(SYCL_VERSION)
-SYCL_BASE     := $(ONEAPI_BASE)/compiler/$(SYCL_VERSION)/linux
-DPCT_CXXFLAGS := -Wsycl-strict -isystem $(DPCT_BASE)/include
+DPCT_BASE     := $(ONEAPI_BASE)/dpcpp-ct/latest
+SYCL_BASE     := $(ONEAPI_BASE)/compiler/latest/linux
+DPCT_CXXFLAGS := -isystem $(DPCT_BASE)/include
 endif
 SYCL_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Wno-non-template-friend -Werror=format-contains-nul -Werror=return-local-addr -Werror=unused-but-set-variable
 

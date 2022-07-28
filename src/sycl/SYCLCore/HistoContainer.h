@@ -325,7 +325,7 @@ namespace cms {
 
       __forceinline void finalize(sycl::nd_item<3> item, Counter *ws = nullptr) {
         assert(off[totbins() - 1] == 0);
-        blockPrefixScan(off, totbins(), item, ws);
+        blockPrefixScan(off, totbins(), ws, item);
         assert(off[totbins() - 1] == off[totbins() - 2]);
       }
 

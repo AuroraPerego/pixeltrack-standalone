@@ -52,23 +52,22 @@ namespace pixelgpudetails {
       stream.submit([&](sycl::handler &cgh) {
         auto cpeParams_kernel = cpeParams; 
         auto bs_d_kernel = bs_d.data(); 
-        auto digis_view_kernel = digis_d.view(); 
-        auto digis_n_kernel = digis_d.nDigis(); 
+        auto digis_d_kernel = digis_d.view(); 
+        auto digis_d_kernel = digis_d.nDigis(); 
         auto clusters_d_kernel = clusters_d.view(); 
         auto hits_d_kernel= hits_d.view();
-        sycl::accessor<pixelCPEforGPU::ClusParams, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                   clusParams_acc(sycl::range<1>(32), cgh); //FIXME_ 32 is correct??
+        sycl::accessor<ClusParams, 1, sycl::access_mode::read_write, sycl::access::target::local> (ClusParams *)ClusParams_acc(sycl::range<1>(32), cgh); //FIXME_ 32 is correct??
         cgh.parallel_for(
           sycl::nd_range<3>(blocks * sycl::range<3>(1, 1, threadsPerBlock), sycl::range<3>(1, 1, threadsPerBlock)),
           [=](sycl::nd_item<3> item){ 
               gpuPixelRecHits::getHits(cpeParams_kernel, 
                                        bs_d_kernel, 
-                                       digis_view_kernel, 
-                                       digis_n_kernel, 
+                                       digis_d_kernel, 
+                                       digis_d_kernel, 
                                        clusters_d_kernel, 
                                        hits_d_kernel,
                                        item,
-                                       (pixelCPEforGPU::ClusParams *)clusParams_acc.get_pointer());  
+                                       clusParams_acc);  
       });
     });
     //cudaCheck(0);
@@ -88,9 +87,8 @@ namespace pixelgpudetails {
           [=](sycl::nd_item<3> item){
               setHitsLayerStart(clusters_d_kernel, cpeParams_kernel, hits_d_kernel, item);
       //cudaCheck(0);
-    	});
-      });
     }
+
     if (nHits) {
       cms::sycltools::fillManyFromVector(hits_d.phiBinner(), 10, hits_d.iphi(), hits_d.hitsLayerStart(), nHits, 256, stream);
       //cudaCheck(0);

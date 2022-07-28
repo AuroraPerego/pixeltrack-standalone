@@ -30,36 +30,6 @@ namespace cms {
       return sycl::atomic<A>(sycl::global_ptr<A>(&i)).fetch_add(-j);
     }
 
-    template <typename A, typename B>
-    inline A AtomicMin(A* i, B j){
-      return sycl::atomic<A, sycl::access::address_space::local_space>(sycl::local_ptr<A>(i)).fetch_min(j);
-    }
-
-    template <typename A, typename B>
-    inline A AtomicMin(A i, B j){
-      return sycl::atomic<A, sycl::access::address_space::local_space>(sycl::local_ptr<A>(&i)).fetch_min(j);
-    }
-
-    template <typename A, typename B>
-    inline A AtomicMax(A* i, B j){
-      return sycl::atomic<A, sycl::access::address_space::local_space>(sycl::local_ptr<A>(i)).fetch_max(j);
-    }
-
-    template <typename A, typename B>
-    inline A AtomicMax(A i, B j){
-      return sycl::atomic<A, sycl::access::address_space::local_space>(sycl::local_ptr<A>(&i)).fetch_max(j);
-    }
-
-    template <typename A, typename B>
-    inline A AtomicInc(A* i, B j){
-      auto ret = *i;
-      sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_add(-j);
-      if (*i < 0)
-        sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_add(1);
-      sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_add(j);
-      return ret;
-    }
-
     class AtomicPairCounter {
     public:
       using c_type = unsigned long long int;
