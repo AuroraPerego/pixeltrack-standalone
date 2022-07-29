@@ -7,7 +7,8 @@
 SiPixelGainCalibrationForHLTGPU::SiPixelGainCalibrationForHLTGPU(SiPixelGainForHLTonGPU const& gain,
                                                                  std::vector<char> gainData)
     : gainData_(std::move(gainData)) {
-  std::unique_ptr<SiPixelGainForHLTonGPU> gainForHLTonHost_ = std::make_unique<SiPixelGainForHLTonGPU>();
+  //std::unique_ptr<SiPixelGainForHLTonGPU> gainForHLTonHost_ = std::make_unique<SiPixelGainForHLTonGPU>();
+  gainForHLTonHost_ = new SiPixelGainForHLTonGPU();
   *gainForHLTonHost_ = gain;
 }
 
@@ -28,7 +29,7 @@ const SiPixelGainForHLTonGPU* SiPixelGainCalibrationForHLTGPU::getGPUProductAsyn
       
       stream.memcpy(data.gainForHLTonGPU, this->gainForHLTonHost_, sizeof(SiPixelGainForHLTonGPU));
       
-      stream.memcpy(data.gainForHLTonGPU->v_pedestals, &(data.gainDataOnGPU), sizeof(SiPixelGainForHLTonGPU_DecodingStructure*));
+      stream.memcpy(&(data.gainForHLTonGPU->v_pedestals), &(data.gainDataOnGPU), sizeof(SiPixelGainForHLTonGPU_DecodingStructure*));
       
   });
   return data.gainForHLTonGPU;

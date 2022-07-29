@@ -77,7 +77,7 @@ public:
         sycl::ext::oneapi::atomic_fence(sycl::ext::oneapi::memory_order::acq_rel,
                                         sycl::ext::oneapi::memory_scope::device);
 #ifdef SYCL_LANGUAGE_VERSION
-        auto zero = (ptrAsInt)(&cellNeighbors[0]);
+  auto zero = (ptrAsInt)(&cellNeighbors[0]);
 	ptrAsInt* zero_pointer = &zero;
 	auto val = (ptrAsInt)(&cellNeighbors[i]);
 	ptrAsInt* val_pointer = &val;

@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "SYCLCore/AtomicPairCounter.h"
+#include "SYCLCore/syclAtomic.h"
 
 namespace cms {
   namespace sycltools {

@@ -17,14 +17,15 @@
 SiPixelFedCablingMapGPUWrapper::SiPixelFedCablingMapGPUWrapper(SiPixelFedCablingMapGPU const& cablingMap,
                                                                std::vector<unsigned char> modToUnp)
     : modToUnpDefault(modToUnp.size()), hasQuality_(true) {
-
-  std::unique_ptr<SiPixelFedCablingMapGPU> cablingMapHost = std::make_unique<SiPixelFedCablingMapGPU>();
-  std::memcpy(cablingMapHost.get(), &cablingMap, sizeof(SiPixelFedCablingMapGPU));
+  
+  cablingMapHost_ = new SiPixelFedCablingMapGPU();
+  //std::unique_ptr<SiPixelFedCablingMapGPU> cablingMapHost = std::make_unique<SiPixelFedCablingMapGPU>();
+  std::memcpy(cablingMapHost_, &cablingMap, sizeof(SiPixelFedCablingMapGPU));
   std::copy(modToUnp.begin(), modToUnp.end(), modToUnpDefault.begin());
 }
 
 SiPixelFedCablingMapGPUWrapper::~SiPixelFedCablingMapGPUWrapper() { 
-  //cudaCheck(cudaFreeHost(cablingMapHost)); 
+  delete cablingMapHost_; 
   }
 
 const SiPixelFedCablingMapGPU* SiPixelFedCablingMapGPUWrapper::getGPUProductAsync(sycl::queue syclStream) const {
@@ -32,7 +33,7 @@ const SiPixelFedCablingMapGPU* SiPixelFedCablingMapGPUWrapper::getGPUProductAsyn
     // allocate
     data.cablingMapDevice = (SiPixelFedCablingMapGPU *)sycl::malloc_device(sizeof(SiPixelFedCablingMapGPU), stream);
     // transfer
-    stream.memcpy(data.cablingMapDevice, this->cablingMapHost, sizeof(SiPixelFedCablingMapGPU));
+    stream.memcpy(data.cablingMapDevice, this->cablingMapHost_, sizeof(SiPixelFedCablingMapGPU));
   });
   return data.cablingMapDevice;
 }

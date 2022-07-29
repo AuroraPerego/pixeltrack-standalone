@@ -38,9 +38,10 @@ namespace pixelgpudetails {
   // number of words for all the FEDs
   constexpr uint32_t MAX_FED_WORDS = pixelgpudetails::MAX_FED * pixelgpudetails::MAX_WORD;
 
-  SiPixelRawToClusterGPUKernel::WordFedAppender::WordFedAppender() {
-    word_ = std::make_unique<unsigned int[]>(MAX_FED_WORDS);
-    fedId_ = std::make_unique<unsigned char[]>(MAX_FED_WORDS);
+  SiPixelRawToClusterGPUKernel::WordFedAppender::WordFedAppender()
+      : word_(new unsigned int), fedId_(new unsigned char) {
+    //word_ = std::make_unique<unsigned int[]>(MAX_FED_WORDS);
+    //fedId_ = std::make_unique<unsigned char[]>(MAX_FED_WORDS);
     //word_ = cms::sycltools::make_host_unique<unsigned int[]>(MAX_FED_WORDS, stream);
     //fedId_ = cms::sycltools::make_host_unique<unsigned char[]>(MAX_FED_WORDS, stream);
   }

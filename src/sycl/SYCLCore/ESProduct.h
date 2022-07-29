@@ -52,7 +52,7 @@ namespace cms {
             // Someone else is filling
 
             // Check first if the recorded event has occurred
-            if (eventWorkHasCompleted(*data.m_event.get())) {
+            if (eventWorkHasCompleted(data.m_event.get())) {
               // It was, so data is accessible from all CUDA streams on
               // the device. Set the 'filled' for all subsequent calls and
               // return the value

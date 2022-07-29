@@ -130,7 +130,7 @@ endif
 
 EIGEN_BASE := $(EXTERNAL_BASE)/eigen
 export EIGEN_DEPS := $(EIGEN_BASE)
-export EIGEN_CXXFLAGS := -isystem $(EIGEN_BASE) -DEIGEN_DONT_PARALLELIZE # -DEIGEN_USE_SYCL
+export EIGEN_CXXFLAGS := -isystem $(EIGEN_BASE) -DEIGEN_DONT_PARALLELIZE
 # FIXME_ last flag should be enabled only for make sycl
 export EIGEN_LDFLAGS :=
 export EIGEN_NVCC_CXXFLAGS := --diag-suppress 20014
@@ -531,10 +531,11 @@ external_eigen: $(EIGEN_BASE)
 
 $(EIGEN_BASE):
 	# from Eigen master branch as of 2021.08.18
-	git clone -b cms/master/82dd3710dac619448f50331c1d6a35da673f764a https://github.com/cms-externals/eigen-git-mirror.git $@
+	#git clone -b cms/master/82dd3710dac619448f50331c1d6a35da673f764a https://github.com/cms-externals/eigen-git-mirror.git $@
+	git clone https://gitlab.com/libeigen/eigen.git $@
 	# include all Patatrack updates
-	cd $@ && git reset --hard 6294f3471cc18068079ec6af8ceccebe34b40021
-
+	#cd $@ && git reset --hard 6294f3471cc18068079ec6af8ceccebe34b40021
+	cd $@ && git reset --hard 34780d8bd13d0af0cf17a22789ef286e8512594d
 # Boost
 .PHONY: external_boost
 external_boost: $(BOOST_BASE)

@@ -8,7 +8,7 @@
 #include "Geometry/phase1PixelTopology.h"
 #include "SYCLCore/HistoContainer.h"
 #include "SYCLCore/sycl_assert.h"
-#include "SYCLCore/AtomicPairCounter.h"
+#include "SYCLCore/syclAtomic.h"
 
 #include "gpuClusteringConstants.h"
 

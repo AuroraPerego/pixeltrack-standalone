@@ -146,7 +146,7 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
     wordCounterGPU += (ew - bw);
 
   }  // end of for loop
-
+  
   gpuAlgo_.makeClustersAsync(isRun2_,
                              gpuMap,
                              gpuModulesToUnpack,

@@ -8,6 +8,7 @@
 #include <vector>
 
 namespace cms::sycltools {
+
   void EventCache::Deleter::operator()(sycl::event* event) const {
 
   }
@@ -22,7 +23,7 @@ namespace cms::sycltools {
     int dev_idx = distance(device_list.begin(), find(device_list.begin(), device_list.end(), dev));
     auto event = makeOrGet(dev_idx);
     // captured work has completed, or a just-created event
-    if (eventWorkHasCompleted(*event.get())) {
+    if (eventWorkHasCompleted(event.get())) {
       return event;
     }
 
@@ -34,7 +35,7 @@ namespace cms::sycltools {
     bool completed;
     do {
       event = makeOrGet(dev_idx);
-      completed = eventWorkHasCompleted(*event.get());
+      completed = eventWorkHasCompleted(event.get());
       if (not completed) {
         ptrs.emplace_back(std::move(event));
       }
