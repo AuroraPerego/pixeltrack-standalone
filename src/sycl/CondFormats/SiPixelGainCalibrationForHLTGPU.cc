@@ -12,25 +12,23 @@ SiPixelGainCalibrationForHLTGPU::SiPixelGainCalibrationForHLTGPU(SiPixelGainForH
   *gainForHLTonHost_ = gain;
 }
 
-SiPixelGainCalibrationForHLTGPU::~SiPixelGainCalibrationForHLTGPU() {  
-}
+SiPixelGainCalibrationForHLTGPU::~SiPixelGainCalibrationForHLTGPU() { delete gainForHLTonHost_; }
 
-SiPixelGainCalibrationForHLTGPU::GPUData::~GPUData() {
-}
+const SiPixelGainForHLTonGPU* SiPixelGainCalibrationForHLTGPU::getGPUProductAsync(sycl::queue stream) const {
+  const auto& data = gpuData_.dataForCurrentDeviceAsync(stream, [this](GPUData& data, sycl::queue stream) {
+    data.set_queue(stream);
+    data.gainForHLTonGPU = (SiPixelGainForHLTonGPU*)sycl::malloc_device(sizeof(SiPixelGainForHLTonGPU), stream);
+    data.gainDataOnGPU = (SiPixelGainForHLTonGPU_DecodingStructure*)sycl::malloc_device(this->gainData_.size(), stream);
 
-const SiPixelGainForHLTonGPU* SiPixelGainCalibrationForHLTGPU::getGPUProductAsync(sycl::queue syclStream) const {
-    const auto& data = gpuData_.dataForCurrentDeviceAsync(syclStream, [this](GPUData& data, sycl::queue stream) {
+    stream.memcpy(data.gainDataOnGPU, this->gainData_.data(), this->gainData_.size());
 
+    stream.memcpy(data.gainForHLTonGPU, this->gainForHLTonHost_, sizeof(SiPixelGainForHLTonGPU));
 
-      data.gainForHLTonGPU = (SiPixelGainForHLTonGPU *)sycl::malloc_device(sizeof(SiPixelGainForHLTonGPU), stream);
-      data.gainDataOnGPU = (SiPixelGainForHLTonGPU_DecodingStructure *)sycl::malloc_device(this->gainData_.size(), stream);
- 
-      stream.memcpy(data.gainDataOnGPU, this->gainData_.data(), this->gainData_.size());
-      
-      stream.memcpy(data.gainForHLTonGPU, this->gainForHLTonHost_, sizeof(SiPixelGainForHLTonGPU));
-      
-      stream.memcpy(&(data.gainForHLTonGPU->v_pedestals), &(data.gainDataOnGPU), sizeof(SiPixelGainForHLTonGPU_DecodingStructure*));
-      
+    stream
+        .memcpy(&(data.gainForHLTonGPU->v_pedestals),
+                &(data.gainDataOnGPU),
+                sizeof(SiPixelGainForHLTonGPU_DecodingStructure*))
+        .wait();
   });
   return data.gainForHLTonGPU;
 }

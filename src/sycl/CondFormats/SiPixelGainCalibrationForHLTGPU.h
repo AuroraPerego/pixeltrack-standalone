@@ -19,10 +19,19 @@ public:
 private:
   SiPixelGainForHLTonGPU *gainForHLTonHost_ = nullptr;
   std::vector<char> gainData_;
-  struct GPUData {
-    ~GPUData();
+  class GPUData {
+  public:
+    GPUData() = default;
+    ~GPUData() {
+      sycl::free(gainForHLTonGPU, q_);
+      sycl::free(gainDataOnGPU, q_);
+    };
+    void set_queue(sycl::queue queue) { q_ = queue; }
     SiPixelGainForHLTonGPU *gainForHLTonGPU = nullptr;
     SiPixelGainForHLTonGPU_DecodingStructure *gainDataOnGPU = nullptr;
+
+  private:
+    sycl::queue q_;
   };
   cms::sycltools::ESProduct<GPUData> gpuData_;
 };

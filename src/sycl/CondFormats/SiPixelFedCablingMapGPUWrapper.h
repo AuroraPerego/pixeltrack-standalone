@@ -33,8 +33,10 @@ private:
   public:
     GPUData() = default;
     ~GPUData() { sycl::free(cablingMapDevice, q_); }
-    SiPixelFedCablingMapGPU *cablingMapDevice = nullptr;  // pointer to struct in GPU
+    
     void set_queue(sycl::queue queue) { q_ = queue; }
+
+    SiPixelFedCablingMapGPU *cablingMapDevice = nullptr;  // pointer to struct in GPU
 
   private:
     sycl::queue q_;
