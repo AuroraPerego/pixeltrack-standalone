@@ -7,8 +7,8 @@
 
 using ZVertexHeterogeneous = HeterogeneousSoA<ZVertexSoA>;
 #ifndef SYCL_LANGUAGE_VERSION
-#include "SYCLCore/Product.h"
-using ZVertexSYCLProduct = cms::cuda::Product<ZVertexHeterogeneous>;
 #endif
+#include "SYCLCore/Product.h"
+using ZVertexSYCLProduct = cms::sycltools::Product<ZVertexHeterogeneous>;
 
 #endif

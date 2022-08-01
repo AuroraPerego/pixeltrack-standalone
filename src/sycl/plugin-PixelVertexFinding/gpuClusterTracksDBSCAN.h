@@ -14,6 +14,8 @@
 
 namespace gpuVertexFinder {
 
+  using Hist = cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
+
   // this algo does not really scale as it works in a single block...
   // enough for <10K tracks we have
   void clusterTracksDBSCAN(ZVertices* pdata,
@@ -21,9 +23,9 @@ namespace gpuVertexFinder {
                            int minT,      // min number of neighbours to be "core"
                            float eps,     // max absolute distance to cluster
                            float errmax,  // max error to be "seed"
-                           float chi2max  // max normalized distance to cluster
+                           float chi2max,  // max normalized distance to cluster
                            sycl::nd_item<3> item,
-                           cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t> *hist,
+                           Hist *hist,
                            Hist::Counter* hws,
                            unsigned int* foundClusters,
                            const sycl::stream out
@@ -51,17 +53,15 @@ namespace gpuVertexFinder {
     assert(pdata);
     assert(zt);
 
-    using Hist = cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
-
     for (auto j = item.get_local_id(2); j < Hist::totbins(); j += item.get_local_range(2)) {
-      hist.off[j] = 0;
+      hist->off[j] = 0;
     }
     item.barrier();
 
     if (verbose && 0 == item.get_local_id(2))
-      out << "booked hist with " << hist.nbins() << " bins, size " << hist.capacity() << " for " << nt << " tracks\n";
+      out << "booked hist with " << hist->nbins() << " bins, size " << hist->capacity() << " for " << nt << " tracks\n";
 
-    assert(nt <= hist.capacity());
+    assert(nt <= hist->capacity());
 
     // fill hist  (bin shall be wider than "eps")
     for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
@@ -72,7 +72,7 @@ namespace gpuVertexFinder {
       izt[i] = iz - INT8_MIN;
       assert(iz - INT8_MIN >= 0);
       assert(iz - INT8_MIN < 256);
-      hist.count(izt[i]);
+      hist->count(izt[i]);
       iv[i] = i;
       nn[i] = 0;
     }
@@ -80,11 +80,11 @@ namespace gpuVertexFinder {
     if (item.get_local_id(2) < 32)
       hws[item.get_local_id(2)] = 0;  // used by prefix scan...
     item.barrier();
-    hist.finalize(*hws);
+    hist->finalize(item, hws);
     item.barrier();
-    assert(hist.size() == nt);
+    assert(hist->size() == nt);
     for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
-      hist.fill(izt[i], uint16_t(i));
+      hist->fill(izt[i], uint16_t(i));
     }
     item.barrier();
 
@@ -102,7 +102,7 @@ namespace gpuVertexFinder {
         nn[i]++;
       };
 
-      cms::sycltools::forEachInBins(hist, izt[i], 1, loop);
+      cms::sycltools::forEachInBins(*hist, izt[i], 1, loop);
     }
 
     item.barrier();
@@ -124,7 +124,7 @@ namespace gpuVertexFinder {
         mz = zt[j];
         iv[i] = j;  // assign to cluster (better be unique??)
       };
-      cms::sycltools::forEachInBins(hist, izt[i], 1, loop);
+      cms::sycltools::forEachInBins(*hist, izt[i], 1, loop);
     }
 
     item.barrier();
@@ -178,7 +178,7 @@ namespace gpuVertexFinder {
         }
         assert(iv[i] == iv[j]);
       };
-      cms::sycltools::forEachInBins(hist, izt[i], 1, loop);
+      cms::sycltools::forEachInBins(*hist, izt[i], 1, loop);
     }
     item.barrier();
 #endif
@@ -200,7 +200,7 @@ namespace gpuVertexFinder {
         mdist = dist;
         iv[i] = iv[j];  // assign to cluster (better be unique??)
       };
-      cms::sycltools::forEachInBins(hist, izt[i], 1, loop);
+      cms::sycltools::forEachInBins(*hist, izt[i], 1, loop);
     }
 
     *foundClusters = 0;

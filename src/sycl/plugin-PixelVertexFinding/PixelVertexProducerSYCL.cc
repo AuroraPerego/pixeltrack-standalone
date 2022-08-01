@@ -20,7 +20,7 @@ private:
 
   bool m_OnGPU;
 
-  edm::EDGetTokenT<cms::cuda::Product<PixelTrackHeterogeneous>> tokenGPUTrack_;
+  edm::EDGetTokenT<cms::sycltools::Product<PixelTrackHeterogeneous>> tokenGPUTrack_;
   edm::EDPutTokenT<ZVertexSYCLProduct> tokenGPUVertex_;
   edm::EDGetTokenT<PixelTrackHeterogeneous> tokenCPUTrack_;
   edm::EDPutTokenT<ZVertexHeterogeneous> tokenCPUVertex_;
@@ -45,7 +45,7 @@ PixelVertexProducerSYCL::PixelVertexProducerSYCL(edm::ProductRegistry& reg)
       m_ptMin(0.5)  // 0.5 GeV
 {
   if (m_OnGPU) {
-    tokenGPUTrack_ = reg.consumes<cms::cuda::Product<PixelTrackHeterogeneous>>();
+    tokenGPUTrack_ = reg.consumes<cms::sycltools::Product<PixelTrackHeterogeneous>>();
     tokenGPUVertex_ = reg.produces<ZVertexSYCLProduct>();
   } else {
     tokenCPUTrack_ = reg.consumes<PixelTrackHeterogeneous>();
@@ -57,7 +57,7 @@ void PixelVertexProducerSYCL::produce(edm::Event& iEvent, const edm::EventSetup&
   if (m_OnGPU) {
     auto const& ptracks = iEvent.get(tokenGPUTrack_);
 
-    cms::cuda::ScopedContextProduce ctx{ptracks};
+    cms::sycltools::ScopedContextProduce ctx{ptracks};
     auto const* tracks = ctx.get(ptracks).get();
 
     assert(tracks);

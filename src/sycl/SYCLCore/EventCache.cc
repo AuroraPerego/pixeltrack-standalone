@@ -50,16 +50,6 @@ namespace cms::sycltools {
     });
   }
 
-/*  SharedEventPtr EventCache::makeOrGet(int dev) {
-    return cache_[dev].makeOrGet([dev]() {
-      sycl::event* event = nullptr;
-      // it should be a bit faster to ignore timings
-      //cudaCheck(cudaEventCreateWithFlags(&event, cudaEventDisableTiming));
-      //return std::unique_ptr<BareEvent, Deleter>(&event, Deleter{dev});
-      return std::unique_ptr<BareEvent>(event);
-    });
-  }*/
-
   void EventCache::clear() {
     // Reset the contents of the caches, but leave an
     // edm::ReusableObjectHolder alive for each device. This is needed

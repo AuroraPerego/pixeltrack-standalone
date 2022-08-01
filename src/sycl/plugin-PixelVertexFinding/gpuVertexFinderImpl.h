@@ -19,7 +19,7 @@ namespace gpuVertexFinder {
     auto const* quality = tracks.qualityData();
 
     auto first = item.get_group(2) * item.get_local_range(2) + item.get_local_id(2);
-    for (int idx = first, nt = TkSoA::stride(); idx < nt; idx += gridDim.x * item.get_local_range(2)) {
+    for (int idx = first, nt = TkSoA::stride(); idx < nt; idx += item.get_group_range(2) * item.get_local_range(2)) {
       auto nHits = tracks.nHits(idx);
       if (nHits == 0)
         break;  // this is a guard: maybe we need to move to nTracks...
@@ -55,9 +55,9 @@ namespace gpuVertexFinder {
                              float errmax,  // max error to be "seed"
                              float chi2max,  // max normalized distance to cluster
                              sycl::nd_item<3> item,
-                             (cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t> *)hist_acc,
-                             (Hist::Counter *)hws_acc,
-                             (unsigned int *)foundClusters_acc,
+                             Hist *hist_acc,
+                             Hist::Counter *hws_acc,
+                             unsigned int *foundClusters_acc,
                              int* noise_acc,
                              uint32_t *it_acc,
                              float *zz_acc,
@@ -73,13 +73,13 @@ namespace gpuVertexFinder {
                              int32_t *cu_acc, 
                              int *ibs_acc, 
                              int *p_acc,
-                             const sycl::stream out
+                             sycl::stream out
   ) {
-    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item, out, hist_acc, hws_acc, foundClusters_acc); 
+    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item, hist_acc, hws_acc, foundClusters_acc, out); 
     item.barrier();
     fitVertices(pdata, pws, 50., item, noise_acc, out);
     item.barrier();
-    splitVertices(pdata, pws, 9.f, item, out_acc, it_acc, zz_acc, newV_acc, ww_acc, nq_acc, znew_acc, wnew_acc, igv_acc);
+    splitVertices(pdata, pws, 9.f, item, it_acc, zz_acc, newV_acc, ww_acc, nq_acc, znew_acc, wnew_acc, igv_acc, out);
     item.barrier();
     fitVertices(pdata, pws, 5000., item, noise_acc, out);
     item.barrier();
@@ -94,8 +94,9 @@ namespace gpuVertexFinder {
                            float chi2max  // max normalized distance to cluster,
                            sycl::nd_item<3> item,
                            int* noise_acc,
-                           const sycl::stream out) {
-    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max);
+
+                           sycl::stream out) {
+    (pdata, pws, minT, eps, errmax, chi2max, item, hist_acc, hws_acc, foundClusters_acc, out);
     item.barrier();
     fitVertices(pdata, pws, 50., item, noise_acc, out);
   }
@@ -109,7 +110,7 @@ namespace gpuVertexFinder {
                            int32_t *cu_acc, 
                            int *ibs_acc, 
                            int *p_acc,
-                           const sycl::stream out
+                           sycl::stream out
   ) {
     fitVertices(pdata, pws, 5000., item, noise_acc, out);
     item.barrier();
@@ -117,26 +118,15 @@ namespace gpuVertexFinder {
   }
 #endif
 
-#ifdef SYCL_LANGUAGE_VERSION //FIXME_ do we need the ifdef? I don't think so
-  ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa, float ptMin) const {
+ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa, float ptMin) const {
     // std::cout << "producing Vertices on GPU" << std::endl;
     ZVertexHeterogeneous vertices(cms::sycltools::make_device_unique<ZVertexSoA>(stream));
-#else
-  ZVertexHeterogeneous Producer::make(TkSoA const* tksoa, float ptMin) const {
-    // std::cout << "producing Vertices on  CPU" <<    std::endl;
-    ZVertexHeterogeneous vertices(std::make_unique<ZVertexSoA>());
-#endif
     assert(tksoa);
     auto* soa = vertices.get();
     assert(soa);
 
-#ifdef SYCL_LANGUAGE_VERSION
     auto ws_d = cms::sycltools::make_device_unique<WorkSpace>(stream);
-#else
-    auto ws_d = std::make_unique<WorkSpace>();
-#endif
 
-#ifdef SYCL_LANGUAGE_VERSION
     stream.submit([&](sycl::handler &cgh) {
       auto soa_kernel = soa;
       auto ws_kernel   = ws_d.get();
@@ -159,21 +149,19 @@ namespace gpuVertexFinder {
               loadTracks(tksoa_kernel, soa_kernel, ws_kernel, ptMin, item);  
       });
     });
-#else
-    //cms::cudacompat::resetGrid();
-    //init(soa, ws_d.get());
-    //loadTracks(tksoa, soa, ws_d.get(), ptMin);
-#endif
 
-#ifdef SYCL_LANGUAGE_VERSION
     if (oneKernel_) {
       // implemented only for density clustesrs
 #ifndef THREE_KERNELS
     numberOfBlocks = 1;
     blockSize      = 1024 - 256;
     stream.submit([&](sycl::handler &cgh) {
-      auto soa_kernel = soa;
-      auto ws_kernel  = ws_d.get();
+      auto soa_kernel  = soa;
+      auto ws_kernel   = ws_d.get();
+      auto minT_kernel = minT;
+      auto eps_kernel  = eps;
+      auto errmax_kernel = errmax;
+      auto chi2max_kernel = chi2max;
       sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
               hist_acc(sycl::range<1>(sizeof(Hist) * numberOfBlocks), cgh);
       sycl::accessor<Hist::Counter, 1, sycl::access_mode::read_write, sycl::access::target::local>
@@ -196,8 +184,8 @@ namespace gpuVertexFinder {
               znew_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
       sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
               wnew_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
-      sycl::accessor<uint32_t int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              igv_acc(sycl::range<1>(sizeof(uint32_t int) * numberOfBlocks), cgh);
+      sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              igv_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
       sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
               sws_acc(sycl::range<1>(sizeof(uint16_t) * numberOfBlocks), cgh);
       sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
@@ -210,12 +198,11 @@ namespace gpuVertexFinder {
               ibs_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               p_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh); //FIXME_ put here the size of the arrays
-                  
-      const sycl::stream out;
+      sycl::stream out;
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-              vertexFinderOneKernel(soa_kernel, ws_kernel, minT, eps, errmax, chi2max, item,
+              vertexFinderOneKernel(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item,
                              (Hist *)hist_acc.get_pointer(),
                              (Hist::Counter *)hws_acc.get_pointer(),
                              (unsigned int *)foundClusters_acc.get_pointer(),
@@ -234,7 +221,7 @@ namespace gpuVertexFinder {
                              (int32_t *)cu_acc.get_pointer(), 
                              (int *)ibs_acc.get_pointer(), 
                              (int *)p_acc.get_pointer(),
-                             out
+                             out);
       });
     });
 #else
@@ -245,13 +232,14 @@ namespace gpuVertexFinder {
       auto ws_kernel  = ws_d.get();
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               noise_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
-      const sycl::stream out;
+      sycl::stream out;
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
               vertexFinderKernel1(soa_kernel, ws_kernel, minT, eps, errmax, chi2max, item, (int *)noise_acc.get_pointer(), out);
       });
     });
+
     numberOfBlocks = 1;
     blockSize      = 1024 - 256;
     stream.submit([&](sycl::handler &cgh) {
@@ -271,9 +259,9 @@ namespace gpuVertexFinder {
               znew_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
       sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
               wnew_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
-      sycl::accessor<uint32_t int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              igv_acc(sycl::range<1>(sizeof(uint32_t int) * numberOfBlocks), cgh);
-      const sycl::stream out;
+      sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              igv_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+      sycl::stream out;
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
@@ -289,6 +277,7 @@ namespace gpuVertexFinder {
                            out);
       });
     });
+
     numberOfBlocks = 1;
     blockSize      = 1024 - 256;
     stream.submit([&](sycl::handler &cgh) {
@@ -308,7 +297,7 @@ namespace gpuVertexFinder {
               ibs_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               p_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
-      const sycl::stream out;
+      sycl::stream out;
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
@@ -331,16 +320,22 @@ namespace gpuVertexFinder {
       stream.submit([&](sycl::handler &cgh) {
         auto soa_kernel = soa;
         auto ws_kernel  = ws_d.get();
+        auto minT_kernel = minT;
+        auto eps_kernel  = eps;
+        auto errmax_kernel = errmax;
+        auto chi2max_kernel = chi2max;
         sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
               hist_acc(sycl::range<1>(sizeof(Hist) * numberOfBlocks), cgh);
+        sycl::accessor<Hist::Counter, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              hws_acc(sycl::range<1>(sizeof(Hist::Counter) * numberOfBlocks), cgh);
         sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               foundClusters_acc(sycl::range<1>(sizeof(unsigned int) * numberOfBlocks), cgh);
-        const sycl::stream out;
+        sycl::stream out;
         cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-              clusterTracksByDensityKernel(soa_kernel, ws_kernel, minT, eps, errmax, chi2max, item,
-                                    (Hist *)hist_acc.get_pointer(),
+              clusterTracksByDensityKernel(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item,
+                                    (Hist *)hist_acc.get_pointer(), (Hist::Counter *)hws_acc.get_pointer(),
                                     (unsigned int *)foundClusters_acc.get_pointer(), out);               
       });
     });
@@ -350,93 +345,149 @@ namespace gpuVertexFinder {
       stream.submit([&](sycl::handler &cgh) {
         auto soa_kernel = soa;
         auto ws_kernel  = ws_d.get();
+        auto minT_kernel = minT;
+        auto eps_kernel  = eps;
+        auto errmax_kernel = errmax;
+        auto chi2max_kernel = chi2max;
         sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
               hist_acc(sycl::range<1>(sizeof(Hist) * numberOfBlocks), cgh);
         sycl::accessor<Hist::Counter, 1, sycl::access_mode::read_write, sycl::access::target::local>
               hws_acc(sycl::range<1>(sizeof(Hist::Counter) * numberOfBlocks), cgh);
         sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               foundClusters_acc(sycl::range<1>(sizeof(unsigned int) * numberOfBlocks), cgh);
-        const sycl::stream out;
+        sycl::stream out;
         cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-              clusterTracksDBSCAN(soa_kernel, ws_kernel, minT, eps, errmax, chi2max, 
+              clusterTracksDBSCAN(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item,
                                   (Hist *)hist_acc.get_pointer(),
                                   (Hist::Counter*) hws_acc.get_pointer(),
                                   (unsigned int*) foundClusters_acc.get_pointer(),
                                   out);
-       //I'm HERE, finish kernels, then compare with cuda to see if the numbers are correct                    
       });
     });
       } else if (useIterative_) {
       numberOfBlocks = 1;
       blockSize      = 1024 - 256;
       stream.submit([&](sycl::handler &cgh) {
+        auto soa_kernel = soa;
+        auto ws_kernel  = ws_d.get();
+        auto minT_kernel = minT;
+        auto eps_kernel  = eps;
+        auto errmax_kernel = errmax;
+        auto chi2max_kernel = chi2max;
+        sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              hist_acc(sycl::range<1>(sizeof(Hist) * numberOfBlocks), cgh);
+        sycl::accessor<Hist::Counter, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              hws_acc(sycl::range<1>(sizeof(Hist::Counter) * numberOfBlocks), cgh);
+        sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              foundClusters_acc(sycl::range<1>(sizeof(unsigned int) * numberOfBlocks), cgh);
+        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              nloops_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+        sycl::stream out;
         cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
-              clusterTracksIterative(soa, ws_d.get(), minT, eps, errmax, chi2max);
+              clusterTracksIterative(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item, 
+                                     (Hist *)hist_acc.get_pointer(), (Hist::Counter *)hws_acc.get_pointer(), 
+                                     (unsigned int *)foundClusters_acc.get_pointer(), (int *)nloops_acc.get_pointer(), out);
       });
     });
       }
-      cudaCheck(cudaGetLastError());
+      numberOfBlocks = 1;
+      blockSize      = 1024 - 256;
       stream.submit([&](sycl::handler &cgh) {
-      cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
-                
-      });
-    });
-      fitVerticesKernel<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), 50.);
-      cudaCheck(cudaGetLastError());
-      // one block per vertex...
-      stream.submit([&](sycl::handler &cgh) {
-      cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
-                
-      });
-    });
-      splitVerticesKernel<<<1024, 128, 0, stream>>>(soa, ws_d.get(), 9.f);
-      cudaCheck(cudaGetLastError());
-      stream.submit([&](sycl::handler &cgh) {
-      cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
-                
-      });
-    });
-      fitVerticesKernel<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get(), 5000.);
-      cudaCheck(cudaGetLastError());
-      stream.submit([&](sycl::handler &cgh) {
-      cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
-                
-      });
-    });
-      sortByPt2Kernel<<<1, 1024 - 256, 0, stream>>>(soa, ws_d.get());
-    }
-    cudaCheck(cudaGetLastError());
-#else  // SYCL_LANGUAGE_VERSION FIXME_ we don't need it, right? it's for the fall of cuda on cpu
-    //if (useDensity_) {
-    //  clusterTracksByDensity(soa, ws_d.get(), minT, eps, errmax, chi2max);
-    //} else if (useDBSCAN_) {
-    //  clusterTracksDBSCAN(soa, ws_d.get(), minT, eps, errmax, chi2max);
-    //} else if (useIterative_) {
-    //  clusterTracksIterative(soa, ws_d.get(), minT, eps, errmax, chi2max);
-    //}
-    // std::cout << "found " << (*ws_d).nvIntermediate << " vertices " << std::endl;
-    //fitVertices(soa, ws_d.get(), 50.);
-    //// one block per vertex!
-    //item.get_group(2) = 0;
-    //gridDim.x = 1;
-    //splitVertices(soa, ws_d.get(), 9.f);
-    //resetGrid();
-    //fitVertices(soa, ws_d.get(), 5000.);
-    //sortByPt2(soa, ws_d.get());
-#endif
+        auto soa_kernel = soa;
+        auto ws_kernel  = ws_d.get();
+        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              noise_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+        sycl::stream out;
 
+      cgh.parallel_for(
+          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
+          [=](sycl::nd_item<3> item){ 
+                fitVerticesKernel(soa_kernel, ws_kernel, 50., item, (int *)noise_acc.get_pointer(), out);
+      });
+    });
+      // one block per vertex...
+      numberOfBlocks = 1024;
+      blockSize      = 128;
+      stream.submit([&](sycl::handler &cgh) {
+      auto soa_kernel = soa;
+      auto ws_kernel  = ws_d.get();
+      sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              it_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+      sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              zz_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+      sycl::accessor<uint8_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              newV_acc(sycl::range<1>(sizeof(uint8_t) * numberOfBlocks), cgh);
+      sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              ww_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+      sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              nq_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+      sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              znew_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+      sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              wnew_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+      sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              igv_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+      sycl::stream out;
+      cgh.parallel_for(
+          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
+          [=](sycl::nd_item<3> item){ 
+              splitVerticesKernel(soa_kernel, ws_kernel, 9.f, item,
+                           (uint32_t *)it_acc.get_pointer(),
+                           (float *)zz_acc.get_pointer(),
+                           (uint8_t *)newV_acc.get_pointer(),
+                           (float *)ww_acc.get_pointer(),
+                           (uint32_t *)nq_acc.get_pointer(),
+                           (float *)znew_acc.get_pointer(),
+                           (float *)wnew_acc.get_pointer(),
+                           (uint32_t *)igv_acc.get_pointer(),
+                           out);
+      });
+    });
+      numberOfBlocks = 1;
+      blockSize      = 1024 - 256;
+      stream.submit([&](sycl::handler &cgh) {
+        auto soa_kernel = soa;
+        auto ws_kernel  = ws_d.get();
+        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              noise_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+        sycl::stream out;
+      cgh.parallel_for(
+          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
+          [=](sycl::nd_item<3> item){ 
+                fitVerticesKernel(soa_kernel, ws_kernel, 5000., item, (int *)noise_acc.get_pointer(), out);
+
+      });
+    });
+
+      stream.submit([&](sycl::handler &cgh) {
+        auto soa_kernel = soa;
+        auto ws_kernel  = ws_d.get();
+        sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              sws_acc(sycl::range<1>(sizeof(uint16_t) * numberOfBlocks), cgh);
+        sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                c_acc(sycl::range<1>(sizeof(int32_t) * numberOfBlocks), cgh);
+        sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                ct_acc(sycl::range<1>(sizeof(int32_t) * numberOfBlocks), cgh);
+        sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                cu_acc(sycl::range<1>(sizeof(int32_t) * numberOfBlocks), cgh);
+        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                ibs_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                p_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+        cgh.parallel_for(
+          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
+          [=](sycl::nd_item<3> item){ 
+               sortByPt2Kernel(soa_kernel, ws_kernel, item, 
+                              (uint16_t *)sws_acc.get_pointer(), (int32_t *)c_acc.get_pointer(), 
+                              (int32_t *)ct_acc.get_pointer(), (int32_t *)cu_acc.get_pointer(), 
+                              (int *)ibs_acc.get_pointer(), (int *)p_acc.get_pointer());
+      });
+    });
+    }
     return vertices;
   }
 

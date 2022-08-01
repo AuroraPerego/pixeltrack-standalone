@@ -109,7 +109,7 @@ namespace cms {
                   });
       //cudaCheck(0);
 #else
-      h->finalize();
+      h->finalize(item);
 #endif
     }
 
@@ -141,7 +141,7 @@ namespace cms {
       //cudaCheck(0);
 #else
       countFromVector(h, nh, v, offsets);
-      h->finalize();
+      h->finalize(item);
       fillFromVector(h, nh, v, offsets);
 #endif
     }

@@ -12,51 +12,62 @@ namespace cms {
     //analog of cuda atomicAdd
     template <typename A, typename B>
     inline A AtomicAdd(A* i, B j){
-      return sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_add(j);
+      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(i);
+      return *(first.fetch_add(j));
     }
     
     template <typename A, typename B>
     inline A AtomicAdd(A i, B j){
-      return sycl::atomic<A>(sycl::global_ptr<A>(&i)).fetch_add(j);
+      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(&i);
+      return *(first.fetch_add(j));
     }
   
     template <typename A, typename B>
     inline A AtomicSub(A* i, B j){
-      return sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_add(-j);
+      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(i);
+      return *(first.fetch_add(-j));
     }
 
     template <typename A, typename B>
     inline A AtomicSub(A i, B j){
-      return sycl::atomic<A>(sycl::global_ptr<A>(&i)).fetch_add(-j);
+      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(&i);
+      return *(first.fetch_add(-j));
     }
 
     template <typename A, typename B>
     inline A AtomicMin(A* i, B j){
-      return sycl::atomic<A, sycl::access::address_space::local_space>(sycl::local_ptr<A>(i)).fetch_min(j);
+      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(i);
+      return *(first.fetch_add(j));
     }
 
     template <typename A, typename B>
     inline A AtomicMin(A i, B j){
-      return sycl::atomic<A, sycl::access::address_space::local_space>(sycl::local_ptr<A>(&i)).fetch_min(j);
+      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(&i);
+      return *(first.fetch_add(j));
     }
 
     template <typename A, typename B>
     inline A AtomicMax(A* i, B j){
-      return sycl::atomic<A, sycl::access::address_space::local_space>(sycl::local_ptr<A>(i)).fetch_max(j);
+      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(i);
+      return *(first.fetch_add(j));
     }
 
     template <typename A, typename B>
     inline A AtomicMax(A i, B j){
-      return sycl::atomic<A, sycl::access::address_space::local_space>(sycl::local_ptr<A>(&i)).fetch_max(j);
+      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(&i);
+      return *(first.fetch_add(j));
     }
 
     template <typename A, typename B>
     inline A AtomicInc(A* i, B j){
       auto ret = *i;
-      sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_add(-j);
-      if (*i < 0)
-        sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_add(1);
-      sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_add(j);
+      sycl::atomic_ref<A, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(*i);
+      first.fetch_add(-j);
+      if (*i < 0){
+          sycl::atomic_ref<A, sycl::memory_order::relaxed, sycl::memory_scope::work_group> second(*i);
+          second.fetch_add(1);
+      }
+      first.fetch_add(j);
       return ret;
     }
   }  // namespace sycltools

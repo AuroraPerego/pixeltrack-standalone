@@ -13,6 +13,8 @@
 #include "gpuVertexFinder.h"
 
 namespace gpuVertexFinder {
+  
+  using Hist = cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
 
   // this algo does not really scale as it works in a single block...
   // enough for <10K tracks we have
@@ -26,10 +28,10 @@ namespace gpuVertexFinder {
                                             float errmax,  // max error to be "seed"
                                             float chi2max,  // max normalized distance to cluster
                                             sycl::nd_item<3> item,
-                                            const sycl::stream out,
-                                            cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t> *hist,
+                                            Hist *hist,
                                             Hist::Counter* hws,
-                                            unsigned int* foundClusters
+                                            unsigned int* foundClusters,
+                                            const sycl::stream out
   ) {
     using namespace gpuVertexFinder;
     constexpr bool verbose = false;  // in principle the compiler should optmize out if false
@@ -55,18 +57,16 @@ namespace gpuVertexFinder {
     assert(pdata);
     assert(zt);
 
-    using Hist = cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
-
     //__shared__ typename Hist::Counter hws[32];
     for (auto j = item.get_local_id(2); j < Hist::totbins(); j += item.get_local_range(2)) {
-      *hist.off[j] = 0;
+      hist->off[j] = 0;
     }
     item.barrier();
 
     if (verbose && 0 == item.get_local_id(2))
-      out << "booked hist with " << *hist.nbins() << " bins, size " << *hist.capacity() << " for " << nt << " tracks\n";
+      out << "booked hist with " << hist->nbins() << " bins, size " << hist->capacity() << " for " << nt << " tracks\n";
 
-    assert(nt <= *hist.capacity());
+    assert(nt <= hist->capacity());
 
     // fill hist  (bin shall be wider than "eps")
     for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
@@ -77,19 +77,19 @@ namespace gpuVertexFinder {
       izt[i] = iz - INT8_MIN;
       assert(iz - INT8_MIN >= 0);
       assert(iz - INT8_MIN < 256);
-      *hist.count(izt[i]);
+      hist->count(izt[i]);
       iv[i] = i;
       nn[i] = 0;
     }
     item.barrier();
     if (item.get_local_id(2) < 32)
-      *hws[item.get_local_id(2)] = 0;  // used by prefix scan...
+      hws[item.get_local_id(2)] = 0;  // used by prefix scan...
     item.barrier();
-    *hist.finalize(*hws);
+    hist->finalize(item, hws);
     item.barrier();
-    assert(*hist.size() == nt);
+    assert(hist->size() == nt);
     for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
-      *hist.fill(izt[i], uint16_t(i));
+      hist->fill(izt[i], uint16_t(i));
     }
     item.barrier();
 
@@ -233,10 +233,11 @@ namespace gpuVertexFinder {
                                     float chi2max,  // max normalized distance to cluster
                                     sycl::nd_item<3> item,
                                     cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t> *hist,
+                                    Hist::Counter* hws,
                                     unsigned int *foundClusters,
                                     const sycl::stream out
   ) {
-    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item, out, *hist, foundClusters);
+    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item, hist, hws, foundClusters, out);
   }
 
 }  // namespace gpuVertexFinder

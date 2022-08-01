@@ -17,7 +17,6 @@ namespace gpuVertexFinder {
                                    WorkSpace* pws, 
                                    float maxChi2,                      
                                    sycl::nd_item<3> item,
-                                   const sycl::stream out,
                                    uint32_t *it,
                                    float *zz,
                                    uint8_t *newV,
@@ -25,7 +24,8 @@ namespace gpuVertexFinder {
                                    uint32_t *nq,
                                    float *znew,
                                    float *wnew,
-                                   uint32_t *igv) {
+                                   uint32_t *igv,
+                                   sycl::stream out) {
     constexpr bool verbose = false;  // in principle the compiler should optmize out if false
 
     auto& __restrict__ data = *pdata;
@@ -67,7 +67,7 @@ namespace gpuVertexFinder {
       // copy to local
       for (auto k = item.get_local_id(2); k < nt; k += item.get_local_range(2)) {
         if (iv[k] == int(kv)) {
-          auto old = cms::sycltools::AtomicInc(&nq, MAXTK);
+          int old = cms::sycltools::AtomicInc(nq, MAXTK);
           zz[old] = zt[k] - zv[kv];
           newV[old] = zz[old] < 0 ? 0 : 1;
           ww[old] = 1.f / ezt2[k];
@@ -92,7 +92,7 @@ namespace gpuVertexFinder {
           wnew[1] = 0;
         }
         item.barrier();
-        for (auto k = item.get_local_id(2); k < nq; k += item.get_local_range(2)) {
+        for (auto k = item.get_local_id(2); k < (unsigned long)*nq; k += item.get_local_range(2)) {
           auto i = newV[k];
           cms::sycltools::AtomicAdd(&znew[i], zz[k] * ww[k]);
           cms::sycltools::AtomicAdd(&wnew[i], ww[k]);
@@ -103,7 +103,7 @@ namespace gpuVertexFinder {
           znew[1] /= wnew[1];
         }
         item.barrier();
-        for (auto k = item.get_local_id(2); k < nq; k += item.get_local_range(2)) {
+        for (auto k = item.get_local_id(2); k < (unsigned long)*nq; k += item.get_local_range(2)) {
           auto d0 = fabs(zz[k] - znew[0]);
           auto d1 = fabs(zz[k] - znew[1]);
           auto newer = d0 < d1 ? 0 : 1;
@@ -135,7 +135,7 @@ namespace gpuVertexFinder {
       if (0 == item.get_local_id(2))
         *igv = cms::sycltools::AtomicAdd(&ws.nvIntermediate, 1);
       item.barrier();
-      for (auto k = item.get_local_id(2); k < nq; k += item.get_local_range(2)) {
+      for (auto k = item.get_local_id(2); k < (unsigned long)*nq; k += item.get_local_range(2)) {
         if (1 == newV[k])
           iv[it[k]] = *igv;
       }
@@ -157,7 +157,7 @@ namespace gpuVertexFinder {
                            uint32_t *igv,
                            const sycl::stream out
   ) {
-    splitVertices(pdata, pws, maxChi2, item, out, it, zz, newV, ww, nq, znew, wnew, igv);
+    splitVertices(pdata, pws, maxChi2, item, it, zz, newV, ww, nq, znew, wnew, igv, out);
   }
 }  // namespace gpuVertexFinder
 
