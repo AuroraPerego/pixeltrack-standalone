@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstdio>
 
+#include "SYCLCore/syclAtomic.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/prefixScan.h"
 
@@ -81,8 +82,7 @@ namespace gpuClustering {
         continue;  // not valid
       if (id[i] != thisModuleId)
         break;  // end of module
-      sycl::atomic<int32_t, sycl::access::address_space::local_space>(sycl::local_ptr<int32_t>(&charge[clusterId[i]]))
-          .fetch_add(adc[i]); //FIXME_ add from AtomicPairCounter
+      cms::sycltools::AtomicAdd(&charge[clusterId[i]], adc[i]);
     }
     /*
     DPCT1065:1: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.

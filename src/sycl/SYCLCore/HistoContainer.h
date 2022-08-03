@@ -3,14 +3,12 @@
 
 #include <CL/sycl.hpp>
 #include <algorithm>
-#ifndef __CUDA_ARCH__ 
-#include <atomic>
-#endif  // __CUDA_ARCH__
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
 
 #include "SYCLCore/AtomicPairCounter.h"
+#include "SYCLCore/syclAtomic.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclstdAlgorithm.h"
 #include "SYCLCore/prefixScan.h"
@@ -56,29 +54,16 @@ namespace cms {
 
     template <typename Histo>
     inline __attribute__((always_inline)) void launchZero(Histo *__restrict__ h,
-                                                          sycl::queue stream
-#ifndef SYCL_LANGUAGE_VERSION
-                                                          = sycl::queue(sycl::default_selector{})
-#endif
-    ) {
+                                                          sycl::queue stream){
       uint32_t *poff = (uint32_t *)((char *)(h) + offsetof(Histo, off));
       int32_t size = offsetof(Histo, bins) - offsetof(Histo, off);
       assert(size >= int(sizeof(uint32_t) * Histo::totbins()));
-#ifdef SYCL_LANGUAGE_VERSION
       stream.memset(poff, 0, size);
-#else
-      ::memset(poff, 0, size);
-#endif
     }
 
     template <typename Histo>
     inline __attribute__((always_inline)) void launchFinalize(Histo *__restrict__ h,
-                                                              sycl::queue stream
-#ifndef SYCL_LANGUAGE_VERSION
-                                                              = sycl::queue(sycl::default_selector{})
-#endif
-    ) {
-#ifdef SYCL_LANGUAGE_VERSION
+                                                              sycl::queue stream) {
       uint32_t *poff = (uint32_t *)((char *)(h) + offsetof(Histo, off));
       int32_t *ppsws = (int32_t *)((char *)(h) + offsetof(Histo, psws));
       auto nthreads = 1024;
@@ -106,10 +91,6 @@ namespace cms {
                                          isLastBlockDone_acc.get_pointer());
               });
                   });
-      //cudaCheck(0);
-#else
-      h->finalize(item);
-#endif
     }
 
     template <typename Histo, typename T>
@@ -119,30 +100,18 @@ namespace cms {
                                                                   uint32_t const *__restrict__ offsets,
                                                                   uint32_t totSize,
                                                                   int nthreads,
-                                                                  sycl::queue stream
-#ifndef SYCL_LANGUAGE_VERSION
-                                                                  = sycl::queue(sycl::default_selector())
-#endif
-    ) {
+                                                                  sycl::queue stream) {
       launchZero(h, stream);
-#ifdef SYCL_LANGUAGE_VERSION
       auto nblocks = (totSize + nthreads - 1) / nthreads;
       stream.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, nblocks) * sycl::range<3>(1, 1, nthreads), sycl::range<3>(1, 1, nthreads)),
                           [=](sycl::nd_item<3> item) {
                                 countFromVector(h, nh, v, offsets, item);
                           });
-      //cudaCheck(0);
       launchFinalize(h, stream);
       stream.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, nblocks) * sycl::range<3>(1, 1, nthreads), sycl::range<3>(1, 1, nthreads)),
                           [=](sycl::nd_item<3> item) {
                                 fillFromVector(h, nh, v, offsets, item);
                           });
-      //cudaCheck(0);
-#else
-      countFromVector(h, nh, v, offsets);
-      h->finalize(item);
-      fillFromVector(h, nh, v, offsets);
-#endif
     }
 
     template <typename Assoc>
@@ -224,31 +193,28 @@ namespace cms {
 
       __forceinline void add(CountersOnly const &co) {
         for (uint32_t i = 0; i < totbins(); ++i) {
-#ifdef __CUDA_ARCH__
-          atomicAdd<uint32_t>(off +i, co.off[i]);
-#else
-          auto &a = (std::atomic<Counter> &)(off[i]);
-          a += co.off[i];
-#endif
+
+          cms::sycltools::AtomicAdd<uint32_t>(off +i, co.off[i]);
+          //__CUDA_ARCH__
+          //auto &a = (std::atomic<Counter> &)(off[i]);
+          //a += co.off[i];
         }
       }
 
       static __forceinline uint32_t atomicIncrement(Counter &x) {
-#ifdef __CUDA_ARCH__
-        return atomicAdd<cms::sycltools::HistoContainer<T, NBINS, SIZE, S, I, NHISTS>::Counter>>(&x, 1);
-#else
-        auto &a = (std::atomic<Counter> &)(x);
-        return a++;
-#endif
+
+        return cms::sycltools::AtomicAdd(&x, 1);
+        //__CUDA_ARCH__
+        //auto &a = (std::atomic<Counter> &)(x);
+        //return a++;
+
       }
 
       static __forceinline uint32_t atomicDecrement(Counter &x) {
-#ifdef __CUDA_ARCH__
-        return atomicSub<cms::sycltools::HistoContainer<T, NBINS, SIZE, S, I, NHISTS>::Counter>>(&x, 1);
-#else
-        auto &a = (std::atomic<Counter> &)(x);
-        return a--;
-#endif
+        return cms::sycltools::AtomicSub(&x, 1);
+        //__CUDA_ARCH__
+        //auto &a = (std::atomic<Counter> &)(x);
+        //return a--;
       }
 
       __forceinline void countDirect(T b) {

@@ -8,16 +8,19 @@
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
 
-#ifdef __CUDA_ARCH__
+//#ifdef __CUDA_ARCH__
 
 template <typename T>
 void __forceinline warpPrefixScan(T const* __restrict__ ci, T* __restrict__ co, uint32_t i, uint32_t mask, sycl::nd_item<3> item) {
   // ci and co may be the same
   auto x = ci[i];
-  auto laneId = item.get_local_id(2) & 0x1f;
+  int laneId = item.get_local_id(2) & 0x1f;
 #pragma unroll
   for (int offset = 1; offset < 32; offset <<= 1) {
-    auto y = __shfl_up_sync(mask, x, offset);
+    /*
+    DPCT1023:17: The DPC++ sub-group does not support mask options for sycl::shift_group_right.
+    */
+    auto y = sycl::shift_group_right(item.get_sub_group(), x, offset); //FIXME_ it was __shfl_up_sync
     if (laneId >= offset)
       x += y;
   }
@@ -27,17 +30,20 @@ void __forceinline warpPrefixScan(T const* __restrict__ ci, T* __restrict__ co, 
 template <typename T>
 void __forceinline warpPrefixScan(T* c, uint32_t i, uint32_t mask, sycl::nd_item<3> item) {
   auto x = c[i];
-  auto laneId = item.get_local_id(2) & 0x1f;
+  int laneId = item.get_local_id(2) & 0x1f;
 #pragma unroll
   for (int offset = 1; offset < 32; offset <<= 1) {
-    auto y = __shfl_up_sync(mask, x, offset);
+    /*
+    DPCT1023:17: The DPC++ sub-group does not support mask options for sycl::shift_group_right.
+    */
+    auto y = sycl::shift_group_right(item.get_sub_group(), x, offset); //FIXME_ it was __shfl_up_sync
     if (laneId >= offset)
       x += y;
   }
   c[i] = x;
 }
 
-#endif
+//#endif
 
 namespace cms {
   namespace sycltools {
@@ -48,12 +54,8 @@ namespace cms {
                                        VT* co,
                                        uint32_t size,
                                        sycl::nd_item<3> item,
-				       T* ws
-#ifndef __CUDA_ARCH__
-                                       = nullptr
-#endif
-    ) {
-#ifdef __CUDA_ARCH__
+				                                T* ws) {
+//#ifdef __CUDA_ARCH__
       assert(ws);
       assert(size <= 1024);
       assert(0 == item.get_local_range().get(2) % 32);
@@ -66,7 +68,7 @@ namespace cms {
 
       for (auto i = first; i < size; i += item.get_local_range().get(2)) {
         warpPrefixScan(ci, co, i, mask, item);
-        auto laneId = item.get_local_id(2) & 0x1f;
+        int laneId = item.get_local_id(2) & 0x1f;
         auto warpId = i / 32;
         assert(warpId < 32);
         if (31 == laneId)
@@ -95,11 +97,11 @@ namespace cms {
       }
       //Same as above (2)
       item.barrier(sycl::access::fence_space::local_space);
-#else
-      co[0] = ci[0];
-      for (uint32_t i = 1; i < size; ++i)
-        co[i] = ci[i] + co[i - 1];
-#endif
+      //CUDA_ARCH
+      //co[0] = ci[0];
+      //for (uint32_t i = 1; i < size; ++i)
+      //  co[i] = ci[i] + co[i - 1];
+
     }
 
     // same as above (1), may remove
@@ -108,12 +110,7 @@ namespace cms {
     __forceinline void blockPrefixScan(T* c,
                                          uint32_t size,
                                          sycl::nd_item<3> item,
-                                         T* ws
-#ifndef __CUDA_ARCH__
-                                         = nullptr
-#endif
-) {
-#ifdef __CUDA_ARCH__
+                                         T* ws) {
       assert(ws);
       assert(size <= 1024);
       assert(0 == item.get_local_range().get(2) % 32);
@@ -126,7 +123,7 @@ namespace cms {
 
       for (auto i = first; i < size; i += item.get_local_range().get(2)) {
         warpPrefixScan(c, i, mask, item);
-        auto laneId = item.get_local_id(2) & 0x1f;
+        int laneId = item.get_local_id(2) & 0x1f;
         auto warpId = i / 32;
         assert(warpId < 32);
         if (31 == laneId)
@@ -151,23 +148,21 @@ namespace cms {
       }
       //Same as above (2)
       item.barrier(sycl::access::fence_space::local_space);
-#else
-      for (uint32_t i = 1; i < size; ++i)
-        c[i] += c[i - 1];
-#endif
+
+      //__CUDA_ARCH__
+      //for (uint32_t i = 1; i < size; ++i)
+      //  c[i] += c[i - 1];
+
     }
 
-#ifdef __CUDA_ARCH__
     // see https://stackoverflow.com/questions/40021086/can-i-obtain-the-amount-of-allocated-dynamic-shared-memory-from-within-a-kernel/40021087#40021087
     __forceinline unsigned dynamic_smem_size() {
       unsigned ret;
-      /*
-      DPCT1053:10: Migration of device assembly code is not supported.
-      */
-      asm volatile("mov.u32 %0, %dynamic_smem_size;" : "=r"(ret));
+      //FIXME_ I added two %% instead of one % to make it work
+      asm volatile("mov.u32 %%0, %%dynamic_smem_size;" : "=r"(ret));
       return ret;
     }
-#endif
+
 
     // in principle not limited....
     template <typename T>
@@ -176,9 +171,7 @@ namespace cms {
       volatile T const* ci = ici;
       volatile T* co = ico;
 
-#ifdef __CUDA_ARCH__
       assert(sizeof(T) * item.get_group_range(2) <= dynamic_smem_size());  // size of psum below
-#endif
       assert((int32_t)(item.get_local_range().get(2) * item.get_group_range(2)) >= size);
       // first each block does a scan
       int off = item.get_local_range().get(2) * item.get_group(2);

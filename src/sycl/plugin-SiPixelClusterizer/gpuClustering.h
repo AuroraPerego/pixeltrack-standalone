@@ -165,18 +165,14 @@ namespace gpuClustering {
       hist->fill(y[i], i - firstPixel);
     }
 
-#ifdef __CUDA_ARCH__
     // assume that we can cover the whole module with up to 16 blockDim.x-wide iterations
-    constexpr int maxiter = 16;
-#else
-    auto maxiter = hist->size();
-#endif
+    constexpr int maxiter = 16; // it was auto maxiter = hist->size(); ifndef CUDA_ARCH but ariable length arrays are not supported in SYCL
+
     // allocate space for duplicate pixels: a pixel can appear more than once with different charge in the same event
     constexpr int maxNeighbours = 10;
     assert((hist->size() / item.get_local_range().get(2)) <= maxiter);
     // nearest neighbour
-    uint16_t nn[16][10]; //FIXME_ variable length arrays are not supported for the current target
-    		 	 // uint16_t nn[maxiter][maxNeighbours];
+    uint16_t nn[maxiter][maxNeighbours]; 
     uint8_t nnn[10];  // number of nn
     for (uint32_t k = 0; k < maxiter; ++k)
       nnn[k] = 0;

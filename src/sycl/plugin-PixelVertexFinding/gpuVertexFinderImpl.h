@@ -73,6 +73,7 @@ namespace gpuVertexFinder {
                              int32_t *cu_acc, 
                              int *ibs_acc, 
                              int *p_acc,
+                             uint32_t *firstNeg_acc,
                              sycl::stream out
   ) {
     clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item, hist_acc, hws_acc, foundClusters_acc, out); 
@@ -83,7 +84,7 @@ namespace gpuVertexFinder {
     item.barrier();
     fitVertices(pdata, pws, 5000., item, noise_acc, out);
     item.barrier();
-    sortByPt2(pdata, pws, item, sws_acc, c_acc, ct_acc, cu_acc, ibs_acc, p_acc);
+    sortByPt2(pdata, pws, item, sws_acc, c_acc, ct_acc, cu_acc, ibs_acc, p_acc, firstNeg_acc);
   }
 #else
   void vertexFinderKernel1(gpuVertexFinder::ZVertices* pdata,
@@ -110,11 +111,12 @@ namespace gpuVertexFinder {
                            int32_t *cu_acc, 
                            int *ibs_acc, 
                            int *p_acc,
+                           uint32_t *firstNeg_acc,
                            sycl::stream out
   ) {
     fitVertices(pdata, pws, 5000., item, noise_acc, out);
     item.barrier();
-    sortByPt2(pdata, pws, item, sws_acc, c_acc, ct_acc, cu_acc, ibs_acc, p_acc);
+    sortByPt2(pdata, pws, item, sws_acc, c_acc, ct_acc, cu_acc, ibs_acc, p_acc, firstNeg_acc);
   }
 #endif
 
@@ -198,6 +200,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               ibs_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               p_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh); //FIXME_ put here the size of the arrays
+      sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              firstNeg_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
       sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
@@ -221,6 +225,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
                              (int32_t *)cu_acc.get_pointer(), 
                              (int *)ibs_acc.get_pointer(), 
                              (int *)p_acc.get_pointer(),
+                             (uint32_t *)firstNeg_acc.get_pointer(),
                              out);
       });
     });
@@ -297,6 +302,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               ibs_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               p_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+      sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+              firstNeg_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
       sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
@@ -309,6 +316,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
                            (int32_t *)cu_acc.get_pointer(), 
                            (int *)ibs_acc.get_pointer(), 
                            (int *)p_acc.get_pointer(),
+                           (uint32_t *)firstNeg_acc.get_pointer(),
                            out);
       });
     });
@@ -478,13 +486,15 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
                 ibs_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
         sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
                 p_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+        sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                firstNeg_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
         cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
                sortByPt2Kernel(soa_kernel, ws_kernel, item, 
                               (uint16_t *)sws_acc.get_pointer(), (int32_t *)c_acc.get_pointer(), 
                               (int32_t *)ct_acc.get_pointer(), (int32_t *)cu_acc.get_pointer(), 
-                              (int *)ibs_acc.get_pointer(), (int *)p_acc.get_pointer());
+                              (int *)ibs_acc.get_pointer(), (int *)p_acc.get_pointer(), (uint32_t *)firstNeg_acc.get_pointer());
       });
     });
     }

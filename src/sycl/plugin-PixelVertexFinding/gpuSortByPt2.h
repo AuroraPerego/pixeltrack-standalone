@@ -9,16 +9,14 @@
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
 
-#ifdef __CUDA_ARCH__
 #include "SYCLCore/radixSort.h"
-#endif
 
 #include "gpuVertexFinder.h"
 
 namespace gpuVertexFinder {
 
   __forceinline void sortByPt2(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<3> item, uint16_t* sws, 
-                               int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p) {
+                               int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
     auto& __restrict__ data = *pdata;
     auto& __restrict__ ws = *pws;
     auto nt = ws.ntrks;
@@ -58,18 +56,11 @@ namespace gpuVertexFinder {
         sortInd[0] = 0;
       return;
     }
-#ifdef __CUDA_ARCH__
-    // sort using only 16 bits
-    radixSort<float, 2>(ptv2, sortInd, *sws, nvFinal, item, c, ct, cu, ibs, p);
-#else
-    for (uint16_t i = 0; i < nvFinal; ++i)
-      sortInd[i] = i;
-    //std::sort(sortInd, sortInd + nvFinal, [&](auto i, auto j) { return ptv2[i] < ptv2[j]; });
-#endif
+    radixSort<float, 2>(ptv2, sortInd, sws, nvFinal, item, c, ct, cu, ibs, p, firstNeg);
   }
 
-  void sortByPt2Kernel(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<3> item, uint16_t* sws, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p) { 
-    sortByPt2(pdata, pws, item, sws, c, ct, cu, ibs, p); }
+  void sortByPt2Kernel(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<3> item, uint16_t* sws, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) { 
+    sortByPt2(pdata, pws, item, sws, c, ct, cu, ibs, p, firstNeg); }
 
 }  // namespace gpuVertexFinder
 

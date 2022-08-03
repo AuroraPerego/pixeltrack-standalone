@@ -76,18 +76,16 @@ public:
         */
         sycl::ext::oneapi::atomic_fence(sycl::ext::oneapi::memory_order::acq_rel,
                                         sycl::ext::oneapi::memory_scope::device);
-#ifdef SYCL_LANGUAGE_VERSION
-  auto zero = (ptrAsInt)(&cellNeighbors[0]);
-	ptrAsInt* zero_pointer = &zero;
-	auto val = (ptrAsInt)(&cellNeighbors[i]);
-	ptrAsInt* val_pointer = &val;
-	auto obj_arg = (ptrAsInt*)(&theOuterNeighbors); 
-	sycl::ext::oneapi::atomic_ref<ptrAsInt*, sycl::ext::oneapi::memory_order::relaxed, sycl::ext::oneapi::memory_scope::device, sycl::access::address_space::ext_intel_global_device_space> obj_atomic(obj_arg);
-	obj_atomic.compare_exchange_strong(zero_pointer, val_pointer, sycl::ext::oneapi::detail::memory_order::relaxed, sycl::ext::oneapi::detail::memory_scope::device);
-	 // if fails we cannot give "i" back...
-#else
-        theOuterNeighbors = &cellNeighbors[i];
-#endif
+
+      auto zero = (ptrAsInt)(&cellNeighbors[0]);
+	    ptrAsInt* zero_pointer = &zero;
+	    auto val = (ptrAsInt)(&cellNeighbors[i]);
+	    ptrAsInt* val_pointer = &val;
+	    auto obj_arg = (ptrAsInt*)(&theOuterNeighbors); 
+	    sycl::ext::oneapi::atomic_ref<ptrAsInt*, sycl::ext::oneapi::memory_order::relaxed, sycl::ext::oneapi::memory_scope::device, sycl::access::address_space::ext_intel_global_device_space> obj_atomic(obj_arg);
+	    obj_atomic.compare_exchange_strong(zero_pointer, val_pointer, sycl::ext::oneapi::detail::memory_order::relaxed, sycl::ext::oneapi::detail::memory_scope::device);
+	     // if fails we cannot give "i" back...
+
       } else
         return -1;
     }
@@ -103,18 +101,15 @@ public:
         cellTracks[i].reset();
         sycl::ext::oneapi::atomic_fence(sycl::ext::oneapi::memory_order::acq_rel,
                                         sycl::ext::oneapi::memory_scope::device);
-#ifdef SYCL_LANGUAGE_VERSION
-        auto zero = (ptrAsInt)(&cellTracks[0]);
-	ptrAsInt* zero_pointer = &zero;
-	auto val = (ptrAsInt)(&cellTracks[i]);
-	ptrAsInt* val_pointer = &val;
-	auto obj_arg = (ptrAsInt*)(&theTracks); 
-	sycl::ext::oneapi::atomic_ref<ptrAsInt*, sycl::ext::oneapi::memory_order::relaxed, sycl::ext::oneapi::memory_scope::device, sycl::access::address_space::ext_intel_global_device_space> obj_atomic(obj_arg);
-	obj_atomic.compare_exchange_strong(zero_pointer, val_pointer, sycl::ext::oneapi::detail::memory_order::relaxed, sycl::ext::oneapi::detail::memory_scope::device);
-	 // if fails we cannot give "i" back...
-#else
-        theTracks = &cellTracks[i];
-#endif
+
+      auto zero = (ptrAsInt)(&cellTracks[0]);
+	    ptrAsInt* zero_pointer = &zero;
+	    auto val = (ptrAsInt)(&cellTracks[i]);
+	    ptrAsInt* val_pointer = &val;
+	    auto obj_arg = (ptrAsInt*)(&theTracks); 
+	    sycl::ext::oneapi::atomic_ref<ptrAsInt*, sycl::ext::oneapi::memory_order::relaxed, sycl::ext::oneapi::memory_scope::device, sycl::access::address_space::ext_intel_global_device_space> obj_atomic(obj_arg);
+	    obj_atomic.compare_exchange_strong(zero_pointer, val_pointer, sycl::ext::oneapi::detail::memory_order::relaxed, sycl::ext::oneapi::detail::memory_scope::device);
+	     // if fails we cannot give "i" back...
       } else
         return -1;
     }
@@ -378,13 +373,10 @@ inline void GPUCACell::find_ntuplets<0>(Hits const& hh,
                                                    const unsigned int minHitsPerNtuplet,
                                                    bool startAt0,
 						   sycl::stream out) const {
-  //printf("ERROR: GPUCACell::find_ntuplets reached full depth!\n");
     out << "ERROR: GPUCACell::find_ntuplets reached full depth!\n";
-#ifdef __CUDA_ARCH__
-  __trap();
-#else
-  abort();
-#endif
+
+    abort(); // was __trap() in CUDA with #ifdef __CUDA_ARCH__
+
 }
 
 #endif  // RecoPixelVertexing_PixelTriplets_plugins_GPUCACell_h
