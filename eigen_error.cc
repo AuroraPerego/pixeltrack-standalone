@@ -1,4 +1,4 @@
-//dpcpp -fsycl -std=c++17 -Wall -isystem external/eigen -DEIGEN_DONT_PARALLELIZE -DEIGEN_USE_SYCL test.cc
+//dpcpp -fsycl -std=c++17 -Wall -isystem external/eigen -DEIGEN_DONT_PARALLELIZE -DEIGEN_USE_SYCL eigen_error.cc
 
 #include <cmath>
 #include <Eigen/Core>
