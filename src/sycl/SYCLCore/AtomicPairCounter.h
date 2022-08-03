@@ -1,8 +1,9 @@
 #ifndef HeterogeneousCore_SYCLUtilities_interface_AtomicPairCounter_h
 #define HeterogeneousCore_SYCLUtilities_interface_AtomicPairCounter_h
 
-#include <CL/sycl.hpp>
+//#include <CL/sycl.hpp>
 #include <cstdint>
+#include <SYCLCore/syclAtomic.h>
 
 namespace cms {
   namespace sycltools {
@@ -39,7 +40,7 @@ namespace cms {
         c += incr;
         Atomic2 ret;
 #ifdef __CUDA_ARCH__
-        ret.ac = atomicAdd<cms::sycltools::AtomicPairCounter::c_type>(&counter.ac, c);
+        ret.ac = AtomicAdd<cms::sycltools::AtomicPairCounter::c_type>(&counter.ac, c);
 #else
         ret.ac = counter.ac;
         counter.ac += c;

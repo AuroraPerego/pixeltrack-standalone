@@ -1,7 +1,7 @@
 #ifndef RecoPixelVertexing_PixelVertexFinding_src_gpuSortByPt2_h
 #define RecoPixelVertexing_PixelVertexFinding_src_gpuSortByPt2_h
 
-#include <algorithm>
+//#include <algorithm>
 #include <cmath>
 #include <cstdint>
 
@@ -64,7 +64,7 @@ namespace gpuVertexFinder {
 #else
     for (uint16_t i = 0; i < nvFinal; ++i)
       sortInd[i] = i;
-    std::sort(sortInd, sortInd + nvFinal, [&](auto i, auto j) { return ptv2[i] < ptv2[j]; });
+    //std::sort(sortInd, sortInd + nvFinal, [&](auto i, auto j) { return ptv2[i] < ptv2[j]; });
 #endif
   }
 

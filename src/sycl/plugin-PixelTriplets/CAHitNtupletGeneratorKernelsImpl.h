@@ -41,7 +41,7 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
                            uint32_t maxNumberOfDoublets,
                            CAHitNtupletGeneratorKernelsGPU::Counters *counters,
                            sycl::nd_item<3> item,
-			   sycl::stream out) {
+			                     sycl::stream out) {
   auto first = item.get_local_id(2) + item.get_group(2) * item.get_local_range().get(2);
 
   auto &c = *counters;
@@ -282,7 +282,7 @@ void kernel_find_ntuplets(GPUCACell::Hits const *__restrict__ hhp,
                           Quality *__restrict__ quality,
                           unsigned int minHitsPerNtuplet,
                           sycl::nd_item<3> item,
-			  sycl::stream out) {
+			                    sycl::stream out) {
   // recursive: not obvious to widen
   auto const &hh = *hhp;
 
@@ -324,7 +324,7 @@ void kernel_countMultiplicity(HitContainer const *__restrict__ foundNtuplets,
                               Quality const *__restrict__ quality,
                               CAConstants::TupleMultiplicity *tupleMultiplicity,
                               sycl::nd_item<3> item,
-			      sycl::stream out) {
+			                        sycl::stream out) {
   auto first = item.get_group(2) * item.get_local_range().get(2) + item.get_local_id(2);
   for (int it = first, nt = foundNtuplets->nbins(); it < nt;
        it += item.get_group_range(2) * item.get_local_range().get(2)) {

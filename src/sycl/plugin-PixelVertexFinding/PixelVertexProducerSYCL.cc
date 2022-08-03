@@ -54,37 +54,15 @@ PixelVertexProducerSYCL::PixelVertexProducerSYCL(edm::ProductRegistry& reg)
 }
 
 void PixelVertexProducerSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
-  if (m_OnGPU) {
-    auto const& ptracks = iEvent.get(tokenGPUTrack_);
 
-    cms::sycltools::ScopedContextProduce ctx{ptracks};
-    auto const* tracks = ctx.get(ptracks).get();
+  auto const& ptracks = iEvent.get(tokenGPUTrack_);
 
-    assert(tracks);
+  cms::sycltools::ScopedContextProduce ctx{ptracks};
+  auto const* tracks = ctx.get(ptracks).get();
 
-    ctx.emplace(iEvent, tokenGPUVertex_, m_gpuAlgo.makeAsync(ctx.stream(), tracks, m_ptMin));
+  assert(tracks);
 
-  } else {
-    auto const* tracks = iEvent.get(tokenCPUTrack_).get();
-    assert(tracks);
-
-    /*
-    auto const & tsoa = *tracks;
-    auto maxTracks = tsoa.stride();
-    std::cout << "size of SoA " << sizeof(tsoa) << " stride " << maxTracks << std::endl;
-
-    int32_t nt = 0;
-    for (int32_t it = 0; it < maxTracks; ++it) {
-      auto nHits = tsoa.nHits(it);
-      assert(nHits==int(tsoa.hitIndices.size(it)));
-      if (nHits == 0) break;  // this is a guard: maybe we need to move to nTracks...
-      nt++;
-    }
-    std::cout << "found " << nt << " tracks in cpu SoA for Vertexing at " << tracks << std::endl;
-    */
-
-    iEvent.emplace(tokenCPUVertex_, m_gpuAlgo.make(tracks, m_ptMin));
-  }
+  ctx.emplace(iEvent, tokenGPUVertex_, m_gpuAlgo.makeAsync(ctx.stream(), tracks, m_ptMin));
 }
 
 DEFINE_FWK_MODULE(PixelVertexProducerSYCL);

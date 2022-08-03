@@ -38,7 +38,7 @@ namespace gpuVertexFinder {
         continue;
 
       auto& data = *pws;
-      auto it = cms::sycltools::AtomicAdd(&data.ntrks, 1);
+      auto it = cms::sycltools::AtomicAdd<uint32_t>(&data.ntrks, 1);
       data.itrk[it] = idx;
       data.zt[it] = tracks.zip(idx);
       data.ezt2[it] = fit.covariance(idx)(14);
@@ -198,7 +198,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               ibs_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               p_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh); //FIXME_ put here the size of the arrays
-      sycl::stream out;
+      sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
@@ -232,7 +232,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       auto ws_kernel  = ws_d.get();
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               noise_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
-      sycl::stream out;
+      sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
@@ -261,7 +261,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               wnew_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
               igv_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
-      sycl::stream out;
+      sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
@@ -297,7 +297,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               ibs_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               p_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
-      sycl::stream out;
+      sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
@@ -330,7 +330,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               hws_acc(sycl::range<1>(sizeof(Hist::Counter) * numberOfBlocks), cgh);
         sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               foundClusters_acc(sycl::range<1>(sizeof(unsigned int) * numberOfBlocks), cgh);
-        sycl::stream out;
+        sycl::stream out(1024, 768, cgh);
         cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
@@ -355,7 +355,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               hws_acc(sycl::range<1>(sizeof(Hist::Counter) * numberOfBlocks), cgh);
         sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               foundClusters_acc(sycl::range<1>(sizeof(unsigned int) * numberOfBlocks), cgh);
-        sycl::stream out;
+        sycl::stream out(1024, 768, cgh);
         cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
@@ -384,7 +384,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               foundClusters_acc(sycl::range<1>(sizeof(unsigned int) * numberOfBlocks), cgh);
         sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               nloops_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
-        sycl::stream out;
+        sycl::stream out(1024, 768, cgh);
         cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
@@ -401,7 +401,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
         auto ws_kernel  = ws_d.get();
         sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               noise_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
-        sycl::stream out;
+        sycl::stream out(1024, 768, cgh);
 
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
@@ -431,7 +431,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               wnew_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
               igv_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
-      sycl::stream out;
+      sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 
@@ -454,7 +454,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
         auto ws_kernel  = ws_d.get();
         sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               noise_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
-        sycl::stream out;
+        sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
           [=](sycl::nd_item<3> item){ 

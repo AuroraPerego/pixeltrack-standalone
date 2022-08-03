@@ -21,7 +21,7 @@ namespace {
     std::cout
         << name
         << ": [--numberOfThreads NT] [--numberOfStreams NS] [--maxEvents ME] [--data PATH] [--transfer] [--validation] "
-           "[--empty]\n\n"
+           "[--histogram] [--empty]\n\n"
         << "Options\n"
         << " --numberOfThreads   Number of threads to use (default 1, use 0 to use all CPU cores)\n"
         << " --numberOfStreams   Number of concurrent events (default 0 = numberOfThreads)\n"
@@ -31,6 +31,7 @@ namespace {
         << " --data              Path to the 'data' directory (default 'data' in the directory of the executable)\n"
         << " --transfer          Transfer results from GPU to CPU (default is to leave them on GPU)\n"
         << " --validation        Run (rudimentary) validation at the end (implies --transfer)\n"
+        << " --histogram         Produce histograms at the end (implies --transfer)\n"
         << " --empty             Ignore all producers (for testing only)\n"
         << std::endl;
   }
@@ -46,6 +47,7 @@ int main(int argc, char** argv) try {
   std::filesystem::path datadir;
   bool transfer = false;
   bool validation = false;
+  bool histogram = false;
   bool empty = false;
   for (auto i = args.begin() + 1, e = args.end(); i != e; ++i) {
     if (*i == "-h" or *i == "--help") {
@@ -71,6 +73,9 @@ int main(int argc, char** argv) try {
     } else if (*i == "--validation") {
       transfer = true;
       validation = true;
+    } else if (*i == "--histogram") {
+      transfer = true;
+      histogram = true;
     } else if (*i == "--empty") {
       empty = true;
     } else {
@@ -104,11 +109,25 @@ int main(int argc, char** argv) try {
   std::vector<std::string> edmodules;
   std::vector<std::string> esmodules;
   if (not empty) {
-    edmodules = {"TestProducer", "TestProducer3", "TestProducer2", "BeamSpotToSYCL",  "SiPixelRawToClusterSYCL", "SiPixelRecHitSYCL", "CAHitNtupletSYCL"};
-    esmodules = {"IntESProducer", "BeamSpotESProducer", "SiPixelFedCablingMapGPUWrapperESProducer", "SiPixelGainCalibrationForHLTGPUESProducer", "PixelCPEFastESProducer"};
-
+    edmodules = {"BeamSpotToSYCL", "SiPixelRawToClusterSYCL", "SiPixelRecHitSYCL", "PixelVertexProducerSYCL", "CAHitNtupletSYCL"};
+    esmodules = {"BeamSpotESProducer", "SiPixelFedCablingMapGPUWrapperESProducer", 
+                 "SiPixelGainCalibrationForHLTGPUESProducer", "PixelCPEFastESProducer"};
+    for (int i = 0; i < (int)(edmodules.size()); i++){
+      std::cout << edmodules[i] << ", ";
+    }
     if (transfer) {
-      // add modules for transfer
+      auto capos = std::find(edmodules.begin(), edmodules.end(), "CAHitNtupletSYCL");
+      assert(capos != edmodules.end());
+      edmodules.insert(capos + 1, "PixelTrackSoAFromSYCL");
+      auto vertpos = std::find(edmodules.begin(), edmodules.end(), "PixelVertexProducerSYCL");
+      assert(vertpos != edmodules.end());
+      edmodules.insert(vertpos + 1, "PixelVertexSoAFromSYCL");
+    }
+    if (validation) {
+      edmodules.emplace_back("CountValidator");
+    }
+    if (histogram) {
+      edmodules.emplace_back("HistoValidator");
     }
   }
   edm::EventProcessor processor(

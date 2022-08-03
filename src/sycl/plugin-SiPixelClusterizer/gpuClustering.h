@@ -32,11 +32,7 @@ namespace gpuClustering {
       while (j >= 0 and id[j] == InvId)
         --j;
       if (j < 0 or id[j] != id[i]) {
-        // boundary...
-        /*
-        DPCT1039:0: The generated code assumes that "moduleStart" points to the global memory address space. If it points to a local memory address space, replace "dpct::atomic_fetch_compare_inc" with "dpct::atomic_fetch_compare_inc<uint32_t, sycl::access::address_space::local_space>".
-        */
-        auto loc = cms::sycltools::AtomicInc(moduleStart, MaxNumModules); //FIXME_ write real atomicInc
+        auto loc = cms::sycltools::AtomicInc(moduleStart, MaxNumModules); 
         moduleStart[loc + 1] = i;
       }
     }

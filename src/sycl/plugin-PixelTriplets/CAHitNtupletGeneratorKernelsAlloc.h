@@ -1,7 +1,5 @@
 #include "CAHitNtupletGeneratorKernels.h"
 
-//#include "SYCLCore/syclCheck.h"
-
 template <>
 void CAHitNtupletGeneratorKernelsGPU::allocateOnGPU(sycl::queue stream) {
   //////////////////////////////////////////////////////////

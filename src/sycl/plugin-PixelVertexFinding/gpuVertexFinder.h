@@ -32,7 +32,7 @@ namespace gpuVertexFinder {
     }
   };
 
-  void init(ZVertexSoA* pdata, WorkSpace* pws) {
+  inline void init(ZVertexSoA* pdata, WorkSpace* pws) {
     pdata->init();
     pws->init();
   }
@@ -64,7 +64,6 @@ namespace gpuVertexFinder {
     ~Producer() = default;
 
     ZVertexHeterogeneous makeAsync(sycl::queue stream, TkSoA const* tksoa, float ptMin) const;
-    ZVertexHeterogeneous make(TkSoA const* tksoa, float ptMin) const;
 
   private:
     const bool oneKernel_;

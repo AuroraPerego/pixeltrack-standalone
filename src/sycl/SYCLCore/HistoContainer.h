@@ -11,7 +11,6 @@
 #include <type_traits>
 
 #include "SYCLCore/AtomicPairCounter.h"
-//#include "SYCLCore/syclCheck.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclstdAlgorithm.h"
 #include "SYCLCore/prefixScan.h"

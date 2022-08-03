@@ -12,50 +12,24 @@ namespace cms {
     //analog of cuda atomicAdd
     template <typename A, typename B>
     inline A AtomicAdd(A* i, B j){
-      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(i);
-      return *(first.fetch_add(j));
-    }
-    
-    template <typename A, typename B>
-    inline A AtomicAdd(A i, B j){
-      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(&i);
-      return *(first.fetch_add(j));
-    }
-  
-    template <typename A, typename B>
-    inline A AtomicSub(A* i, B j){
-      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(i);
-      return *(first.fetch_add(-j));
+      sycl::atomic_ref<A, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(*i);
+      return first.fetch_add(j);
     }
 
     template <typename A, typename B>
-    inline A AtomicSub(A i, B j){
-      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(&i);
-      return *(first.fetch_add(-j));
+    inline A AtomicSub(A* i, B j){
+      sycl::atomic_ref<A, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(*i);
+      return first.fetch_add(-j);
     }
 
     template <typename A, typename B>
     inline A AtomicMin(A* i, B j){
-      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(i);
-      return *(first.fetch_add(j));
-    }
-
-    template <typename A, typename B>
-    inline A AtomicMin(A i, B j){
-      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(&i);
-      return *(first.fetch_add(j));
+      return sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_min(j);
     }
 
     template <typename A, typename B>
     inline A AtomicMax(A* i, B j){
-      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(i);
-      return *(first.fetch_add(j));
-    }
-
-    template <typename A, typename B>
-    inline A AtomicMax(A i, B j){
-      sycl::atomic_ref<A*, sycl::memory_order::relaxed, sycl::memory_scope::work_group> first(&i);
-      return *(first.fetch_add(j));
+      return sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_max(j);
     }
 
     template <typename A, typename B>

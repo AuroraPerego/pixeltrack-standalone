@@ -33,7 +33,7 @@ CAHitNtupletSYCL::CAHitNtupletSYCL(edm::ProductRegistry& reg)
 
 void CAHitNtupletSYCL::produce(edm::Event& iEvent, const edm::EventSetup& es) {
   auto bf = 0.0114256972711507;  // 1/fieldInGeV
-
+  
   auto const& phits = iEvent.get(tokenHitGPU_);
   cms::sycltools::ScopedContextProduce ctx{phits};
   auto const& hits = ctx.get(phits);
