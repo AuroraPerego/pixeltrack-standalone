@@ -21,10 +21,10 @@ namespace cms {
                          uint32_t nh,
                          T const *__restrict__ v,
                          uint32_t const *__restrict__ offsets,
-                         sycl::nd_item<3> item) {
-      int first = item.get_local_range().get(2) * item.get_group(2) + item.get_local_id(2);
+                         sycl::nd_item<1> item) {
+      int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
       for (int i = first, nt = offsets[nh]; i < nt;
-           i += item.get_group_range(2) * item.get_local_range().get(2)) {
+           i += item.get_group_range(0) * item.get_local_range(0)) {
         auto off = sycl_std::upper_bound(offsets, offsets + nh + 1, i);
         assert((*off) > 0);
         int32_t ih = off - offsets - 1;
@@ -39,10 +39,10 @@ namespace cms {
                         uint32_t nh,
                         T const *__restrict__ v,
                         uint32_t const *__restrict__ offsets,
-                        sycl::nd_item<3> item) {
-      int first = item.get_local_range().get(2) * item.get_group(2) + item.get_local_id(2);
+                        sycl::nd_item<1> item) {
+      int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
       for (int i = first, nt = offsets[nh]; i < nt;
-           i += item.get_group_range(2) * item.get_local_range().get(2)) {
+           i += item.get_group_range(0) * item.get_local_range(0)) {
         auto off = sycl_std::upper_bound(offsets, offsets + nh + 1, i);
         assert((*off) > 0);
         int32_t ih = off - offsets - 1;
@@ -79,8 +79,8 @@ namespace cms {
           auto Histo_totbins_kernel = Histo::totbins();
 
           cgh.parallel_for(
-              sycl::nd_range<3>(nblocks * sycl::range<3>(1, 1, nthreads), sycl::range<3>(1, 1, nthreads)),
-              [=](sycl::nd_item<3> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
+              sycl::nd_range<1>(nblocks * sycl::range<1>(nthreads), sycl::range<1>(nthreads)),
+              [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
                     multiBlockPrefixScan(poff,
                                          poff,
                                          Histo_totbins_kernel,
@@ -103,19 +103,19 @@ namespace cms {
                                                                   sycl::queue stream) {
       launchZero(h, stream);
       auto nblocks = (totSize + nthreads - 1) / nthreads;
-      stream.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, nblocks) * sycl::range<3>(1, 1, nthreads), sycl::range<3>(1, 1, nthreads)),
-                          [=](sycl::nd_item<3> item) {
+      stream.parallel_for(sycl::nd_range<1>(sycl::range<1>(nblocks) * sycl::range<1>(nthreads), sycl::range<1>(nthreads)),
+                          [=](sycl::nd_item<1> item) {
                                 countFromVector(h, nh, v, offsets, item);
                           });
       launchFinalize(h, stream);
-      stream.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, nblocks) * sycl::range<3>(1, 1, nthreads), sycl::range<3>(1, 1, nthreads)),
-                          [=](sycl::nd_item<3> item) {
+      stream.parallel_for(sycl::nd_range<1>(sycl::range<1>(nblocks) * sycl::range<1>(nthreads), sycl::range<1>(nthreads)),
+                          [=](sycl::nd_item<1> item) {
                                 fillFromVector(h, nh, v, offsets, item);
                           });
     }
 
     template <typename Assoc>
-    void finalizeBulk(AtomicPairCounter const *apc, Assoc *__restrict__ assoc, sycl::nd_item<3> item) {
+    void finalizeBulk(AtomicPairCounter const *apc, Assoc *__restrict__ assoc, sycl::nd_item<1> item) {
       assoc->bulkFinalizeFill(*apc, item);
     }
 
@@ -243,15 +243,15 @@ namespace cms {
         off[apc.get().m] = apc.get().n;
       }
 
-      __forceinline void bulkFinalizeFill(AtomicPairCounter const &apc, sycl::nd_item<3> item) {
+      __forceinline void bulkFinalizeFill(AtomicPairCounter const &apc, sycl::nd_item<1> item) {
         auto m = apc.get().m;
         auto n = apc.get().n;
         if (m >= nbins()) {  // overflow!
           off[nbins()] = uint32_t(off[nbins() - 1]);
           return;
         }
-        auto first = m + item.get_local_range().get(2) * item.get_group(2) + item.get_local_id(2);
-        for (auto i = first; i < totbins(); i += item.get_group_range(2) * item.get_local_range().get(2)) {
+        auto first = m + item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
+        for (auto i = first; i < totbins(); i += item.get_group_range(0) * item.get_local_range(0)) {
           off[i] = n;
         }
       }
@@ -288,7 +288,7 @@ namespace cms {
         bins[w - 1] = j;
       }
 
-      __forceinline void finalize(sycl::nd_item<3> item, Counter *ws = nullptr) {
+      __forceinline void finalize(sycl::nd_item<1> item, Counter *ws = nullptr) {
         assert(off[totbins() - 1] == 0);
         blockPrefixScan(off, totbins(), item, ws);
         assert(off[totbins() - 1] == off[totbins() - 2]);

@@ -20,36 +20,36 @@ namespace gpuClustering {
                         uint32_t const* __restrict__ moduleId,     // module id of each module
                         int32_t* __restrict__ clusterId,           // modified: cluster id of each pixel
                         uint32_t numElements,
-                        sycl::nd_item<3> item,
+                        sycl::nd_item<1> item,
                         int32_t* charge,
                         uint8_t* ok,
                         uint16_t* newclusId,
                         uint16_t* ws,
                         sycl::stream out) {
-    if (item.get_group(2) >= moduleStart[0])
+    if (item.get_group(0) >= moduleStart[0])
       return;
 
-    auto firstPixel = moduleStart[1 + item.get_group(2)];
+    auto firstPixel = moduleStart[1 + item.get_group(0)];
     auto thisModuleId = id[firstPixel];
     assert(thisModuleId < MaxNumModules);
-    assert(thisModuleId == moduleId[item.get_group(2)]);
+    assert(thisModuleId == moduleId[item.get_group(0)]);
 
     auto nclus = nClustersInModule[thisModuleId];
     if (nclus == 0)
       return;
 
-    if (item.get_local_id(2) == 0 && nclus > MaxNumClustersPerModules) {
-      out << "Warning too many clusters in module " << thisModuleId << " in block " << item.get_group(2) << ": " << nclus << " > " << MaxNumClustersPerModules << "\n";
+    if (item.get_local_id(0) == 0 && nclus > MaxNumClustersPerModules) {
+      out << "Warning too many clusters in module " << thisModuleId << " in block " << item.get_group(0) << ": " << nclus << " > " << MaxNumClustersPerModules << "\n";
     }
 
     //find another way of printing! This is the stream!
     //stream_ct1 << "Warning too many clusters in module %d in block %d: %d > %d\n";
 
-    auto first = firstPixel + item.get_local_id(2);
+    auto first = firstPixel + item.get_local_id(0);
 
     if (nclus > MaxNumClustersPerModules) {
       // remove excess  FIXME find a way to cut charge first....
-      for (auto i = first; i < numElements; i += item.get_local_range().get(2)) {
+      for (auto i = first; i < numElements; i += item.get_local_range(0)) {
         if (id[i] == InvId)
           continue;  // not valid
         if (id[i] != thisModuleId)
@@ -64,12 +64,12 @@ namespace gpuClustering {
 
 #ifdef GPU_DEBUG
     if (thisModuleId % 100 == 1)
-      if (item.get_local_id(2) == 0)
-        out << "start clusterizer for module " << thisModuleId << " in block " << item.get_group(2) << "\n";
+      if (item.get_local_id(0) == 0)
+        out << "start clusterizer for module " << thisModuleId << " in block " << item.get_group(0) << "\n";
 #endif
 
     assert(nclus <= MaxNumClustersPerModules);
-    for (auto i = item.get_local_id(2); i < nclus; i += item.get_local_range().get(2)) {
+    for (auto i = item.get_local_id(0); i < nclus; i += item.get_local_range(0)) {
       charge[i] = 0;
     }
     /*
@@ -77,7 +77,7 @@ namespace gpuClustering {
     */
     item.barrier();
 
-    for (auto i = first; i < numElements; i += item.get_local_range().get(2)) {
+    for (auto i = first; i < numElements; i += item.get_local_range(0)) {
       if (id[i] == InvId)
         continue;  // not valid
       if (id[i] != thisModuleId)
@@ -90,7 +90,7 @@ namespace gpuClustering {
     item.barrier();
 
     auto chargeCut = thisModuleId < 96 ? 2000 : 4000;  // move in constants (calib?)
-    for (auto i = item.get_local_id(2); i < nclus; i += item.get_local_range().get(2)) {
+    for (auto i = item.get_local_id(0); i < nclus; i += item.get_local_range(0)) {
       newclusId[i] = ok[i] = charge[i] > chargeCut ? 1 : 0;
     }
 
@@ -115,7 +115,7 @@ namespace gpuClustering {
     item.barrier();
 
     // mark bad cluster again
-    for (auto i = item.get_local_id(2); i < nclus; i += item.get_local_range().get(2)) {
+    for (auto i = item.get_local_id(0); i < nclus; i += item.get_local_range(0)) {
       if (0 == ok[i])
         newclusId[i] = InvId + 1;
     }
@@ -125,7 +125,7 @@ namespace gpuClustering {
     item.barrier();
 
     // reassign id
-    for (auto i = first; i < numElements; i += item.get_local_range().get(2)) {
+    for (auto i = first; i < numElements; i += item.get_local_range(0)) {
       if (id[i] == InvId)
         continue;  // not valid
       if (id[i] != thisModuleId)

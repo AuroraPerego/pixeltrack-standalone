@@ -109,12 +109,12 @@ int main(int argc, char** argv) try {
   std::vector<std::string> edmodules;
   std::vector<std::string> esmodules;
   if (not empty) {
-    edmodules = {"BeamSpotToSYCL", "SiPixelRawToClusterSYCL", "SiPixelRecHitSYCL", "PixelVertexProducerSYCL", "CAHitNtupletSYCL"};
+    edmodules = {"BeamSpotToSYCL", "SiPixelRawToClusterSYCL"};//, "SiPixelRecHitSYCL", "PixelVertexProducerSYCL", "CAHitNtupletSYCL"};
     esmodules = {"BeamSpotESProducer", "SiPixelFedCablingMapGPUWrapperESProducer", 
-                 "SiPixelGainCalibrationForHLTGPUESProducer", "PixelCPEFastESProducer"};
-    for (int i = 0; i < (int)(edmodules.size()); i++){
-      std::cout << edmodules[i] << ", ";
-    }
+                 "SiPixelGainCalibrationForHLTGPUESProducer"};//, "PixelCPEFastESProducer"};
+    //for (int i = 0; i < (int)(edmodules.size()); i++){
+    //  std::cout << edmodules[i] << ", ";
+    //}
     if (transfer) {
       auto capos = std::find(edmodules.begin(), edmodules.end(), "CAHitNtupletSYCL");
       assert(capos != edmodules.end());

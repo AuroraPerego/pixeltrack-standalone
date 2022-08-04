@@ -29,19 +29,19 @@ namespace gpuCalibPixel {
                   uint32_t* __restrict__ moduleStart,        // just to zero first
                   uint32_t* __restrict__ nClustersInModule,  // just to zero them
                   uint32_t* __restrict__ clusModuleStart,    // just to zero first
-                  sycl::nd_item<3> item,
+                  sycl::nd_item<1> item,
                   const sycl::stream out
   ) {
-    int first = item.get_local_range().get(2) * item.get_group(2) + item.get_local_id(2);
+    int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
     // zero for next kernels...
     if (0 == first)
       clusModuleStart[0] = moduleStart[0] = 0;
     for (int i = first; i < (int)(gpuClustering::MaxNumModules);
-         i += item.get_group_range(2) * item.get_local_range().get(2)) {
+         i += item.get_group_range(0) * item.get_local_range(0)) {
       nClustersInModule[i] = 0;
     }
 
-    for (int i = first; i < numElements; i += item.get_group_range(2) * item.get_local_range().get(2)) {
+    for (int i = first; i < numElements; i += item.get_group_range(0) * item.get_local_range(0)) {
       if (InvId == id[i])
         continue;
 
