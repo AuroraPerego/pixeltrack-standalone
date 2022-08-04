@@ -1,5 +1,5 @@
 #include "RiemannFitOnGPU.h"
-#include "SYCLCore/device_unique_ptr.h"
+//#include "SYCLCore/device_unique_ptr.h"
 
 void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                          uint32_t nhits,
@@ -11,14 +11,19 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
   auto numberOfBlocks = (maxNumberOfConcurrentFits_ + blockSize - 1) / blockSize;
 
   //  Fit internals
-  auto hitsGPU_ = cms::sycltools::make_device_unique<double[]>(
-      maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix3xNd<4>) / sizeof(double), stream);
-  auto hits_geGPU_ = cms::sycltools::make_device_unique<float[]>(
-      maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix6x4f) / sizeof(float), stream);
-  auto fast_fit_resultsGPU_ = cms::sycltools::make_device_unique<double[]>(
-      maxNumberOfConcurrentFits_ * sizeof(Rfit::Vector4d) / sizeof(double), stream);
-  auto circle_fit_resultsGPU_holder =
-      cms::sycltools::make_device_unique<char[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::circle_fit), stream);
+  //auto hitsGPU_ = cms::sycltools::make_device_unique<double[]>(
+  //    maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix3xNd<4>) / sizeof(double), stream);
+  //auto hits_geGPU_ = cms::sycltools::make_device_unique<float[]>(
+  //    maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix6x4f) / sizeof(float), stream);
+  //auto fast_fit_resultsGPU_ = cms::sycltools::make_device_unique<double[]>(
+  //    maxNumberOfConcurrentFits_ * sizeof(Rfit::Vector4d) / sizeof(double), stream);
+  //auto circle_fit_resultsGPU_holder =
+  //    cms::sycltools::make_device_unique<char[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::circle_fit), stream);
+  auto hitsGPU_ = std::make_unique<double[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix3xNd<4>) / sizeof(double));
+  auto hits_geGPU_ = std::make_unique<float[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix6x4f) / sizeof(float));
+  auto fast_fit_resultsGPU_ = std::make_unique<double[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::Vector4d) / sizeof(double));
+  auto circle_fit_resultsGPU_holder = std::make_unique<char[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::circle_fit));
+  
   Rfit::circle_fit *circle_fit_resultsGPU_ = (Rfit::circle_fit *)(circle_fit_resultsGPU_holder.get());
 
   for (uint32_t offset = 0; offset < maxNumberOfTuples; offset += maxNumberOfConcurrentFits_) {
@@ -193,7 +198,7 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
-	auto bField_kernel = bField_;
+	      auto bField_kernel = bField_;
         auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
         auto hitsGPU_kernel = hitsGPU_.get(); 
         auto hits_geGPU_kernel = hits_geGPU_.get(); 

@@ -184,8 +184,8 @@ namespace cms {
         /*
         DPCT1078:13: Consider replacing memory_order::acq_rel with memory_order::seq_cst for correctness if strong memory order restrictions are needed.
         */
-        sycl::ext::oneapi::atomic_fence(sycl::ext::oneapi::memory_order::acq_rel,
-                                        sycl::ext::oneapi::memory_scope::device);
+        sycl::atomic_fence(sycl::memory_order::acq_rel,
+                           sycl::memory_scope::device);
         /*
         DPCT1039:14: The generated code assumes that "pc" points to the global memory address space. If it points to a local memory address space, replace "sycl::global_ptr" with "sycl::local_ptr".
         */
