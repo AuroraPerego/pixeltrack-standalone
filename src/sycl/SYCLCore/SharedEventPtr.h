@@ -8,6 +8,9 @@
 
 namespace cms {
   namespace sycltools {
+    class Event{
+      sycl::event m_event; 
+    };
     // cudaEvent_t itself is a typedef for a pointer, for the use with
     // edm::ReusableObjectHolder the pointed-to type is more interesting
     // to avoid extra layer of indirection

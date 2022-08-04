@@ -22,11 +22,11 @@ namespace cms::sycltools {
     std::vector<sycl::device> device_list = sycl::device::get_devices(sycl::info::device_type::all);
     int dev_idx = distance(device_list.begin(), find(device_list.begin(), device_list.end(), dev));
     auto event = makeOrGet(dev_idx);
+    
     // captured work has completed, or a just-created event
     if (eventWorkHasCompleted(event.get())) {
       return event;
     }
-
     // Got an event with incomplete captured work. Try again until we
     // get a completed (or a just-created) event. Need to keep all
     // incomplete events until a completed event is found in order to

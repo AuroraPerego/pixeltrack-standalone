@@ -29,28 +29,16 @@ private:
 
   SiPixelFedCablingMapGPU *cablingMapHost_ = nullptr;  // pointer to struct in CPU
 
-  class GPUData {
-  public:
-    GPUData() = default;
-    ~GPUData() { sycl::free(cablingMapDevice, q_); }
-    
-    void set_queue(sycl::queue queue) { q_ = queue; }
-
+  struct GPUData {
+    ~GPUData();
+    //see alpaka if other destructors are needed
     SiPixelFedCablingMapGPU *cablingMapDevice = nullptr;  // pointer to struct in GPU
-
-  private:
-    sycl::queue q_;
   };
   cms::sycltools::ESProduct<GPUData> gpuData_;
 
-  class ModulesToUnpack {
-  public:
-    ModulesToUnpack() = default;
-    ~ModulesToUnpack() { sycl::free(modToUnpDefault, q_); }
-    void set_queue(sycl::queue queue) { q_ = queue; }
+  struct ModulesToUnpack {
+    ~ModulesToUnpack();
     unsigned char *modToUnpDefault = nullptr;  // pointer to GPU
-  private:
-    sycl::queue q_;
   };
   cms::sycltools::ESProduct<ModulesToUnpack> modToUnp_;
 };

@@ -50,7 +50,6 @@ namespace cms {
 
           if (data.m_fillingStream != nullptr) {
             // Someone else is filling
-
             // Check first if the recorded event has occurred
             if (eventWorkHasCompleted(data.m_event.get())) {
               // It was, so data is accessible from all CUDA streams on
@@ -80,7 +79,7 @@ namespace cms {
             // Record in the cudaStream an event to mark the readiness of the
             // EventSetup data on the GPU, so other streams can check for it
 
-            //cudaCheck(cudaEventRecord(data.m_event.get(), stream)); FIXME_ commented for now
+            //cudaCheck(cudaEventReord(data.m_event.get(), stream)); FIXME_ commented for now
 
             // Now the filling has been enqueued to the cudaStream, so we
             // can return the GPU data immediately, since all subsequent

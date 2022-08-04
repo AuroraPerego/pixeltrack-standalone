@@ -33,7 +33,6 @@ namespace gpuCalibPixel {
                   const sycl::stream out
   ) {
     int first = item.get_local_range().get(2) * item.get_group(2) + item.get_local_id(2);
-
     // zero for next kernels...
     if (0 == first)
       clusModuleStart[0] = moduleStart[0] = 0;
