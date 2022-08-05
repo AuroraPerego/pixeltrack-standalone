@@ -11,18 +11,14 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
   auto numberOfBlocks = (maxNumberOfConcurrentFits_ + blockSize - 1) / blockSize;
 
   //  Fit internals
-  //auto hitsGPU_ = cms::sycltools::make_device_unique<double[]>(
-  //    maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix3xNd<4>) / sizeof(double), stream);
-  //auto hits_geGPU_ = cms::sycltools::make_device_unique<float[]>(
-  //    maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix6x4f) / sizeof(float), stream);
-  //auto fast_fit_resultsGPU_ = cms::sycltools::make_device_unique<double[]>(
-  //    maxNumberOfConcurrentFits_ * sizeof(Rfit::Vector4d) / sizeof(double), stream);
-  //auto circle_fit_resultsGPU_holder =
-  //    cms::sycltools::make_device_unique<char[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::circle_fit), stream);
-  auto hitsGPU_ = std::make_unique<double[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix3xNd<4>) / sizeof(double));
-  auto hits_geGPU_ = std::make_unique<float[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix6x4f) / sizeof(float));
-  auto fast_fit_resultsGPU_ = std::make_unique<double[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::Vector4d) / sizeof(double));
-  auto circle_fit_resultsGPU_holder = std::make_unique<char[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::circle_fit));
+  auto hitsGPU_ = cms::sycltools::make_device_unique<double[]>(
+      maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix3xNd<4>) / sizeof(double), stream);
+  auto hits_geGPU_ = cms::sycltools::make_device_unique<float[]>(
+      maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix6x4f) / sizeof(float), stream);
+  auto fast_fit_resultsGPU_ = cms::sycltools::make_device_unique<double[]>(
+      maxNumberOfConcurrentFits_ * sizeof(Rfit::Vector4d) / sizeof(double), stream);
+  auto circle_fit_resultsGPU_holder =
+      cms::sycltools::make_device_unique<char[]>(maxNumberOfConcurrentFits_ * sizeof(Rfit::circle_fit), stream);
   
   Rfit::circle_fit *circle_fit_resultsGPU_ = (Rfit::circle_fit *)(circle_fit_resultsGPU_holder.get());
 
@@ -36,8 +32,8 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       auto hits_geGPU_kernel = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
+          [=](sycl::nd_item<1> item){ 
                 kernelFastFit<3>(tuples_d_kernel, 
                                  tupleMultiplicity_d_kernel, 
                                  3, 
@@ -49,7 +45,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
       });
     });
-    //cudaCheck(cudaGetLastError());
     
     stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
@@ -59,8 +54,8 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       auto hits_geGPU_kernel = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
+          [=](sycl::nd_item<1> item){ 
                 kernelCircleFit<3>(tupleMultiplicity_d_kernel,
                                    3,
                                    bField_kernel,
@@ -72,7 +67,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                    item);
       });
     });
-    //cudaCheck(cudaGetLastError());
 
     stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
@@ -83,8 +77,8 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       auto hits_geGPU_kernel = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
+          [=](sycl::nd_item<1> item){ 
                 kernelLineFit<3>(tupleMultiplicity_d_kernel,
                                  3,
                                  bField_kernel,
@@ -97,7 +91,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
       });
     });
-    //cudaCheck(cudaGetLastError());
 
     // quads
     stream.submit([&](sycl::handler &cgh) {
@@ -108,8 +101,8 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       auto hits_geGPU_kernel = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks / 4 * blockSize,  blockSize),
+          [=](sycl::nd_item<1> item){ 
                 kernelFastFit<4>(tuples_d_kernel, 
                                  tupleMultiplicity_d_kernel, 
                                  4, 
@@ -121,7 +114,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
       });
     });
-    //cudaCheck(cudaGetLastError());
     
     stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
@@ -131,9 +123,9 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       auto hits_geGPU_kernel = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
-                kernelCircleFit<4>(tupleMultiplicity_d_kernel,
+          sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
+          [=](sycl::nd_item<1> item){ 
+                kernelCircleFit<4>(tupleMultiplicity_d_kernel, //<4>
                                    4,
                                    bField_kernel,
                                    hitsGPU_kernel,
@@ -144,7 +136,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                    item);
       });
     });
-    //cudaCheck(cudaGetLastError());
 
     stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
@@ -155,8 +146,8 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       auto hits_geGPU_kernel = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
+          [=](sycl::nd_item<1> item){ 
                 kernelLineFit<4>(tupleMultiplicity_d_kernel,
                                  4,
                                  bField_kernel,
@@ -169,7 +160,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
       });
     });
-    //cudaCheck(cudaGetLastError());
     
     if (fit5as4_) {
       // penta
@@ -181,8 +171,8 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       auto hits_geGPU_kernel = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
+          [=](sycl::nd_item<1> item){ 
                 kernelFastFit<4>(tuples_d_kernel, 
                                  tupleMultiplicity_d_kernel, 
                                  5, 
@@ -194,7 +184,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
         });
       });
-      //cudaCheck(cudaGetLastError());
       
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
@@ -204,9 +193,9 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
         auto hits_geGPU_kernel = hits_geGPU_.get(); 
         auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
         cgh.parallel_for(
-            sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-            [=](sycl::nd_item<3> item){ 
-                  kernelCircleFit<4>(tupleMultiplicity_d_kernel,
+            sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
+            [=](sycl::nd_item<1> item){ 
+                  kernelCircleFit<4>(tupleMultiplicity_d_kernel, //<4>
                                      5,
                                      bField_kernel,
                                      hitsGPU_kernel,
@@ -217,7 +206,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                      item);
         });
       });
-      //cudaCheck(cudaGetLastError());
   
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
@@ -228,8 +216,8 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
         auto hits_geGPU_kernel = hits_geGPU_.get(); 
         auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
         cgh.parallel_for(
-            sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-            [=](sycl::nd_item<3> item){ 
+            sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
+            [=](sycl::nd_item<1> item){ 
                   kernelLineFit<4>(tupleMultiplicity_d_kernel,
                                    5,
                                    bField_kernel,
@@ -242,7 +230,7 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                    item);
         });
       });
-      //cudaCheck(cudaGetLastError());
+      
 
     } else {
       // penta all 5
@@ -254,8 +242,8 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       auto hits_geGPU_kernel = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
-            sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-            [=](sycl::nd_item<3> item){ 
+            sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
+            [=](sycl::nd_item<1> item){ 
                   kernelFastFit<5>(tuples_d_kernel, 
                                    tupleMultiplicity_d_kernel, 
                                    5, 
@@ -267,7 +255,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                    item);
           });
       });
-      //cudaCheck(cudaGetLastError());
       
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
@@ -277,9 +264,9 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       auto hits_geGPU_kernel = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
-            sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-            [=](sycl::nd_item<3> item){ 
-                  kernelCircleFit<5>(tupleMultiplicity_d_kernel,
+            sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
+            [=](sycl::nd_item<1> item){ 
+                  kernelCircleFit<5>(tupleMultiplicity_d_kernel, //<5>
                                      5,
                                      bField_kernel,
                                      hitsGPU_kernel,
@@ -290,7 +277,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                      item);
         });
       });
-      //cudaCheck(cudaGetLastError());
   
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
@@ -301,8 +287,8 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       auto hits_geGPU_kernel = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       cgh.parallel_for(
-            sycl::nd_range<3>(numberOfBlocks / 4 * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-            [=](sycl::nd_item<3> item){ 
+            sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
+            [=](sycl::nd_item<1> item){ 
                   kernelLineFit<5>(tupleMultiplicity_d_kernel,
                                    5,
                                    bField_kernel,
