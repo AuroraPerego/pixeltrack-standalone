@@ -4,6 +4,7 @@
 #include <CL/sycl.hpp>
 
 #include "SYCLCore/ESProduct.h"
+#include "SYCLCore/device_unique_ptr.h"
 
 class SiPixelGainForHLTonGPU;
 struct SiPixelGainForHLTonGPU_DecodingStructure;
@@ -20,9 +21,12 @@ private:
   SiPixelGainForHLTonGPU *gainForHLTonHost_ = nullptr;
   std::vector<char> gainData_;
   struct GPUData {
-    ~GPUData();
-    SiPixelGainForHLTonGPU *gainForHLTonGPU = nullptr;
-    SiPixelGainForHLTonGPU_DecodingStructure *gainDataOnGPU = nullptr;
+    GPUData() = default;
+    ~GPUData() {}
+
+    std::unique_ptr<SiPixelGainForHLTonGPU, cms::sycltools::device::impl::DeviceDeleter> gainForHLTonGPU;
+    std::unique_ptr<SiPixelGainForHLTonGPU_DecodingStructure[], cms::sycltools::device::impl::DeviceDeleter>
+        gainDataOnGPU;
   };
   cms::sycltools::ESProduct<GPUData> gpuData_;
 };
