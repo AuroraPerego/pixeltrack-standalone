@@ -30,15 +30,20 @@ private:
   SiPixelFedCablingMapGPU *cablingMapHost_ = nullptr;  // pointer to struct in CPU
 
   struct GPUData {
-    ~GPUData();
-    //see alpaka if other destructors are needed
-    SiPixelFedCablingMapGPU *cablingMapDevice = nullptr;  // pointer to struct in GPU
+    GPUData() = default;
+    ~GPUData() {}
+
+    std::unique_ptr<SiPixelFedCablingMapGPU, cms::sycltools::device::impl::DeviceDeleter>
+        cablingMapDevice;  // pointer to struct in GPU
   };
   cms::sycltools::ESProduct<GPUData> gpuData_;
 
   struct ModulesToUnpack {
-    ~ModulesToUnpack();
-    unsigned char *modToUnpDefault = nullptr;  // pointer to GPU
+    using Deleter = cms::sycltools::device::impl::DeviceDeleter;
+    ModulesToUnpack() = default;
+    ~ModulesToUnpack(){};
+
+    std::unique_ptr<unsigned char[], cms::sycltools::device::impl::DeviceDeleter> modToUnpDefault;  // pointer to GPU
   };
   cms::sycltools::ESProduct<ModulesToUnpack> modToUnp_;
 };
