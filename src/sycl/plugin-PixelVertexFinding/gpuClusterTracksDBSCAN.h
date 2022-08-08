@@ -24,7 +24,7 @@ namespace gpuVertexFinder {
                            float eps,     // max absolute distance to cluster
                            float errmax,  // max error to be "seed"
                            float chi2max,  // max normalized distance to cluster
-                           sycl::nd_item<3> item,
+                           sycl::nd_item<1> item,
                            Hist *hist,
                            Hist::Counter* hws,
                            unsigned int* foundClusters,
@@ -32,7 +32,7 @@ namespace gpuVertexFinder {
   ) {
     constexpr bool verbose = false;  // in principle the compiler should optmize out if false
 
-    if (verbose && 0 == item.get_local_id(2))
+    if (verbose && 0 == item.get_local_id(0))
       out << "params" << minT << " " << eps << " " << errmax << " " << chi2max << "\n";
 
     auto er2mx = errmax * errmax;
@@ -53,18 +53,18 @@ namespace gpuVertexFinder {
     assert(pdata);
     assert(zt);
 
-    for (auto j = item.get_local_id(2); j < Hist::totbins(); j += item.get_local_range(2)) {
+    for (auto j = item.get_local_id(0); j < Hist::totbins(); j += item.get_local_range(0)) {
       hist->off[j] = 0;
     }
     item.barrier();
 
-    if (verbose && 0 == item.get_local_id(2))
+    if (verbose && 0 == item.get_local_id(0))
       out << "booked hist with " << hist->nbins() << " bins, size " << hist->capacity() << " for " << nt << " tracks\n";
 
     assert(nt <= hist->capacity());
 
     // fill hist  (bin shall be wider than "eps")
-    for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       assert(i < ZVertices::MAXTRACKS);
       int iz = int(zt[i] * 10.);  // valid if eps<=0.1
       // iz = std::clamp(iz, INT8_MIN, INT8_MAX);  // sorry c++17 only
@@ -77,19 +77,19 @@ namespace gpuVertexFinder {
       nn[i] = 0;
     }
     item.barrier();
-    if (item.get_local_id(2) < 32)
-      hws[item.get_local_id(2)] = 0;  // used by prefix scan...
+    if (item.get_local_id(0) < 32)
+      hws[item.get_local_id(0)] = 0;  // used by prefix scan...
     item.barrier();
     hist->finalize(item, hws);
     item.barrier();
     assert(hist->size() == nt);
-    for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       hist->fill(izt[i], uint16_t(i));
     }
     item.barrier();
 
     // count neighbours
-    for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (ezt2[i] > er2mx)
         continue;
       auto loop = [&](uint32_t j) {
@@ -108,7 +108,7 @@ namespace gpuVertexFinder {
     item.barrier();
 
     // find NN with smaller z...
-    for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (nn[i] < minT)
         continue;  // DBSCAN core rule
       float mz = zt[i];
@@ -131,7 +131,7 @@ namespace gpuVertexFinder {
 
 #ifdef GPU_DEBUG
     //  mini verification
-    for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] != int(i))
         assert(iv[iv[i]] != int(i));
     }
@@ -139,7 +139,7 @@ namespace gpuVertexFinder {
 #endif
 
     // consolidate graph (percolate index of seed)
-    for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       auto m = iv[i];
       while (m != iv[m])
         m = iv[m];
@@ -150,7 +150,7 @@ namespace gpuVertexFinder {
 
 #ifdef GPU_DEBUG
     //  mini verification
-    for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] != int(i))
         assert(iv[iv[i]] != int(i));
     }
@@ -159,7 +159,7 @@ namespace gpuVertexFinder {
 
 #ifdef GPU_DEBUG
     // and verify that we did not spit any cluster...
-    for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (nn[i] < minT)
         continue;  // DBSCAN core rule
       assert(zt[iv[i]] <= zt[i]);
@@ -184,7 +184,7 @@ namespace gpuVertexFinder {
 #endif
 
     // collect edges (assign to closest cluster of closest point??? here to closest point)
-    for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       //    if (nn[i]==0 || nn[i]>=minT) continue;    // DBSCAN edge rule
       if (nn[i] >= minT)
         continue;  // DBSCAN edge rule
@@ -208,7 +208,7 @@ namespace gpuVertexFinder {
 
     // find the number of different clusters, identified by a tracks with clus[i] == i;
     // mark these tracks with a negative id.
-    for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] == int(i)) {
         if (nn[i] >= minT) {
           auto old = cms::sycltools::AtomicInc(foundClusters, 0xffffffff);
@@ -223,7 +223,7 @@ namespace gpuVertexFinder {
     assert(*foundClusters < ZVertices::MAXVTX);
 
     // propagate the negative id to all the tracks in the cluster.
-    for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] >= 0) {
         // mark each track in a cluster with the same id as the first one
         iv[i] = iv[iv[i]];
@@ -232,13 +232,13 @@ namespace gpuVertexFinder {
     item.barrier();
 
     // adjust the cluster id to be a positive value starting from 0
-    for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       iv[i] = -iv[i] - 1;
     }
 
     nvIntermediate = nvFinal = *foundClusters;
 
-    if (verbose && 0 == item.get_local_id(2))
+    if (verbose && 0 == item.get_local_id(0))
       out << "found " << *foundClusters << " proto vertices\n";
   }
 

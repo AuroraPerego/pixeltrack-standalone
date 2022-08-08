@@ -11,15 +11,15 @@ namespace gpuVertexFinder {
   
   using Hist = cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
 
-  void loadTracks(TkSoA const* ptracks, ZVertexSoA* soa, WorkSpace* pws, float ptMin, sycl::nd_item<3> item) {
+  void loadTracks(TkSoA const* ptracks, ZVertexSoA* soa, WorkSpace* pws, float ptMin, sycl::nd_item<1> item) {
     assert(ptracks);
     assert(soa);
     auto const& tracks = *ptracks;
     auto const& fit = tracks.stateAtBS;
     auto const* quality = tracks.qualityData();
 
-    auto first = item.get_group(2) * item.get_local_range(2) + item.get_local_id(2);
-    for (int idx = first, nt = TkSoA::stride(); idx < nt; idx += item.get_group_range(2) * item.get_local_range(2)) {
+    auto first = item.get_group(0) * item.get_local_range(0) + item.get_local_id(0);
+    for (int idx = first, nt = TkSoA::stride(); idx < nt; idx += item.get_group_range(0) * item.get_local_range(0)) {
       auto nHits = tracks.nHits(idx);
       if (nHits == 0)
         break;  // this is a guard: maybe we need to move to nTracks...
@@ -54,7 +54,7 @@ namespace gpuVertexFinder {
                              float eps,     // max absolute distance to cluster
                              float errmax,  // max error to be "seed"
                              float chi2max,  // max normalized distance to cluster
-                             sycl::nd_item<3> item,
+                             sycl::nd_item<1> item,
                              Hist *hist_acc,
                              Hist::Counter *hws_acc,
                              unsigned int *foundClusters_acc,
@@ -93,7 +93,7 @@ namespace gpuVertexFinder {
                            float eps,     // max absolute distance to cluster
                            float errmax,  // max error to be "seed"
                            float chi2max  // max normalized distance to cluster,
-                           sycl::nd_item<3> item,
+                           sycl::nd_item<1> item,
                            int* noise_acc,
 
                            sycl::stream out) {
@@ -103,7 +103,7 @@ namespace gpuVertexFinder {
   }
 
   void vertexFinderKernel2(gpuVertexFinder::ZVertices* pdata, gpuVertexFinder::WorkSpace* pws,
-                           sycl::nd_item<3> item, 
+                           sycl::nd_item<1> item, 
                            int* noise_acc,
                            uint16_t* sws_acc, 
                            int32_t *c_acc, 
@@ -133,8 +133,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       auto soa_kernel = soa;
       auto ws_kernel   = ws_d.get();
       cgh.parallel_for(
-          sycl::nd_range<3>(sycl::range<3>(1, 1, 1), sycl::range<3>(1, 1, 1)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(sycl::range<1>(1), sycl::range<1>(1)),
+          [=](sycl::nd_item<1> item){ 
                 init(soa_kernel, ws_kernel);
       });
     });
@@ -146,8 +146,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       auto soa_kernel   = soa;
       auto ws_kernel    = ws_d.get();
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+          [=](sycl::nd_item<1> item){ 
               loadTracks(tksoa_kernel, soa_kernel, ws_kernel, ptMin, item);  
       });
     });
@@ -204,8 +204,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               firstNeg_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
       sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+          [=](sycl::nd_item<1> item){ 
               vertexFinderOneKernel(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item,
                              (Hist *)hist_acc.get_pointer(),
                              (Hist::Counter *)hws_acc.get_pointer(),
@@ -239,8 +239,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               noise_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
       sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+          [=](sycl::nd_item<1> item){ 
               vertexFinderKernel1(soa_kernel, ws_kernel, minT, eps, errmax, chi2max, item, (int *)noise_acc.get_pointer(), out);
       });
     });
@@ -268,8 +268,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               igv_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
       sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+          [=](sycl::nd_item<1> item){ 
               splitVerticesKernel(soa_kernel, ws_kernel, 9.f, item,
                            (uint32_t *)it_acc.get_pointer(),
                            (float *)zz_acc.get_pointer(),
@@ -306,8 +306,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               firstNeg_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
       sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+          [=](sycl::nd_item<1> item){ 
               vertexFinderKernel2(soa_kernel, ws_kernel, item, 
                            (int *)noise_acc.get_pointer(),
                            (uint16_t *)sws_acc.get_pointer(), 
@@ -340,8 +340,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               foundClusters_acc(sycl::range<1>(sizeof(unsigned int) * numberOfBlocks), cgh);
         sycl::stream out(1024, 768, cgh);
         cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+          [=](sycl::nd_item<1> item){ 
               clusterTracksByDensityKernel(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item,
                                     (Hist *)hist_acc.get_pointer(), (Hist::Counter *)hws_acc.get_pointer(),
                                     (unsigned int *)foundClusters_acc.get_pointer(), out);               
@@ -365,8 +365,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               foundClusters_acc(sycl::range<1>(sizeof(unsigned int) * numberOfBlocks), cgh);
         sycl::stream out(1024, 768, cgh);
         cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+          [=](sycl::nd_item<1> item){ 
               clusterTracksDBSCAN(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item,
                                   (Hist *)hist_acc.get_pointer(),
                                   (Hist::Counter*) hws_acc.get_pointer(),
@@ -394,8 +394,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               nloops_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
         sycl::stream out(1024, 768, cgh);
         cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+          [=](sycl::nd_item<1> item){ 
               clusterTracksIterative(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item, 
                                      (Hist *)hist_acc.get_pointer(), (Hist::Counter *)hws_acc.get_pointer(), 
                                      (unsigned int *)foundClusters_acc.get_pointer(), (int *)nloops_acc.get_pointer(), out);
@@ -412,8 +412,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
         sycl::stream out(1024, 768, cgh);
 
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+          [=](sycl::nd_item<1> item){ 
                 fitVerticesKernel(soa_kernel, ws_kernel, 50., item, (int *)noise_acc.get_pointer(), out);
       });
     });
@@ -441,8 +441,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               igv_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
       sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+          [=](sycl::nd_item<1> item){ 
               splitVerticesKernel(soa_kernel, ws_kernel, 9.f, item,
                            (uint32_t *)it_acc.get_pointer(),
                            (float *)zz_acc.get_pointer(),
@@ -464,8 +464,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               noise_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
         sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+          [=](sycl::nd_item<1> item){ 
                 fitVerticesKernel(soa_kernel, ws_kernel, 5000., item, (int *)noise_acc.get_pointer(), out);
 
       });
@@ -489,8 +489,8 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
         sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
                 firstNeg_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
         cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+          [=](sycl::nd_item<1> item){ 
                sortByPt2Kernel(soa_kernel, ws_kernel, item, 
                               (uint16_t *)sws_acc.get_pointer(), (int32_t *)c_acc.get_pointer(), 
                               (int32_t *)ct_acc.get_pointer(), (int32_t *)cu_acc.get_pointer(), 

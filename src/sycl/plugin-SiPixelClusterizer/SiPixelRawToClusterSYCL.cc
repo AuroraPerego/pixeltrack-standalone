@@ -74,11 +74,13 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
                              ") differs the one from SiPixelFedCablingMapGPUWrapper. Please fix your configuration.");
   }
   // get the GPU product already here so that the async transfer can begin
+  //std::cout << "once" << std::endl;
   const auto* gpuMap = hgpuMap.getGPUProductAsync(ctx.stream());
   const unsigned char* gpuModulesToUnpack = hgpuMap.getModToUnpAllAsync(ctx.stream());
 
   auto const& hgains = iSetup.get<SiPixelGainCalibrationForHLTGPU>();
   // get the GPU product already here so that the async transfer can begin
+  //std::cout << "twice" << std::endl;
   const auto* gpuGains = hgains.getGPUProductAsync(ctx.stream());
 
   auto const& fedIds_ = iSetup.get<SiPixelFedIds>().fedIds();
@@ -144,9 +146,9 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
     assert(0 == (ew - bw) % 2);
     wordFedAppender_->initializeWordFed(fedId, wordCounterGPU, bw, (ew - bw));
     wordCounterGPU += (ew - bw);
-
   }  // end of for loop
-  
+  //std::cout << "HELLO" << std::endl;
+
   gpuAlgo_.makeClustersAsync(isRun2_,
                              gpuMap,
                              gpuModulesToUnpack,
@@ -163,10 +165,13 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
 
 void SiPixelRawToClusterSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   cms::sycltools::ScopedContextProduce ctx{ctxState_};
-
+  //std::cout << "iNside the pRODUCE" << std::endl;
   auto tmp = gpuAlgo_.getResults();
+  //std::cout << "after gpualgoGETresults" << std::endl;
   ctx.emplace(iEvent, digiPutToken_, std::move(tmp.first));
   ctx.emplace(iEvent, clusterPutToken_, std::move(tmp.second));
+  //std::cout << "after gpualgoGETresults" << std::endl;
+
   if (includeErrors_) {
     ctx.emplace(iEvent, digiErrorPutToken_, gpuAlgo_.getErrors());
   }

@@ -24,12 +24,20 @@ namespace cms {
 
     template <typename A, typename B>
     inline A AtomicMin(A* i, B j){
-      return sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_min(j);
+      sycl::ext::oneapi::atomic_ref<A, sycl::ext::oneapi::memory_order::relaxed,
+                                sycl::ext::oneapi::memory_scope::work_group,
+                                sycl::access::address_space::local_space> first(*i);
+      return first.fetch_min(j);
+      //sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_min(j);
     }
 
     template <typename A, typename B>
     inline A AtomicMax(A* i, B j){
-      return sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_max(j);
+      sycl::ext::oneapi::atomic_ref<A, sycl::ext::oneapi::memory_order::relaxed,
+                                sycl::ext::oneapi::memory_scope::work_group,
+                                sycl::access::address_space::local_space> first(*i);
+      return first.fetch_max(j); 
+      //sycl::atomic<A>(sycl::global_ptr<A>(i)).fetch_max(j);
     }
 
     template <typename A, typename B>

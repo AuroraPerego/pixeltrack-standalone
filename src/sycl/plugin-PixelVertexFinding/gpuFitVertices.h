@@ -17,7 +17,7 @@ namespace gpuVertexFinder {
   __forceinline void fitVertices(ZVertices* pdata,
                                  WorkSpace* pws,
                                  float chi2Max,  // for outlier rejection
-                                 sycl::nd_item<3> item,
+                                 sycl::nd_item<1> item,
                                  int* noise,
                                  sycl::stream out
   ) {
@@ -45,20 +45,20 @@ namespace gpuVertexFinder {
     auto foundClusters = nvFinal;
 
     // zero
-    for (auto i = item.get_local_id(2); i < foundClusters; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < foundClusters; i += item.get_local_range(0)) {
       zv[i] = 0;
       wv[i] = 0;
       chi2[i] = 0;
     }
 
     // only for test
-    if (verbose && 0 == item.get_local_id(2))
+    if (verbose && 0 == item.get_local_id(0))
       *noise = 0;
 
     item.barrier();
 
     // compute cluster location
-    for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] > 9990) {
         if (verbose)
           cms::sycltools::AtomicAdd(noise, 1);
@@ -73,7 +73,7 @@ namespace gpuVertexFinder {
 
     item.barrier();
     // reuse nn
-    for (auto i = item.get_local_id(2); i < foundClusters; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < foundClusters; i += item.get_local_range(0)) {
       assert(wv[i] > 0.f);
       zv[i] /= wv[i];
       nn[i] = -1;  // ndof
@@ -81,7 +81,7 @@ namespace gpuVertexFinder {
     item.barrier();
 
     // compute chi2
-    for (auto i = item.get_local_id(2); i < nt; i += item.get_local_range(2)) {
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] > 9990)
         continue;
 
@@ -95,20 +95,20 @@ namespace gpuVertexFinder {
       cms::sycltools::AtomicAdd(&nn[iv[i]], 1);
     }
     item.barrier();
-    for (auto i = item.get_local_id(2); i < foundClusters; i += item.get_local_range(2))
+    for (auto i = item.get_local_id(0); i < foundClusters; i += item.get_local_range(0))
       if (nn[i] > 0)
         wv[i] *= float(nn[i]) / chi2[i];
 
-    if (verbose && 0 == item.get_local_id(2))
+    if (verbose && 0 == item.get_local_id(0))
       out << "found " << foundClusters << " proto clusters ";
-    if (verbose && 0 == item.get_local_id(2))
+    if (verbose && 0 == item.get_local_id(0))
       out << "and " << *noise << " noise\n";
   }
 
   void fitVerticesKernel(ZVertices* pdata,
                          WorkSpace* pws,
                          float chi2Max,  // for outlier rejection
-                         sycl::nd_item<3> item,
+                         sycl::nd_item<1> item,
                          int* noise,
                          sycl::stream out
   ) {

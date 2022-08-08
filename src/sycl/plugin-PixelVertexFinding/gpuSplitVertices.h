@@ -16,7 +16,7 @@ namespace gpuVertexFinder {
   __forceinline void splitVertices(ZVertices* pdata, 
                                    WorkSpace* pws, 
                                    float maxChi2,                      
-                                   sycl::nd_item<3> item,
+                                   sycl::nd_item<1> item,
                                    uint32_t *it,
                                    float *zz,
                                    uint8_t *newV,
@@ -45,7 +45,7 @@ namespace gpuVertexFinder {
     assert(zt);
 
     // one vertex per block
-    for (auto kv = item.get_group(2); kv < nvFinal; kv += item.get_group_range(2)) {
+    for (auto kv = item.get_group(0); kv < nvFinal; kv += item.get_group_range(0)) {
       if (nn[kv] < 4)
         continue;
       if (chi2[kv] < maxChi2 * float(nn[kv]))
@@ -65,7 +65,7 @@ namespace gpuVertexFinder {
       item.barrier();
 
       // copy to local
-      for (auto k = item.get_local_id(2); k < nt; k += item.get_local_range(2)) {
+      for (auto k = item.get_local_id(0); k < nt; k += item.get_local_range(0)) {
         if (iv[k] == int(kv)) {
           int old = cms::sycltools::AtomicInc(nq, MAXTK);
           zz[old] = zt[k] - zv[kv];
@@ -85,25 +85,25 @@ namespace gpuVertexFinder {
       bool more = true;
       while ((item.barrier(), sycl::any_of_group(item.get_group(), more))) {
         more = false;
-        if (0 == item.get_local_id(2)) {
+        if (0 == item.get_local_id(0)) {
           znew[0] = 0;
           znew[1] = 0;
           wnew[0] = 0;
           wnew[1] = 0;
         }
         item.barrier();
-        for (auto k = item.get_local_id(2); k < (unsigned long)*nq; k += item.get_local_range(2)) {
+        for (auto k = item.get_local_id(0); k < (unsigned long)*nq; k += item.get_local_range(0)) {
           auto i = newV[k];
           cms::sycltools::AtomicAdd(&znew[i], zz[k] * ww[k]);
           cms::sycltools::AtomicAdd(&wnew[i], ww[k]);
         }
         item.barrier();
-        if (0 == item.get_local_id(2)) {
+        if (0 == item.get_local_id(0)) {
           znew[0] /= wnew[0];
           znew[1] /= wnew[1];
         }
         item.barrier();
-        for (auto k = item.get_local_id(2); k < (unsigned long)*nq; k += item.get_local_range(2)) {
+        for (auto k = item.get_local_id(0); k < (unsigned long)*nq; k += item.get_local_range(0)) {
           auto d0 = fabs(zz[k] - znew[0]);
           auto d1 = fabs(zz[k] - znew[1]);
           auto newer = d0 < d1 ? 0 : 1;
@@ -124,7 +124,7 @@ namespace gpuVertexFinder {
 
       auto chi2Dist = dist2 / (1.f / wnew[0] + 1.f / wnew[1]);
 
-      if (verbose && 0 == item.get_local_id(2))
+      if (verbose && 0 == item.get_local_id(0))
         out << "inter " << 20 - maxiter << " " << chi2Dist << " " << dist2 * wv[kv] << " " << "\n";
 
       if (chi2Dist < 4)
@@ -132,10 +132,10 @@ namespace gpuVertexFinder {
 
       // get a new global vertex
       //__shared__ uint32_t igv;
-      if (0 == item.get_local_id(2))
+      if (0 == item.get_local_id(0))
         *igv = cms::sycltools::AtomicAdd(&ws.nvIntermediate, 1);
       item.barrier();
-      for (auto k = item.get_local_id(2); k < (unsigned long)*nq; k += item.get_local_range(2)) {
+      for (auto k = item.get_local_id(0); k < (unsigned long)*nq; k += item.get_local_range(0)) {
         if (1 == newV[k])
           iv[it[k]] = *igv;
       }
@@ -146,7 +146,7 @@ namespace gpuVertexFinder {
   void splitVerticesKernel(ZVertices* pdata, 
                            WorkSpace* pws, 
                            float maxChi2,
-                           sycl::nd_item<3> item,
+                           sycl::nd_item<1> item,
                            uint32_t *it,
                            float *zz,
                            uint8_t *newV,

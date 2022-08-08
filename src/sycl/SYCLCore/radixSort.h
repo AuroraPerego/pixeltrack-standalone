@@ -8,18 +8,18 @@
 #include "SYCLCore/syclAtomic.h"
 
 template <typename T>
-inline void dummyReorder(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, sycl::nd_item<3> item, uint32_t * firstNeg) {}
+inline void dummyReorder(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, sycl::nd_item<1> item, uint32_t * firstNeg) {}
 
 template <typename T>
-inline void reorderSigned(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, sycl::nd_item<3> item, uint32_t * firstNeg) {
+inline void reorderSigned(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, sycl::nd_item<1> item, uint32_t * firstNeg) {
   //move negative first...
 
-  uint32_t first = item.get_local_id(2);
+  uint32_t first = item.get_local_id(0);
   *firstNeg = a[ind[0]] < 0 ? 0 : size;
   item.barrier();
 
   // find first negative
-  for (auto i = first; i < size - 1; i += item.get_local_range().get(2)) {
+  for (auto i = first; i < size - 1; i += item.get_local_range(0)) {
     if ((a[ind[i]] ^ a[ind[i + 1]]) < 0)
       *firstNeg = i + 1;
   }
@@ -27,52 +27,52 @@ inline void reorderSigned(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t si
   item.barrier();
 
   auto ii = first;
-  for (auto i = *firstNeg + item.get_local_id(2); i < size; i += item.get_local_range().get(2)) {
+  for (auto i = *firstNeg + item.get_local_id(0); i < size; i += item.get_local_range(0)) {
     ind2[ii] = ind[i];
-    ii += item.get_local_range().get(2);
+    ii += item.get_local_range(0);
   }
   item.barrier();
-  ii = size - *firstNeg + item.get_local_id(2);
+  ii = size - *firstNeg + item.get_local_id(0);
   assert(ii >= 0);
-  for (auto i = first; i < *firstNeg; i += item.get_local_range().get(2)) {
+  for (auto i = first; i < *firstNeg; i += item.get_local_range(0)) {
     ind2[ii] = ind[i];
-    ii += item.get_local_range().get(2);
+    ii += item.get_local_range(0);
   }
   item.barrier();
-  for (auto i = first; i < size; i += item.get_local_range().get(2))
+  for (auto i = first; i < size; i += item.get_local_range(0))
     ind[i] = ind2[i];
 }
 
 template <typename T>
-inline void reorderFloat(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, sycl::nd_item<3> item, uint32_t * firstNeg) {
+inline void reorderFloat(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, sycl::nd_item<1> item, uint32_t * firstNeg) {
   //move negative first...
 
-  uint32_t first = item.get_local_id(2);
+  uint32_t first = item.get_local_id(0);
   *firstNeg = a[ind[0]] < 0 ? 0 : size;
   item.barrier();
 
   // find first negative
-  for (auto i = first; i < size - 1; i += item.get_local_range().get(2)) {
+  for (auto i = first; i < size - 1; i += item.get_local_range(0)) {
     if ((a[ind[i]] ^ a[ind[i + 1]]) < 0)
       *firstNeg = i + 1;
   }
 
   item.barrier();
 
-  int ii = size - *firstNeg - item.get_local_id(2) - 1;
-  for (auto i = *firstNeg + item.get_local_id(2); i < size; i += item.get_local_range().get(2)) {
+  int ii = size - *firstNeg - item.get_local_id(0) - 1;
+  for (auto i = *firstNeg + item.get_local_id(0); i < size; i += item.get_local_range(0)) {
     ind2[ii] = ind[i];
-    ii -= item.get_local_range().get(2);
+    ii -= item.get_local_range(0);
   }
   item.barrier();
-  ii = size - *firstNeg + item.get_local_id(2);
+  ii = size - *firstNeg + item.get_local_id(0);
   assert(ii >= 0);
-  for (auto i = first; i < *firstNeg; i += item.get_local_range().get(2)) {
+  for (auto i = first; i < *firstNeg; i += item.get_local_range(0)) {
     ind2[ii] = ind[i];
-    ii += item.get_local_range().get(2);
+    ii += item.get_local_range(0);
   }
   item.barrier();
-  for (auto i = first; i < size; i += item.get_local_range().get(2))
+  for (auto i = first; i < size; i += item.get_local_range(0))
     ind[i] = ind2[i];
 }
 
@@ -81,42 +81,42 @@ template <typename T,  // shall be interger
           typename RF>
 __forceinline void radixSortImpl(
     T const* __restrict__ a, uint16_t* ind, uint16_t* ind2, uint32_t size, RF reorder, //check how many args reorder wants
-    sycl::nd_item<3> item, int32_t* c, int32_t* ct, int32_t* cu, int* ibs, int* p, uint32_t * firstNeg) {
+    sycl::nd_item<1> item, int32_t* c, int32_t* ct, int32_t* cu, int* ibs, int* p, uint32_t * firstNeg) {
   constexpr int d = 8, w = 8 * sizeof(T);
   constexpr int sb = 1 << d;
   constexpr int ps = int(sizeof(T)) - NS;
 
   assert(size > 0);
-  assert(item.get_local_range().get(2) >= sb);
+  assert(item.get_local_range(0) >= sb);
 
-  // bool debug = false; // item.get_local_id(2)==0 && item.get_group(2)==5;
+  // bool debug = false; // item.get_local_id(0)==0 && item.get_group(0)==5;
 
   *p = ps;
 
   auto j = ind;
   auto k = ind2;
 
-  uint32_t first = item.get_local_id(2);
-  for (auto i = first; i < size; i += item.get_local_range().get(2))
+  uint32_t first = item.get_local_id(0);
+  for (auto i = first; i < size; i += item.get_local_range(0))
     j[i] = i;
   item.barrier();
 
   while ((item.barrier(), sycl::all_of_group(item.get_group(), *p < w / d))) {
-    if (item.get_local_id(2) < sb)
-      c[item.get_local_id(2)] = 0;
+    if (item.get_local_id(0) < sb)
+      c[item.get_local_id(0)] = 0;
     item.barrier();
 
     // fill bins
-    for (auto i = first; i < size; i += item.get_local_range().get(2)) {
+    for (auto i = first; i < size; i += item.get_local_range(0)) {
       auto bin = (a[j[i]] >> d * *p) & (sb - 1);
       cms::sycltools::AtomicAdd(&c[bin], 1);
     }
     item.barrier();
 
     // prefix scan "optimized"???...
-    if (item.get_local_id(2) < sb) {
-      auto x = c[item.get_local_id(2)];
-      int laneId = item.get_local_id(2) & 0x1f;
+    if (item.get_local_id(0) < sb) {
+      auto x = c[item.get_local_id(0)];
+      int laneId = item.get_local_id(0) & 0x1f;
 #pragma unroll
       for (int offset = 1; offset < 32; offset <<= 1) {
         /*
@@ -127,18 +127,18 @@ __forceinline void radixSortImpl(
         if (laneId >= offset)
           x += y;
       }
-      ct[item.get_local_id(2)] = x;
+      ct[item.get_local_id(0)] = x;
     }
     item.barrier();
-    if (item.get_local_id(2) < sb) {
-      auto ss = (item.get_local_id(2) / 32) * 32 - 1;
-      c[item.get_local_id(2)] = ct[item.get_local_id(2)];
+    if (item.get_local_id(0) < sb) {
+      auto ss = (item.get_local_id(0) / 32) * 32 - 1;
+      c[item.get_local_id(0)] = ct[item.get_local_id(0)];
       for (int i = ss; i > 0; i -= 32)
-        c[item.get_local_id(2)] += ct[i];
+        c[item.get_local_id(0)] += ct[i];
     }
     /* 
     //prefix scan for the nulls  (for documentation)
-    if (item.get_local_id(2)==0)
+    if (item.get_local_id(0)==0)
       for (int i = 1; i < sb; ++i) c[i] += c[i-1];
     */
 
@@ -146,26 +146,26 @@ __forceinline void radixSortImpl(
     *ibs = size - 1;
     item.barrier();
     while ((item.barrier(), sycl::all_of_group(item.get_group(), *ibs > 0))) {
-      int i = *ibs - item.get_local_id(2);
-      if (item.get_local_id(2) < sb) {
-        cu[item.get_local_id(2)] = -1;
-        ct[item.get_local_id(2)] = -1;
+      int i = *ibs - item.get_local_id(0);
+      if (item.get_local_id(0) < sb) {
+        cu[item.get_local_id(0)] = -1;
+        ct[item.get_local_id(0)] = -1;
       }
       item.barrier();
       int32_t bin = -1;
-      if (item.get_local_id(2) < sb) {
+      if (item.get_local_id(0) < sb) {
         if (i >= 0) {
           bin = (a[j[i]] >> d * *p) & (sb - 1);
-          ct[item.get_local_id(2)] = bin;
+          ct[item.get_local_id(0)] = bin;
           cms::sycltools::AtomicMax(&cu[bin], int(i));
         }
       }
       item.barrier();
-      if (item.get_local_id(2) < sb) {
+      if (item.get_local_id(0) < sb) {
         if (i >= 0 && i == cu[bin])  // ensure to keep them in order
-          for (int ii = item.get_local_id(2); ii < sb; ++ii)
+          for (int ii = item.get_local_id(0); ii < sb; ++ii)
             if (ct[ii] == bin) {
-              auto oi = ii - item.get_local_id(2);
+              auto oi = ii - item.get_local_id(0);
               // assert(i>=oi);if(i>=oi)
               k[--c[bin]] = j[i - oi];
             }
@@ -173,15 +173,15 @@ __forceinline void radixSortImpl(
       item.barrier();
       if (bin >= 0)
         assert(c[bin] >= 0);
-      if (item.get_local_id(2) == 0)
+      if (item.get_local_id(0) == 0)
         *ibs -= sb;
       item.barrier();
     }
 
     /*
     // broadcast for the nulls  (for documentation)
-    if (item.get_local_id(2)==0)
-    for (int i=size-first-1; i>=0; i--) { // =item.get_local_range().get(2)) {
+    if (item.get_local_id(0)==0)
+    for (int i=size-first-1; i>=0; i--) { // =item.get_local_range(0)) {
       auto bin = (a[j[i]] >> d*p)&(sb-1);
       auto ik = atomicSub(&c[bin],1);
       k[ik-1] = j[i];
@@ -196,7 +196,7 @@ __forceinline void radixSortImpl(
     j = k;
     k = t;
 
-    if (item.get_local_id(2) == 0)
+    if (item.get_local_id(0) == 0)
       ++(*p);
     item.barrier();
   }
@@ -205,7 +205,7 @@ __forceinline void radixSortImpl(
     assert(j == ind);  // w/d is even so ind is correct
 
   if (j != ind)  // odd...
-    for (auto i = first; i < size; i += item.get_local_range().get(2))
+    for (auto i = first; i < size; i += item.get_local_range(0))
       ind[i] = ind2[i];
 
   item.barrier();
@@ -218,7 +218,7 @@ template <typename T,
           int NS = sizeof(T),  // number of significant bytes to use in sorting
           typename std::enable_if<std::is_unsigned<T>::value, T>::type* = nullptr>
 __forceinline void radixSort(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, 
-sycl::nd_item<3> item, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
+sycl::nd_item<1> item, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
   radixSortImpl<T, NS>(a, ind, ind2, size, dummyReorder<T>, item, c, ct, cu, ibs, p, firstNeg);
 }
 
@@ -226,7 +226,7 @@ template <typename T,
           int NS = sizeof(T),  // number of significant bytes to use in sorting
           typename std::enable_if<std::is_integral<T>::value && std::is_signed<T>::value, T>::type* = nullptr>
 __forceinline void radixSort(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, 
-sycl::nd_item<3> item, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
+sycl::nd_item<1> item, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
   radixSortImpl<T, NS>(a, ind, ind2, size, reorderSigned<T>, item, c, ct, cu, ibs, p, firstNeg);
 }
 
@@ -234,7 +234,7 @@ template <typename T,
           int NS = sizeof(T),  // number of significant bytes to use in sorting
           typename std::enable_if<std::is_floating_point<T>::value, T>::type* = nullptr>
 __forceinline void radixSort(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, 
-sycl::nd_item<3> item, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
+sycl::nd_item<1> item, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
   using I = int;
   radixSortImpl<I, NS>((I const*)(a), ind, ind2, size, reorderFloat<I>, item, c, ct, cu, ibs, p, firstNeg);
 }
@@ -244,7 +244,7 @@ __forceinline void radixSortMulti(T const* v,
                                   uint16_t* index,
                                   uint32_t const* offsets,
                                   uint16_t* workspace,
-                                  sycl::nd_item<3> item,
+                                  sycl::nd_item<1> item,
                                   uint16_t *ws,
                                   int32_t *c,
                                   int32_t *ct,
@@ -253,11 +253,11 @@ __forceinline void radixSortMulti(T const* v,
                                   int *p,
                                   uint32_t *firstNeg) {
   
-  auto a = v + offsets[item.get_group(2)];
-  auto ind = index + offsets[item.get_group(2)];
-  auto ind2 = nullptr == workspace ? ws : workspace + offsets[item.get_group(2)];
-  auto size = offsets[item.get_group(2) + 1] - offsets[item.get_group(2)];
-  assert(offsets[item.get_group(2) + 1] >= offsets[item.get_group(2)]);
+  auto a = v + offsets[item.get_group(0)];
+  auto ind = index + offsets[item.get_group(0)];
+  auto ind2 = nullptr == workspace ? ws : workspace + offsets[item.get_group(0)];
+  auto size = offsets[item.get_group(0) + 1] - offsets[item.get_group(0)];
+  assert(offsets[item.get_group(0) + 1] >= offsets[item.get_group(0)]);
   if (size > 0)
     radixSort<T, NS>(a, ind, ind2, size, item, c, ct, cu, ibs, p, firstNeg);
 }
@@ -267,13 +267,13 @@ namespace cms {
 
     template <typename T, int NS = sizeof(T)>
     void radixSortMultiWrapper(T const* v, uint16_t* index, uint32_t const* offsets, uint16_t* workspace,
-        sycl::nd_item<3> item, uint16_t *ws, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
+        sycl::nd_item<1> item, uint16_t *ws, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
       radixSortMulti<T, NS>(v, index, offsets, workspace, item, ws, c, ct, cu, ibs, p, firstNeg);
     }
 
     template <typename T, int NS = sizeof(T)>
     void radixSortMultiWrapper2(T const* v, uint16_t* index, uint32_t const* offsets, uint16_t* workspace,
-         sycl::nd_item<3> item, uint16_t *ws, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
+         sycl::nd_item<1> item, uint16_t *ws, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
       radixSortMulti<T, NS>(v, index, offsets, workspace, item, ws, c, ct, cu, ibs, p, firstNeg);
     }
 
