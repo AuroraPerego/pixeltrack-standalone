@@ -12,6 +12,8 @@
 
 #include "gpuClusteringConstants.h"
 
+#define ABS(x) ((x < 0) ? -x : x)
+
 namespace gpuClustering {
 
 #ifdef GPU_DEBUG
@@ -208,7 +210,7 @@ namespace gpuClustering {
            assert(m != i);
            assert(int(y[m]) - int(y[i]) >= 0);
            assert(int(y[m]) - int(y[i]) <= 1);
-           if (std::abs(int(x[m]) - int(x[i])) > 1)
+           if (ABS(int(x[m]) - int(x[i])) > 1) //FIXME_
              continue;
            auto l = nnn[k]++;
            assert(l < maxNeighbours);
