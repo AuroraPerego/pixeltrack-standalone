@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <array>
 
+#define ABS(x) ((x < 0) ? -x : x)
+
 // Function for testing RunningAverage
 namespace test_average {
   namespace running_average {
@@ -29,7 +31,7 @@ namespace edm {
 
     int upper() const {
       auto lm = mean();
-      return lm += (std::abs(m_buffer[0] - lm) + std::abs(m_buffer[N / 2] - lm));
+      return lm += (ABS(m_buffer[0] - lm) + ABS(m_buffer[N / 2] - lm));
     }  // about 2 sigma
 
     void update(unsigned int q) {

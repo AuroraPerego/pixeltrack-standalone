@@ -11,6 +11,7 @@
 
 
 #include "gpuVertexFinder.h"
+#define ABS(x) ((x < 0) ? -x : x)
 
 namespace gpuVertexFinder {
   
@@ -73,7 +74,7 @@ namespace gpuVertexFinder {
       assert(i < ZVertices::MAXTRACKS);
       int iz = int(zt[i] * 10.);  // valid if eps<=0.1
       // iz = std::clamp(iz, INT8_MIN, INT8_MAX);  // sorry c++17 only
-      iz = std::min(std::max(iz, INT8_MIN), INT8_MAX);
+      iz = sycl::min(sycl::max(iz, INT8_MIN), INT8_MAX);
       izt[i] = iz - INT8_MIN;
       assert(iz - INT8_MIN >= 0);
       assert(iz - INT8_MIN < 256);
@@ -100,7 +101,7 @@ namespace gpuVertexFinder {
       auto loop = [&](uint32_t j) {
         if (i == j)
           return;
-        auto dist = std::abs(zt[i] - zt[j]);
+        auto dist = ABS(zt[i] - zt[j]);
         if (dist > eps)
           return;
         if (dist * dist > chi2max * (ezt2[i] + ezt2[j]))
@@ -121,7 +122,7 @@ namespace gpuVertexFinder {
           return;
         if (nn[j] == nn[i] && zt[j] >= zt[i])
           return;  // if equal use natural order...
-        auto dist = std::abs(zt[i] - zt[j]);
+        auto dist = ABS(zt[i] - zt[j]);
         if (dist > mdist)
           return;
         if (dist * dist > chi2max * (ezt2[i] + ezt2[j]))
@@ -170,7 +171,7 @@ namespace gpuVertexFinder {
           return;
         if (nn[j] == nn[i] && zt[j] >= zt[i])
           return;  // if equal use natural order...
-        auto dist = std::abs(zt[i] - zt[j]);
+        auto dist = ABS(zt[i] - zt[j]);
         if (dist > mdist)
           return;
         if (dist * dist > chi2max * (ezt2[i] + ezt2[j]))

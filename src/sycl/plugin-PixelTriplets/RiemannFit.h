@@ -2,6 +2,7 @@
 #define RecoPixelVertexing_PixelTrackFitting_interface_RiemannFit_h
 
 #include "FitUtils.h"
+#define ABS(x) ((x < 0) ? -x : x)
 
 namespace Rfit {
 
@@ -35,7 +36,7 @@ namespace Rfit {
     u_int n = length_values.rows();
     rad_lengths(0) = length_values(0) * XX_0_inv;
     for (u_int j = 1; j < n; ++j) {
-      rad_lengths(j) = std::abs(length_values(j) - length_values(j - 1)) * XX_0_inv;
+      rad_lengths(j) = ABS(length_values(j) - length_values(j - 1)) * XX_0_inv;
     }
   }
 
@@ -93,7 +94,7 @@ namespace Rfit {
     for (u_int k = 0; k < n; ++k) {
       for (u_int l = k; l < n; ++l) {
         for (u_int i = 0; i < std::min(k, l); ++i) {
-          tmp(k + n, l + n) += std::abs(S_values(k) - S_values(i)) * std::abs(S_values(l) - S_values(i)) * sig2_S(i);
+          tmp(k + n, l + n) += ABS(S_values(k) - S_values(i)) * ABS(S_values(l) - S_values(i)) * sig2_S(i);
         }
         tmp(l + n, k + n) = tmp(k + n, l + n);
       }
@@ -139,7 +140,7 @@ namespace Rfit {
       const double cross = cross2D(-o, p);
       const double dot = (-o).dot(p);
       const double atan2_ = atan2(cross, dot);
-      s_values(i) = std::abs(atan2_ * fast_fit(2));
+      s_values(i) = ABS(atan2_ * fast_fit(2));
     }
     computeRadLenUniformMaterial(s_values * sqrt(1. + 1. / (fast_fit(3) * fast_fit(3))), rad_lengths);
     MatrixNd<N> scatter_cov_rad = MatrixNd<N>::Zero();

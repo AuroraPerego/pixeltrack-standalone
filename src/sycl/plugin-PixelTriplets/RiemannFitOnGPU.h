@@ -13,6 +13,8 @@
 #include "RiemannFit.h"
 #include "HelixFitOnGPU.h"
 
+#define ABS(x) ((x < 0) ? -x : x)
+
 using HitsOnGPU = TrackingRecHit2DSOAView;
 using Tuples = pixelTrack::HitContainer;
 using OutputSoA = pixelTrack::TrackSoA;
@@ -163,7 +165,7 @@ void kernelLineFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMulti
 
     results->stateAtBS.copyFromCircle(
         circle_fit[local_idx].par, circle_fit[local_idx].cov, line_fit.par, line_fit.cov, 1.f / float(B), tkid);
-    results->pt(tkid) = B / std::abs(circle_fit[local_idx].par(2));
+    results->pt(tkid) = B / ABS(circle_fit[local_idx].par(2));
     results->eta(tkid) = asinhf(line_fit.par(0));
     results->chi2(tkid) = (circle_fit[local_idx].chi2 + line_fit.chi2) / (2 * N - 5);
 

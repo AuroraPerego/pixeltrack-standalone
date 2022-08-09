@@ -19,6 +19,7 @@
 */
 
 #include <cmath>
+#define ABS(x) ((x < 0) ? -x : x)
 
 template <typename T>
 class CircleEq {
@@ -68,7 +69,7 @@ public:
 
 template <typename T>
 constexpr void CircleEq<T>::compute(T x1, T y1, T x2, T y2, T x3, T y3) {
-  bool noflip = std::abs(x3 - x1) < std::abs(y3 - y1);
+  bool noflip = ABS(x3 - x1) < ABS(y3 - y1);
 
   auto x1p = noflip ? x1 - x2 : y1 - y2;
   auto y1p = noflip ? y1 - y2 : x1 - x2;

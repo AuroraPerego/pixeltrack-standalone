@@ -19,6 +19,8 @@
 #include "gpuFishbone.h"
 #include "gpuPixelDoublets.h"
 
+#define ABS(x) ((x < 0) ? -x : x)
+
 using HitsOnGPU = TrackingRecHit2DSOAView;
 using HitsOnCPU = TrackingRecHit2DSYCL;
 
@@ -180,7 +182,7 @@ void kernel_fastDuplicateRemover(GPUCACell const *__restrict__ cells,
     uint16_t im = 60000;
 
     auto score = [&](auto it) {
-      return std::abs(tracks->tip(it));  // tip
+      return ABS(tracks->tip(it));  // tip
       // return tracks->chi2(it);  //chi2
     };
 
@@ -420,8 +422,8 @@ void kernel_classifyTracks(HitContainer const *__restrict__ tuples,
     //   - for quadruplets: |Tip| < 0.5 cm, pT > 0.3 GeV, |Zip| < 12.0 cm
     // (see CAHitNtupletGeneratorGPU.cc)
     auto const &region = (nhits > 3) ? cuts.quadruplet : cuts.triplet;
-    bool isOk = (std::abs(tracks->tip(it)) < region.maxTip) and (tracks->pt(it) > region.minPt) and
-                (std::abs(tracks->zip(it)) < region.maxZip);
+    bool isOk = (ABS(tracks->tip(it)) < region.maxTip) and (tracks->pt(it) > region.minPt) and
+                (ABS(tracks->zip(it)) < region.maxZip);
 
     if (isOk)
       quality[it] = trackQuality::loose;
@@ -555,8 +557,8 @@ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
     // for triplets choose best tip!
     for (auto ip = hitToTuple.begin(idx); ip != hitToTuple.end(idx); ++ip) {
       auto const it = *ip;
-      if (quality[it] != bad && std::abs(tracks.tip(it)) < mc) {
-        mc = std::abs(tracks.tip(it));
+      if (quality[it] != bad && ABS(tracks.tip(it)) < mc) {
+        mc = ABS(tracks.tip(it));
         im = it;
       }
     }

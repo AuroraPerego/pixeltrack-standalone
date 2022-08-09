@@ -10,6 +10,8 @@
 #include "DataFormats/SOARotation.h"
 #include "Geometry/phase1PixelTopology.h"
 
+#define ABS(x) ((x < 0) ? -x : x)
+
 namespace pixelCPEforGPU {
 
   using Frame = SOAFrame<float>;
@@ -141,7 +143,7 @@ namespace pixelCPEforGPU {
       auto W_pred = theThickness * cot_angle  // geometric correction (in cm)
                     - lorentz_shift;          // (in cm) &&& check fpix!
 
-      W_eff = std::abs(W_pred) - W_inner;
+      W_eff = ABS(W_pred) - W_inner;
 
       //--- If the observed charge width is inconsistent with the expectations
       //--- based on the track, do *not* use W_pred-W_inner.  Instead, replace
@@ -206,8 +208,8 @@ namespace pixelCPEforGPU {
     if (phase1PixelTopology::isBigPixY(cp.maxCol[ic]))
       ++ysize;
 
-    int unbalanceX = 8. * std::abs(float(cp.Q_f_X[ic] - cp.Q_l_X[ic])) / float(cp.Q_f_X[ic] + cp.Q_l_X[ic]);
-    int unbalanceY = 8. * std::abs(float(cp.Q_f_Y[ic] - cp.Q_l_Y[ic])) / float(cp.Q_f_Y[ic] + cp.Q_l_Y[ic]);
+    int unbalanceX = 8. * ABS(float(cp.Q_f_X[ic] - cp.Q_l_X[ic])) / float(cp.Q_f_X[ic] + cp.Q_l_X[ic]);
+    int unbalanceY = 8. * ABS(float(cp.Q_f_Y[ic] - cp.Q_l_Y[ic])) / float(cp.Q_f_Y[ic] + cp.Q_l_Y[ic]);
     xsize = 8 * xsize - unbalanceX;
     ysize = 8 * ysize - unbalanceY;
 

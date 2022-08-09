@@ -12,6 +12,8 @@
 #include "Framework/PluginFactory.h"
 #include "Framework/EDProducer.h"
 
+#define ABS(x) ((x < 0) ? -x : x)
+
 #include <atomic>
 #include <iostream>
 #include <mutex>
@@ -94,7 +96,7 @@ void CountValidator::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
       }
     }
 
-    auto rel = std::abs(float(nTracks - int(count.nTracks())) / count.nTracks());
+    auto rel = ABS(float(nTracks - int(count.nTracks())) / count.nTracks());
     if (static_cast<unsigned int>(nTracks) != count.nTracks()) {
       std::lock_guard<std::mutex> guard(sumTrackDifferenceMutex);
       sumTrackDifference += rel;
@@ -110,7 +112,7 @@ void CountValidator::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
     auto const& count = iEvent.get(vertexCountToken_);
     auto const& vertices = iEvent.get(vertexToken_);
 
-    auto diff = std::abs(int(vertices->nvFinal) - int(count.nVertices()));
+    auto diff = ABS(int(vertices->nvFinal) - int(count.nVertices()));
     if (diff != 0) {
       sumVertexDifference += diff;
     }

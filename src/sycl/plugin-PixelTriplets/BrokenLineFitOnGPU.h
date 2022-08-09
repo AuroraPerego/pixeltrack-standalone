@@ -16,6 +16,8 @@
 #include "BrokenLine.h"
 #include "HelixFitOnGPU.h"
 
+#define ABS(x) ((x < 0) ? -x : x)
+
 using HitsOnGPU = TrackingRecHit2DSOAView;
 using Tuples = pixelTrack::HitContainer;
 using OutputSoA = pixelTrack::TrackSoA;
@@ -159,7 +161,7 @@ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMultipl
     BrokenLine::BL_Circle_fit(hits, hits_ge, fast_fit, B, data, circle);
 
     results->stateAtBS.copyFromCircle(circle.par, circle.cov, line.par, line.cov, 1.f / float(B), tkid);
-    results->pt(tkid) = float(B) / float(std::abs(circle.par(2)));
+    results->pt(tkid) = float(B) / float(ABS(circle.par(2)));
     results->eta(tkid) = asinhf(line.par(0));
     results->chi2(tkid) = (circle.chi2 + line.chi2) / (2 * N - 5);
 
