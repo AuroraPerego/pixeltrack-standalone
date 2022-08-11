@@ -4,7 +4,6 @@
 #include <CL/sycl.hpp>
 #include <cstdint>
 
-//#include "SYCLCore/syclCompat.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
 

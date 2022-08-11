@@ -3,8 +3,6 @@
 
 #include <cassert>
 
-//#include "SYCLCore/copyAsync.h"
-//#include "SYCLCore/syclCheck.h"
 #include "SYCLCore/device_unique_ptr.h"
 #include "SYCLCore/host_unique_ptr.h"
 
@@ -179,11 +177,11 @@ cms::sycltools::host::unique_ptr<T> HeterogeneousSoAImpl<T, Traits>::toHostAsync
   return ret;
 }
 
-template <typename T>
-using HeterogeneousSoAGPU = HeterogeneousSoAImpl<T, cms::syclcompat::GPUTraits>;
-template <typename T>
-using HeterogeneousSoACPU = HeterogeneousSoAImpl<T, cms::syclcompat::CPUTraits>;
-template <typename T>
-using HeterogeneousSoAHost = HeterogeneousSoAImpl<T, cms::syclcompat::HostTraits>;
+//template <typename T>
+//using HeterogeneousSoAGPU = HeterogeneousSoAImpl<T, cms::syclcompat::GPUTraits>;
+//template <typename T>
+//using HeterogeneousSoACPU = HeterogeneousSoAImpl<T, cms::syclcompat::CPUTraits>;
+//template <typename T>
+//using HeterogeneousSoAHost = HeterogeneousSoAImpl<T, cms::syclcompat::HostTraits>;
 
 #endif

@@ -302,20 +302,23 @@ public:
     // it has no compatible neighbor
     // the ntuplets is then saved if the number of hits it contains is greater
     // than a threshold
-
     tmpNtuplet.push_back_unsafe(theDoubletId);
     assert(tmpNtuplet.size() <= 4);
 
     bool last = true;
+    //FIXME_ outerNeighbors().size() is broken, probably due to previous plugins;
     for (int j = 0; j < outerNeighbors().size(); ++j) {
       auto otherCell = outerNeighbors()[j];
+      //out << "in loop\n";
       if (cells[otherCell].theDoubletId < 0)
         continue;  // killed by earlyFishbone
       last = false;
+      //out << DEPTH << "\n";
       cells[otherCell].find_ntuplets<DEPTH - 1>(
           hh, cells, cellTracks, foundNtuplets, apc, quality, tmpNtuplet, minHitsPerNtuplet, startAt0, out);
     }
     if (last) {  // if long enough save...
+      out << "last\n";
       if ((unsigned int)(tmpNtuplet.size()) >= minHitsPerNtuplet - 1) {
 #ifdef ONLY_TRIPLETS_IN_HOLE
         // triplets accepted only pointing to the hole

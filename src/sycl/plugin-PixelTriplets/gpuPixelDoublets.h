@@ -60,14 +60,15 @@ namespace gpuPixelDoublets {
   using CellTracks = CAConstants::CellTracks;
   using CellNeighborsVector = CAConstants::CellNeighborsVector;
   using CellTracksVector = CAConstants::CellTracksVector;
-
+  
   void initDoublets(GPUCACell::OuterHitOfCell* isOuterHitOfCell,
                     int nHits,
                     CellNeighborsVector* cellNeighbors,
                     CellNeighbors* cellNeighborsContainer,
                     CellTracksVector* cellTracks,
                     CellTracks* cellTracksContainer,
-                    sycl::nd_item<3> item) {
+                    sycl::nd_item<1> item,
+                    sycl::stream out) {
     assert(isOuterHitOfCell);
     int first = item.get_group(2) * item.get_local_range().get(2) + item.get_local_id(2);
     for (int i = first; i < nHits; i += item.get_group_range(2) * item.get_local_range().get(2))
@@ -103,9 +104,10 @@ namespace gpuPixelDoublets {
                                 bool doZ0Cut,
                                 bool doPtCut,
                                 uint32_t maxNumOfDoublets,
-				sycl::nd_item<3> item,
-				uint32_t* innerLayerCumulativeSize,
-                                uint32_t* ntot) {
+				                        sycl::nd_item<3> item,
+				                        uint32_t* innerLayerCumulativeSize,
+                                uint32_t* ntot,
+                                sycl::stream out) {
     auto const& __restrict__ hh = *hhp;
     doubletsFromHisto(layerPairs,
                       nActualPairs,
@@ -124,9 +126,10 @@ namespace gpuPixelDoublets {
                       doZ0Cut,
                       doPtCut,
                       maxNumOfDoublets,
-		      item,
+		                  item,
                       innerLayerCumulativeSize,
-                      ntot);
+                      ntot,
+                      out);
   }
 
 }  // namespace gpuPixelDoublets

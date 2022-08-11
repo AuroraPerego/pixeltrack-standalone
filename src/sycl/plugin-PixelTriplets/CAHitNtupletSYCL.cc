@@ -20,14 +20,14 @@ public:
 private:
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
 
-  edm::EDGetTokenT<cms::sycltools::Product<TrackingRecHit2DGPU>> tokenHitGPU_;
+  edm::EDGetTokenT<cms::sycltools::Product<TrackingRecHit2DSYCL>> tokenHitGPU_;
   edm::EDPutTokenT<cms::sycltools::Product<PixelTrackHeterogeneous>> tokenTrackGPU_;
 
   CAHitNtupletGeneratorOnGPU gpuAlgo_;
 };
 
 CAHitNtupletSYCL::CAHitNtupletSYCL(edm::ProductRegistry& reg)
-    : tokenHitGPU_{reg.consumes<cms::sycltools::Product<TrackingRecHit2DGPU>>()},
+    : tokenHitGPU_{reg.consumes<cms::sycltools::Product<TrackingRecHit2DSYCL>>()},
       tokenTrackGPU_{reg.produces<cms::sycltools::Product<PixelTrackHeterogeneous>>()},
       gpuAlgo_(reg) {}
 
@@ -37,7 +37,7 @@ void CAHitNtupletSYCL::produce(edm::Event& iEvent, const edm::EventSetup& es) {
   auto const& phits = iEvent.get(tokenHitGPU_);
   cms::sycltools::ScopedContextProduce ctx{phits};
   auto const& hits = ctx.get(phits);
-
+  std::cout << __LINE__ << "\n";
   ctx.emplace(iEvent, tokenTrackGPU_, gpuAlgo_.makeTuplesAsync(hits, bf, ctx.stream()));
 }
 

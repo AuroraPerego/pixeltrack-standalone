@@ -45,7 +45,8 @@ namespace gpuPixelDoublets {
                                        uint32_t maxNumOfDoublets,
                                        sycl::nd_item<3> item,
                                        uint32_t* innerLayerCumulativeSize,
-                                       uint32_t* ntot) {
+                                       uint32_t* ntot,
+                                       sycl::stream out) {
     // ysize cuts (z in the barrel)  times 8
     // these are used if doClusterCut is true
     constexpr int minYsizeB1 = 36;
@@ -115,7 +116,7 @@ namespace gpuPixelDoublets {
       if (mi > 2000)
         continue;  // invalid
 
-      /* maybe clever, not effective when zoCut is on
+      /*maybe clever, not effective when zoCut is on
       auto bpos = (mi%8)/4;  // if barrel is 1 for z>0
       auto fpos = (outer>3) & (outer<7);
       if ( ((inner<3) & (outer>3)) && bpos!=fpos) continue;
@@ -241,11 +242,10 @@ namespace gpuPixelDoublets {
       }
 #ifdef GPU_DEBUG
       if (tooMany > 0)
-        printf("OuterHitOfCell full for %d in layer %d/%d, %d,%d %d\n", i, inner, outer, nmin, tot, tooMany);
+        out << "OuterHitOfCell full for %d in layer %d/%d, %d,%d %d\n", i, inner, outer, nmin, tot, tooMany;
 #endif
     }  // loop in block...
   }
-
 }  // namespace gpuPixelDoublets
 
 #endif  // RecoLocalTracker_SiPixelRecHits_plugins_gpuPixelDoupletsAlgos_h

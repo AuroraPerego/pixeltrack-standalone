@@ -93,20 +93,31 @@ PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecH
   CAHitNtupletGeneratorKernelsGPU kernels(m_params);
 
   //kernels.counters_ = m_counters; 
-  
+  std::cout << __LINE__ << "\n";
   kernels.allocateOnGPU(stream);
-
+  std::cout << __LINE__ << "\n";
   kernels.buildDoublets(hits_d, stream);
+  std::cout << __LINE__ << "\n";
   kernels.launchKernels(hits_d, soa, stream);
+  std::cout << __LINE__ << "\n";
   kernels.fillHitDetIndices(hits_d.view(), soa, stream);  // in principle needed only if Hits not "available"
+  std::cout << __LINE__ << "\n";
 
   HelixFitOnGPU fitter(bfield, m_params.fit5as4_);
+  std::cout << __LINE__ << "\n";
   fitter.allocateOnGPU(&(soa->hitIndices), kernels.tupleMultiplicity(), soa);
+  std::cout << __LINE__ << "\n";
   if (m_params.useRiemannFit_) {
+  std::cout << __LINE__ << "\n";
     fitter.launchRiemannKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
-  } else {
-    fitter.launchBrokenLineKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
-  }
-  kernels.classifyTuples(hits_d, soa, stream);
+  std::cout << __LINE__ << "\n";
+  } //else {
+  //std::cout << __LINE__ << "\n";
+  //  fitter.launchBrokenLineKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
+  //std::cout << __LINE__ << "\n";
+  //}
+  //std::cout << __LINE__ << "\n";
+  //kernels.classifyTuples(hits_d, soa, stream);
+  //std::cout << __LINE__ << "\n";
   return tracks;
 }

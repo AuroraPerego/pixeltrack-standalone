@@ -6,9 +6,11 @@
 #include "SYCLDataFormats/PixelTrackHeterogeneous.h"
 
 using ZVertexHeterogeneous = HeterogeneousSoA<ZVertexSoA>;
+//FIXME_ since this is the only line, consider moving it in HeterogeneousSoA.h
+
 //#ifndef SYCL_LANGUAGE_VERSION FIXME_
-#include "SYCLCore/Product.h"
-using ZVertexSYCLProduct = cms::sycltools::Product<ZVertexHeterogeneous>;
+//#include "SYCLCore/Product.h"
+//using ZVertexSYCLProduct = cms::sycltools::Product<ZVertexHeterogeneous>;
 //#endif
 
 #endif
