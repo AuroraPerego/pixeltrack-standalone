@@ -168,8 +168,8 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
       auto tuples_d_kernel                = tuples_d;
       auto device_hitTuple_apc_kernel     = device_hitTuple_apc_;
       cgh.parallel_for(
-          sycl::nd_range<3>(numberOfBlocks * sycl::range<3>(1, 1, blockSize), sycl::range<3>(1, 1, blockSize)),
-          [=](sycl::nd_item<3> item){ 
+          sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
+          [=](sycl::nd_item<1> item){ 
               cms::sycltools::finalizeBulk(device_hitTuple_apc_kernel, tuples_d_kernel, item);
       });
     });

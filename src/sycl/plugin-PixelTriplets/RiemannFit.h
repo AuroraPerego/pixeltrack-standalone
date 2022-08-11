@@ -314,7 +314,7 @@ namespace Rfit {
     Eigen::SelfAdjointEigenSolver<Matrix3d> solver(3);
     solver.computeDirect(A);
     int min_index;
-    chi2 = solver.eigenvalues().minCoeff(&min_index);
+    chi2 = solver.eigenvalues().minCoeff(&min_index); //FIXME_
 #ifdef RFIT_DEBUG
     printf("min_eigen3D - exit\n");
 #endif
@@ -336,7 +336,7 @@ namespace Rfit {
     Eigen::SelfAdjointEigenSolver<Matrix3f> solver(3);
     solver.computeDirect(A.cast<float>());
     int min_index;
-    solver.eigenvalues().minCoeff(&min_index);
+    solver.eigenvalues().minCoeff(&min_index); //FIXME_
     return solver.eigenvectors().col(min_index).cast<double>();
   }
 
@@ -354,7 +354,7 @@ namespace Rfit {
     Eigen::SelfAdjointEigenSolver<Matrix2d> solver(2);
     solver.computeDirect(A);
     int min_index;
-    chi2 = solver.eigenvalues().minCoeff(&min_index);
+    chi2 = solver.eigenvalues().minCoeff(&min_index); //FIXME_
     return solver.eigenvectors().col(min_index);
   }
 
@@ -452,7 +452,7 @@ namespace Rfit {
     scattering.
 */
   template <typename M2xN, typename V4, int N>
-  inline circle_fit Circle_fit(const M2xN& hits2D,
+  SYCL_EXTERNAL inline circle_fit Circle_fit(const M2xN& hits2D,
                                                    const Matrix2Nd<N>& hits_cov2D,
                                                    const V4& fast_fit,
                                                    const VectorNd<N>& rad,
@@ -597,10 +597,12 @@ namespace Rfit {
       printf("circle_fit - ERROR PRPAGATION ACTIVATED 2\n");
 #endif
       {
-        Eigen::Matrix<double, 1, 1> cm;
+        //Eigen::Matrix<double, 1, 1> cm;
         Eigen::Matrix<double, 1, 1> cm2;
-        cm = mc.transpose() * V * mc;
-        const double c = cm(0, 0);
+        //auto cm = mc.transpose() * V * mc;
+  //      const double c = cm(0, 0);
+        auto tmp = mc.transpose().lazyProduct(V);
+        double c = tmp * mc;
         Matrix2Nd<N> Vcs;
         Vcs.template triangularView<Eigen::Upper>() =
             (sqr(s) * V + sqr(sqr(s)) * 1. / (4. * q * n) *
@@ -708,7 +710,7 @@ namespace Rfit {
           if (b != a)
             E(b, a) = E(a, b);
         }
-      }
+    }
       printIt(&E, "circle_fit - E:");
 
       Eigen::Matrix<double, 3, 6> J2;  // Jacobian of min_eigen() (numerically computed)
@@ -748,11 +750,14 @@ namespace Rfit {
       }
       printIt(&J3, "circle_fit - J3:");
 
-      const RowVector2Nd<N> Jq = mc.transpose() * s * 1. / n;  // var(q)
+      const Vector2Nd<N> Jq = mc * s * 1. / n;  // var(q)
       printIt(&Jq, "circle_fit - Jq:");
 
+      auto tmp_Jq = Jq.transpose().lazyProduct(V);
+      double aa = tmp_Jq * Jq;
+                
       Matrix3d cov_uvr = J3 * Cvc * J3.transpose() * sqr(s_inv)  // cov(X0,Y0,R)
-                         + (par_uvr_ * par_uvr_.transpose()) * (Jq * V * Jq.transpose());
+                         + (par_uvr_ * par_uvr_.transpose()) * aa;
 
       circle.cov = cov_uvr;
     }

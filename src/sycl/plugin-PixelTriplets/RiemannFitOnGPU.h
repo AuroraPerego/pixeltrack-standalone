@@ -26,7 +26,7 @@ void kernelFastFit(Tuples const *__restrict__ foundNtuplets,
                    float *__restrict__ phits_ge,
                    double *__restrict__ pfast_fit,
                    uint32_t offset,
-                   sycl::nd_item<3> item) {
+                   sycl::nd_item<1> item) {
   constexpr uint32_t hitsInFit = N;
 
   assert(hitsInFit <= nHits);
@@ -36,7 +36,7 @@ void kernelFastFit(Tuples const *__restrict__ foundNtuplets,
   assert(tupleMultiplicity);
 
   // look in bin for this hit multiplicity
-  auto local_start = item.get_local_id(2) + item.get_group(2) * item.get_local_range().get(2);
+  auto local_start = item.get_local_id(0) + item.get_group(0) * item.get_local_range().get(0);
 
 #ifdef RIEMANN_DEBUG
   if (0 == local_start)
@@ -44,7 +44,7 @@ void kernelFastFit(Tuples const *__restrict__ foundNtuplets,
 #endif
 
   for (int local_idx = local_start, nt = Rfit::maxNumberOfConcurrentFits(); local_idx < nt;
-       local_idx += item.get_group_range(2) * item.get_local_range().get(2)) {
+       local_idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     auto tuple_idx = local_idx + offset;
     if (tuple_idx >= tupleMultiplicity->size(nHits))
       break;
@@ -92,16 +92,16 @@ void kernelCircleFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMul
                      double *__restrict__ pfast_fit_input,
                      Rfit::circle_fit *circle_fit,
                      uint32_t offset,
-                     sycl::nd_item<3> item) {
+                     sycl::nd_item<1> item) {
   assert(circle_fit);
   assert(N <= nHits);
 
   // same as above...
 
   // look in bin for this hit multiplicity
-  auto local_start = item.get_group(2) * item.get_local_range().get(2) + item.get_local_id(2);
+  auto local_start = item.get_group(0) * item.get_local_range().get(0) + item.get_local_id(0);
   for (int local_idx = local_start, nt = Rfit::maxNumberOfConcurrentFits(); local_idx < nt;
-       local_idx += item.get_local_range().get(2) * item.get_group_range(2)) {
+       local_idx += item.get_local_range().get(0) * item.get_group_range(0)) {
     auto tuple_idx = local_idx + offset;
     if (tuple_idx >= tupleMultiplicity->size(nHits))
       break;
@@ -135,7 +135,7 @@ void kernelLineFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMulti
                               double *__restrict__ pfast_fit_input,
                               Rfit::circle_fit *__restrict__ circle_fit,
                               uint32_t offset,
-                              sycl::nd_item<3> item) {
+                              sycl::nd_item<1> item) {
   assert(results);
   assert(circle_fit);
   assert(N <= nHits);
@@ -143,9 +143,9 @@ void kernelLineFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMulti
   // same as above...
 
   // look in bin for this hit multiplicity
-  auto local_start = (item.get_group(2) * item.get_local_range().get(2) + item.get_local_id(2));
+  auto local_start = (item.get_group(0) * item.get_local_range().get(0) + item.get_local_id(0));
   for (int local_idx = local_start, nt = Rfit::maxNumberOfConcurrentFits(); local_idx < nt;
-       local_idx += item.get_group_range(2) * item.get_local_range().get(2)) {
+       local_idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     auto tuple_idx = local_idx + offset;
     if (tuple_idx >= tupleMultiplicity->size(nHits))
       break;
