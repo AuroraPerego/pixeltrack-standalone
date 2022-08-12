@@ -34,6 +34,7 @@ namespace gpuCalibPixel {
   ) {
     int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
     // zero for next kernels...
+
     if (0 == first)
       clusModuleStart[0] = moduleStart[0] = 0;
     for (int i = first; i < (int)(gpuClustering::MaxNumModules);
@@ -57,6 +58,7 @@ namespace gpuCalibPixel {
       float gain = ret.second;
       // float pedestal = 0; float gain = 1.;
       if (isDeadColumn | isNoisyColumn) {
+        out << "i got HEREEERE \n";
         id[i] = InvId;
         adc[i] = 0;
         out << "bad pixel at " << i << " in " << id[i] << "\n";

@@ -5,14 +5,14 @@
 //#include "SYCLCore/copyAsync.h" check if it works w/o this, using directly memcpy
 
 SiPixelDigisSYCL::SiPixelDigisSYCL(size_t maxFedWords, sycl::queue stream) {
-  xx_d = cms::sycltools::make_device_unique<uint16_t[]>(maxFedWords, stream);
-  yy_d = cms::sycltools::make_device_unique<uint16_t[]>(maxFedWords, stream);
-  adc_d = cms::sycltools::make_device_unique<uint16_t[]>(maxFedWords, stream);
-  moduleInd_d = cms::sycltools::make_device_unique<uint16_t[]>(maxFedWords, stream);
-  clus_d = cms::sycltools::make_device_unique<int32_t[]>(maxFedWords, stream);
+  xx_d = cms::sycltools::make_device_unique<uint16_t[]>(maxFedWords, stream, "xx_d");
+  yy_d = cms::sycltools::make_device_unique<uint16_t[]>(maxFedWords, stream, "yy_d");
+  adc_d = cms::sycltools::make_device_unique<uint16_t[]>(maxFedWords, stream, "adc_d");
+  moduleInd_d = cms::sycltools::make_device_unique<uint16_t[]>(maxFedWords, stream, "moduleInd_d");
+  clus_d = cms::sycltools::make_device_unique<int32_t[]>(maxFedWords, stream, "clus_d");
 
-  pdigi_d = cms::sycltools::make_device_unique<uint32_t[]>(maxFedWords, stream);
-  rawIdArr_d = cms::sycltools::make_device_unique<uint32_t[]>(maxFedWords, stream);
+  pdigi_d = cms::sycltools::make_device_unique<uint32_t[]>(maxFedWords, stream, "pdigi_d");
+  rawIdArr_d = cms::sycltools::make_device_unique<uint32_t[]>(maxFedWords, stream, "rawIdArr_d");
 
   auto view = cms::sycltools::make_host_unique<DeviceConstView>(stream);
   view->xx_ = xx_d.get(); 
@@ -51,5 +51,14 @@ cms::sycltools::host::unique_ptr<uint32_t[]> SiPixelDigisSYCL::rawIdArrToHostAsy
   auto ret = cms::sycltools::make_host_unique<uint32_t[]>(nDigis(), stream);
   stream.memcpy(ret.get(), rawIdArr_d.get(), nDigis() * sizeof(uint32_t));
   //cms::sycltools::copyAsync(ret, rawIdArr_d, nDigis(), stream);
+  return ret;
+}
+
+uint16_t* SiPixelDigisSYCL::moduleIndToHostAsync(sycl::queue stream) const {
+  //auto ret = cms::sycltools::make_host_unique<uint16_t[]>(nDigis(), stream);
+  std::cout << "ndigis is :" << nDigis() << std::endl;
+  uint16_t *ret = (uint16_t*)sycl::malloc_host(sizeof(uint16_t) * 48316, stream);
+  stream.memcpy(ret, moduleInd_d.get(), 48316 * sizeof(uint16_t)).wait();
+  //cms::sycltools::copyAsync(ret, adc_d, nDigis(), stream);
   return ret;
 }

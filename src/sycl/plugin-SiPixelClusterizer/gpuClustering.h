@@ -37,7 +37,7 @@ namespace gpuClustering {
         --j;
       if (j < 0 or id[j] != id[i]) {
         //auto loc = cms::sycltools::AtomicAdd(moduleStart, 1);
-        out << "out";
+        //out << "out";
         auto loc = cms::sycltools::atomic_fetch_compare_inc<uint32_t>(moduleStart,
                                              static_cast<uint32_t>(MaxNumModules));
         moduleStart[loc + 1] = i;
@@ -71,12 +71,9 @@ namespace gpuClustering {
                int *n0,
                unsigned int *foundClusters,
                sycl::stream out) {
-         if (moduleStart[0] != 0){
-        // out << "blockIdx.x : " << item.get_group(0) << "\n";
-         out << "moduleStart[0] : " <<  moduleStart[0] << "\n";}
-        if (item.get_group(0) >= moduleStart[0]){
-          out << "go awayyyy \n" ; 
-          return;  }
+        if (item.get_group(0) >= moduleStart[0])
+          return;
+          out << "INSIDE!!!!!! \n" ;
         auto firstPixel = moduleStart[1 + item.get_group(0)];
         auto thisModuleId = id[firstPixel];
         assert(thisModuleId < MaxNumModules);
@@ -335,6 +332,8 @@ namespace gpuClustering {
         // //            out << "max hit " << foundClusters << " in " << thisModuleId << "\n";
         // //        }
         // //  #endif
+         if (thisModuleId % 100 == 1)
+                 out << *foundClusters << " clusters in module " << thisModuleId << "\n";
          #ifdef GPU_DEBUG
                if (thisModuleId % 100 == 1)
                  out << *foundClusters << " clusters in module " << thisModuleId << "\n";
