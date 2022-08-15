@@ -82,6 +82,15 @@ namespace cms {
     }
 
     template <typename T>
+    inline T atomic_fetch_max_shared(T *addr, T operand) {
+    auto atm =
+      cl::sycl::atomic_ref<T, cl::sycl::memory_order::relaxed, cl::sycl::memory_scope::device,
+                              cl::sycl::access::address_space::local_space>
+                              (addr[0]);            
+    return atm.fetch_max(operand);
+    }
+
+    template <typename T>
     inline T atomic_fetch_min(T *addr, T operand) {
     auto atm =
       cl::sycl::atomic_ref<T, cl::sycl::memory_order::relaxed, cl::sycl::memory_scope::device,

@@ -56,9 +56,18 @@ cms::sycltools::host::unique_ptr<uint32_t[]> SiPixelDigisSYCL::rawIdArrToHostAsy
 
 uint16_t* SiPixelDigisSYCL::moduleIndToHostAsync(sycl::queue stream) const {
   //auto ret = cms::sycltools::make_host_unique<uint16_t[]>(nDigis(), stream);
-  std::cout << "ndigis is :" << nDigis() << std::endl;
+  //std::cout << "ndigis is :" << nDigis() << std::endl;
   uint16_t *ret = (uint16_t*)sycl::malloc_host(sizeof(uint16_t) * 48316, stream);
   stream.memcpy(ret, moduleInd_d.get(), 48316 * sizeof(uint16_t)).wait();
   //cms::sycltools::copyAsync(ret, adc_d, nDigis(), stream);
+  return ret;
+}
+
+int32_t* SiPixelDigisSYCL::clusToHostAsyncTest(sycl::queue stream) const {
+  //auto ret = cms::sycltools::make_host_unique<int32_t[]>(nDigis(), stream);
+  int32_t *ret = (int32_t*)sycl::malloc_host(sizeof(int32_t) * 48316, stream);
+  stream.memcpy(ret, clus_d.get(), 48316 * sizeof(int32_t)).wait();
+  //stream.memcpy(ret.get(), clus_d.get(), nDigis() * sizeof(int32_t));
+  //cms::sycltools::copyAsync(ret, clus_d, nDigis(), stream);
   return ret;
 }

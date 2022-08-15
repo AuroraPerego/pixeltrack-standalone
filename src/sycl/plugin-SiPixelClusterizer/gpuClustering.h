@@ -9,6 +9,8 @@
 #include "SYCLCore/HistoContainer.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
+#include "assert.h"
+#include <cassert>
 
 
 #include "gpuClusteringConstants.h"
@@ -16,6 +18,7 @@
 #define ABS(x) ((x < 0) ? -x : x)
 namespace gpuClustering {
 
+#define GPU_DEBUG TRUE
 #ifdef GPU_DEBUG
   uint32_t gMaxHit = 0;
 #endif
@@ -29,7 +32,6 @@ namespace gpuClustering {
     int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
     for (int i = first; i < numElements; i += item.get_group_range(0) * item.get_local_range(0)) {
       clusterId[i] = i;
-      //out << "ID for i= "<< i <<"id is : " << id[i] << "\n";
       if (InvId == id[i])
         continue;
       auto j = i - 1;
@@ -46,10 +48,10 @@ namespace gpuClustering {
     //out << "Count Modules moduleStart is: " << moduleStart[0] << "\n";
   }
 
-      //  __launch_bounds__(256,4)
-      constexpr uint32_t maxPixInModule = 4000;
-      constexpr auto nbins = phase1PixelTopology::numColsInModule + 2;  //2+2;
-      using Hist = cms::sycltools::HistoContainer<uint16_t, nbins, maxPixInModule, 9, uint16_t>;
+        //init hist  (ymax=416 < 512 : 9bits)
+        constexpr uint32_t maxPixInModule = 4000;
+        constexpr auto nbins = phase1PixelTopology::numColsInModule + 2;  //2+2;
+        using Hist = cms::sycltools::HistoContainer<uint16_t, nbins, maxPixInModule, 9, uint16_t>;
 
       void
       findClus(uint16_t const* __restrict__ id,           // module id of each pixel
@@ -73,7 +75,6 @@ namespace gpuClustering {
                sycl::stream out) {
         if (item.get_group(0) >= moduleStart[0])
           return;
-          out << "INSIDE!!!!!! \n" ;
         auto firstPixel = moduleStart[1 + item.get_group(0)];
         auto thisModuleId = id[firstPixel];
         assert(thisModuleId < MaxNumModules);
@@ -87,7 +88,7 @@ namespace gpuClustering {
   
         // find the index of the first pixel not belonging to this module (or invalid)
          *msize = numElements;
-         item.barrier();
+         item.barrier(sycl::access::fence_space::local_space);
         
         // skip threads not associated to an existing pixel
         for (int i = first; i < numElements; i += item.get_local_range(0)) {
@@ -98,20 +99,19 @@ namespace gpuClustering {
             break;
           }
         }
-        if (*msize == 0){
-        out << "msize is : " << *msize << "\n";
-        }
-         //init hist  (ymax=416 < 512 : 9bits)
-         constexpr int maxPixInModule = 4000;
+
          //constexpr auto nbins = phase1PixelTopology::numColsInModule + 2;  //2+2  
          for (auto j = item.get_local_id(0); j < Hist::totbins(); j += item.get_local_range(0)) {
            hist->off[j] = 0;
          }
+
          /*
          DPCT1065:2: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
          */
-         item.barrier();  
+         item.barrier(sycl::access::fence_space::local_space);  
          assert((*msize == numElements) or ((*msize < numElements) and (id[(*msize)] != thisModuleId)));
+
+         constexpr int maxPixInModule = 4000;
          // limit to maxPixInModule  (FIXME if recurrent (and not limited to simulation with low threshold) one will need to implement something cleverer)
          if (0 == item.get_local_id(0)) {
            if ((*msize - static_cast<int>(firstPixel)) > maxPixInModule) {
@@ -120,56 +120,60 @@ namespace gpuClustering {
            }
          }
 
-             item.barrier();
+             item.barrier(sycl::access::fence_space::local_space);
              assert(*msize -  static_cast<int>(firstPixel) <= maxPixInModule);
-        //  #ifdef GPU_DEBUG
-        //      //__shared__ uint32_t totGood;
-        //      *totGood = 0;
-        //      item.barrier();
-        //  #endif  
+         #ifdef GPU_DEBUG
+             //__shared__ uint32_t totGood;
+             *totGood = 0;
+             item.barrier(sycl::access::fence_space::local_space);
+         #endif
+
+
            // fill histo
            for (int i = first; i < *msize; i += item.get_local_range(0)) {
              if (id[i] == InvId){  // skip invalid pixels
                continue;
              }
              hist->count(y[i]);
-        //  #ifdef GPU_DEBUG
-        //        cms::sycltools::atomic_fetch_add_shared<uint32_t>(totGood, static_cast<uint32_t>(1));
-        //  #endif
+         #ifdef GPU_DEBUG
+               cms::sycltools::atomic_fetch_add_shared<uint32_t>(totGood, static_cast<uint32_t>(1));
+         #endif
              }
             
              /*
              DPCT1065:4: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
              */
-             item.barrier();
-             if (item.get_local_id(0) < 32)
+             item.barrier(sycl::access::fence_space::local_space);
+             if (item.get_local_id(0) < 32u)
                ws[item.get_local_id(0)] = 0;  // used by prefix scan...
              /*
              DPCT1065:5: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
              */
-             item.barrier();
+             item.barrier(sycl::access::fence_space::local_space);
              hist->finalize(item, ws);
              /*
              DPCT1065:6: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
              */
-             item.barrier();
+             item.barrier(sycl::access::fence_space::local_space);
         //  #ifdef GPU_DEBUG
         //      assert(hist->size() == totGood);
         //      if (thisModuleId % 100 == 1)
         //        if (item.get_local_id(0) == 0)
-        //          //out << "histo size" << hist->size() <<"\n";
+        //          out << "histo size" << hist->size() <<"\n";
         //  #endif
              for (int i = first; i < *msize; i += item.get_local_range(0)) {
                if (id[i] == InvId)  // skip invalid pixels
                  continue;
                hist->fill(y[i], i - firstPixel);
-             }       
+             }
+
              // assume that we can cover the whole module with up to 16 blockDim.x-wide iterations
              constexpr int maxiter = 16; // it was auto maxiter = hist->size(); ifndef CUDA_ARCH but ariable length arrays are not supported in SYC
              // allocate space for duplicate pixels: a pixel can appear more than once with different charge in the same event
              constexpr int maxNeighbours = 10;
+             
              assert((hist->size() / item.get_local_range(0)) <= maxiter);
-             // nearest neighbour
+             //nearest neighbour
              uint16_t nn[maxiter][maxNeighbours]; 
              uint8_t nnn[maxiter];  // number of nn
              for (uint32_t k = 0; k < maxiter; ++k)
@@ -177,26 +181,26 @@ namespace gpuClustering {
              /*
              DPCT1065:7: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
              */
-             item.barrier();  // for hit filling  
-          // #ifdef GPU_DEBUG
-          //     // look for anomalous high occupancy
-          //     *n40 = *n60 = 0;
-          //      item.barrier();
-          //     for (auto j = item.get_local_id(0); j < Hist::nbins(); j += item.get_local_range(0)) {
-          //       if (hist->size(j) > 60)
-          //         cms::sycltools::atomic_fetch_add_shared<uint32_t>(n60, static_cast<uint32_t>(1));
-          //       if (hist->size(j) > 40)
-          //         cms::sycltools::atomic_fetch_add_shared<uint32_t>(n40, static_cast<uint32_t>(1));
-          //     }
-          //      item.barrier();
-          //     if (0 == item.get_local_id(0)) {
-          //       if (*n60 > 0)
-          //         out << "columns with more than 60 px " << *n60 << " in " << thisModuleId << "\n";
-          //       else if (*n40 > 0)
-          //         out << "columns with more than 40 px " << *n40 << " in " << thisModuleId << "\n";
-          //     }
-          //      item.barrier();
-          // #endif
+             item.barrier(sycl::access::fence_space::local_space);  // for hit filling  
+          #ifdef GPU_DEBUG
+              // look for anomalous high occupancy
+              *n40 = *n60 = 0;
+               item.barrier(sycl::access::fence_space::local_space);
+              for (auto j = item.get_local_id(0); j < Hist::nbins(); j += item.get_local_range(0)) {
+                if (hist->size(j) > 60)
+                  cms::sycltools::atomic_fetch_add_shared<uint32_t>(n60, static_cast<uint32_t>(1));
+                if (hist->size(j) > 40)
+                  cms::sycltools::atomic_fetch_add_shared<uint32_t>(n40, static_cast<uint32_t>(1));
+              }
+               item.barrier(sycl::access::fence_space::local_space);
+              if (0 == item.get_local_id(0)) {
+                if (*n60 > 0)
+                  out << "columns with more than 60 px " << *n60 << " in " << thisModuleId << "\n";
+                else if (*n40 > 0)
+                  out << "columns with more than 40 px " << *n40 << " in " << thisModuleId << "\n";
+              }
+               item.barrier(sycl::access::fence_space::local_space);
+          #endif
 
            //fill NN
               for (auto j = item.get_local_id(0), k = (unsigned long)0U; j < hist->size(); j += item.get_local_range(0), ++k) {
@@ -230,7 +234,9 @@ namespace gpuClustering {
             /*
             DPCT1065:13: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
             */
-            while ((item.barrier(), sycl::any_of_group(item.get_group(), more))) {
+           //out << "this is: " << (item.barrier(),sycl::any_of_group(item.get_group(), more)) << "\n";
+
+              while ( (item.barrier(),sycl::any_of_group(item.get_group(), more)) ) {
               if (1 == nloops % 2) {
                 for (auto j = item.get_local_id(0), k = (unsigned long)0U; j < hist->size(); j += item.get_local_range(0), ++k) {
                   auto p = hist->begin() + j;
@@ -264,18 +270,21 @@ namespace gpuClustering {
               }
               ++nloops;
             }  // end while  
-        //   // #ifdef GPU_DEBUG
-        //   //       {
-        //   //         if (item.get_local_id(0) == 0)
-        //   //           *n0 = nloops;
-        //   //          item.barrier();
-        //   //         auto ok = *n0 == nloops;
-        //   //         assert((item.barrier(), sycl::all_of_group(item.get_group(), ok)));
-        //   //         if (thisModuleId % 100 == 1)
-        //   //           if (item.get_local_id(0) == 0)
-        //   //             out << "# loops " << nloops << "\n";
-        //   //       }
-        //   // #endif  
+
+            // if (more == true){
+            // out << "more is :" << more << "and nloops is :" << nloops << "\n";}
+          // #ifdef GPU_DEBUG
+          //       {
+          //         if (item.get_local_id(0) == 0)
+          //           *n0 = nloops;
+          //          item.barrier();
+          //         auto ok = *n0 == nloops;
+          //         assert((item.barrier(), sycl::all_of_group(item.get_group(), ok)));
+          //         if (thisModuleId % 100 == 1)
+          //           if (item.get_local_id(0) == 0)
+          //             out << "# loops " << nloops << "\n";
+          //       }
+          // #endif  
             *foundClusters = 0;
             /*
             DPCT1065:8: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
@@ -325,15 +334,15 @@ namespace gpuClustering {
             if (item.get_local_id(0) == 0) {
               nClustersInModule[thisModuleId] = *foundClusters;
               moduleId[item.get_group(0)] = thisModuleId;
-        // //  #ifdef GPU_DEBUG
-        // //        if (foundClusters > gMaxHit) {
-        // //          gMaxHit = foundClusters;
-        // //          if (*foundClusters > 8)
-        // //            out << "max hit " << foundClusters << " in " << thisModuleId << "\n";
-        // //        }
-        // //  #endif
-         if (thisModuleId % 100 == 1)
-                 out << *foundClusters << " clusters in module " << thisModuleId << "\n";
+        // // //  #ifdef GPU_DEBUG
+        // // //        if (foundClusters > gMaxHit) {
+        // // //          gMaxHit = foundClusters;
+        // // //          if (*foundClusters > 8)
+        // // //            out << "max hit " << foundClusters << " in " << thisModuleId << "\n";
+        // // //        }
+        // // //  #endif
+        //  if (thisModuleId % 100 == 1)
+        //          out << *foundClusters << " clusters in module " << thisModuleId << "\n";
          #ifdef GPU_DEBUG
                if (thisModuleId % 100 == 1)
                  out << *foundClusters << " clusters in module " << thisModuleId << "\n";

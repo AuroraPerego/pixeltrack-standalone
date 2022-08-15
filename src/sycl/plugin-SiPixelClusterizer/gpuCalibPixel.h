@@ -58,7 +58,6 @@ namespace gpuCalibPixel {
       float gain = ret.second;
       // float pedestal = 0; float gain = 1.;
       if (isDeadColumn | isNoisyColumn) {
-        out << "i got HEREEERE \n";
         id[i] = InvId;
         adc[i] = 0;
         out << "bad pixel at " << i << " in " << id[i] << "\n";
