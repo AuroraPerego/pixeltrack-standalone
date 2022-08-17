@@ -19,9 +19,12 @@
 #include "CAConstants.h"
 #include "CircleEq.h"
 
+using sycl::abs;
+
 class GPUCACell {
 public:
   using ptrAsInt = unsigned long long;
+
 
   static constexpr int maxCellsPerHit = CAConstants::maxCellsPerHit();
   using OuterHitOfCell = CAConstants::OuterHitOfCell;
@@ -185,7 +188,7 @@ public:
 
   __forceinline static bool areAlignedRZ(
       float r1, float z1, float ri, float zi, float ro, float zo, const float ptmin, const float thetaCut) {
-    float radius_diff = ABS(r1 - ro);
+    float radius_diff = abs(r1 - ro);
     float distance_13_squared = radius_diff * radius_diff + (z1 - zo) * (z1 - zo);
 
     float pMin = ptmin * std::sqrt(distance_13_squared);  // this needs to be divided by
@@ -213,7 +216,7 @@ public:
     if (eq.curvature() > maxCurv)
       return false;
 
-    return ABS(eq.dca0()) < region_origin_radius_plus_tolerance * ABS(eq.curvature());
+    return abs(eq.dca0()) < region_origin_radius_plus_tolerance * abs(eq.curvature());
   }
 
   __forceinline static bool dcaCutH(float x1,
@@ -229,7 +232,7 @@ public:
     if (eq.curvature() > maxCurv)
       return false;
 
-    return ABS(eq.dca0()) < region_origin_radius_plus_tolerance * ABS(eq.curvature());
+    return abs(eq.dca0()) < region_origin_radius_plus_tolerance * abs(eq.curvature());
   }
 
   inline bool hole0(Hits const& hh, GPUCACell const& innerCell) const {
@@ -249,7 +252,7 @@ public:
     auto ro = get_outer_r(hh);
     auto zo = get_outer_z(hh);
     auto z0 = zi + (r0 - ri) * (zo - zi) / (ro - ri);
-    auto z_in_ladder = ABS(z0 - hh.averageGeometry().ladderZ[il]);
+    auto z_in_ladder = abs(z0 - hh.averageGeometry().ladderZ[il]);
     auto z_in_module = z_in_ladder - module_length * int(z_in_ladder / module_length);
     auto gap = z_in_module < module_tolerance || z_in_module > (module_length - module_tolerance);
     return gap;
@@ -276,7 +279,7 @@ public:
     auto ro = get_outer_r(hh);
     auto zo = get_outer_z(hh);
     auto z4 = zo + (r4 - ro) * (zo - zi) / (ro - ri);
-    auto z_in_ladder = ABS(z4 - hh.averageGeometry().ladderZ[il]);
+    auto z_in_ladder = abs(z4 - hh.averageGeometry().ladderZ[il]);
     auto z_in_module = z_in_ladder - module_length * int(z_in_ladder / module_length);
     auto gap = z_in_module < module_tolerance || z_in_module > (module_length - module_tolerance);
     auto holeP = z4 > hh.averageGeometry().ladderMaxZ[il] && z4 < hh.averageGeometry().endCapZ[0];
@@ -306,14 +309,13 @@ public:
     assert(tmpNtuplet.size() <= 4);
 
     bool last = true;
-    //FIXME_ outerNeighbors().size() is broken, probably due to previous plugins;
-    for (int j = 0; j < outerNeighbors().size(); ++j) {
+    for (int j = 0; j < 1/*outerNeighbors().size()*/; ++j) {
       auto otherCell = outerNeighbors()[j];
-      //out << "in loop\n";
-      if (cells[otherCell].theDoubletId < 0)
+      //out << otherCell << "  " << cells[otherCell].theDoubletId << "\n";
+      if (cells[otherCell].theDoubletId < 0 || DEPTH == 1)
         continue;  // killed by earlyFishbone
       last = false;
-      //out << DEPTH << "\n";
+      //FIXME_ Now it works with the add of if DEPTH == 1, check if the results are still the same or not
       cells[otherCell].find_ntuplets<DEPTH - 1>(
           hh, cells, cellTracks, foundNtuplets, apc, quality, tmpNtuplet, minHitsPerNtuplet, startAt0, out);
     }

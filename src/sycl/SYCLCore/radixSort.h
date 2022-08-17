@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <type_traits>
 
+#include <CL/sycl.hpp>
+
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
 
@@ -77,10 +79,9 @@ inline void reorderFloat(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t siz
 }
 
 template <typename T,  // shall be interger
-          int NS,      // number of significant bytes to use in sorting
-          typename RF>
+          int NS>      // number of significant bytes to use in sorting
 __forceinline void radixSortImpl(
-    T const* __restrict__ a, uint16_t* ind, uint16_t* ind2, uint32_t size, RF reorder, //check how many args reorder wants
+    T const* __restrict__ a, uint16_t* ind, uint16_t* ind2, uint32_t size, 
     sycl::nd_item<1> item, int32_t* c, int32_t* ct, int32_t* cu, int* ibs, int* p, uint32_t * firstNeg) {
   constexpr int d = 8, w = 8 * sizeof(T);
   constexpr int sb = 1 << d;
@@ -101,6 +102,8 @@ __forceinline void radixSortImpl(
     j[i] = i;
   item.barrier();
 
+//  out << *p << " < " << w / d << "\n";
+
   while ((item.barrier(), sycl::all_of_group(item.get_group(), *p < w / d))) {
     if (item.get_local_id(0) < sb)
       c[item.get_local_id(0)] = 0;
@@ -119,11 +122,11 @@ __forceinline void radixSortImpl(
       int laneId = item.get_local_id(0) & 0x1f;
 #pragma unroll
       for (int offset = 1; offset < 32; offset <<= 1) {
-        /*
-        DPCT1023:17: The DPC++ sub-group does not support mask options for sycl::shift_group_right. FIXME_
-        */
+        //
+        //DPCT1023:17: The DPC++ sub-group does not support mask options for sycl::shift_group_right. FIXME_
+        //
         //auto y = sycl::shift_group_right(0xffffffff, x, offset); 
-        auto y = sycl::shift_group_right(item.get_sub_group(), x, offset); 
+        auto y = cms::sycltools::shift_sub_group_right(item.get_sub_group(), x, offset); 
         if (laneId >= offset)
           x += y;
       }
@@ -158,7 +161,7 @@ __forceinline void radixSortImpl(
           bin = (a[j[i]] >> d * *p) & (sb - 1);
           ct[item.get_local_id(0)] = bin;
           cms::sycltools::AtomicMax(&cu[bin], int(i));
-        }
+       }
       }
       item.barrier();
       if (item.get_local_id(0) < sb) {
@@ -210,8 +213,8 @@ __forceinline void radixSortImpl(
 
   item.barrier();
 
-  // now move negative first... (if signed)
-  reorder(a, ind, ind2, size, item, firstNeg);
+  // now move negative first... (if signed)*/
+  //reorder(a, ind, ind2, size, item, firstNeg);
 }
 
 template <typename T,
@@ -219,7 +222,8 @@ template <typename T,
           typename std::enable_if<std::is_unsigned<T>::value, T>::type* = nullptr>
 __forceinline void radixSort(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, 
 sycl::nd_item<1> item, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
-  radixSortImpl<T, NS>(a, ind, ind2, size, dummyReorder<T>, item, c, ct, cu, ibs, p, firstNeg);
+  radixSortImpl<T, NS>(a, ind, ind2, size, item, c, ct, cu, ibs, p, firstNeg);
+  dummyReorder<T>(a, ind, ind2, size, item, firstNeg);
 }
 
 template <typename T,
@@ -227,7 +231,8 @@ template <typename T,
           typename std::enable_if<std::is_integral<T>::value && std::is_signed<T>::value, T>::type* = nullptr>
 __forceinline void radixSort(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, 
 sycl::nd_item<1> item, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
-  radixSortImpl<T, NS>(a, ind, ind2, size, reorderSigned<T>, item, c, ct, cu, ibs, p, firstNeg);
+  radixSortImpl<T, NS>(a, ind, ind2, size, item, c, ct, cu, ibs, p, firstNeg);
+  reorderSigned<T>(a, ind, ind2, size, item, firstNeg);
 }
 
 template <typename T,
@@ -236,7 +241,8 @@ template <typename T,
 __forceinline void radixSort(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, 
 sycl::nd_item<1> item, int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
   using I = int;
-  radixSortImpl<I, NS>((I const*)(a), ind, ind2, size, reorderFloat<I>, item, c, ct, cu, ibs, p, firstNeg);
+  radixSortImpl<I, NS>((I const*)(a), ind, ind2, size, item, c, ct, cu, ibs, p, firstNeg);
+  reorderFloat<I>((I const*)(a), ind, ind2, size, item, firstNeg);
 }
 
 template <typename T, int NS = sizeof(T)>

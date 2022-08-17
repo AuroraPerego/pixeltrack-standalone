@@ -9,12 +9,11 @@
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
 
-
 #include "gpuVertexFinder.h"
-#define ABS(x) ((x < 0) ? -x : x)
 
 namespace gpuVertexFinder {
 
+  using sycl::abs;
   using Hist = cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
 
   // this algo does not really scale as it works in a single block...
@@ -69,7 +68,7 @@ namespace gpuVertexFinder {
       assert(i < ZVertices::MAXTRACKS);
       int iz = int(zt[i] * 10.);  // valid if eps<=0.1
       // iz = std::clamp(iz, INT8_MIN, INT8_MAX);  // sorry c++17 only
-      iz = sycl::min(sycl::max(iz, INT8_MIN), INT8_MAX);
+      iz = std::min(std::max(iz, INT8_MIN), INT8_MAX);
       izt[i] = iz - INT8_MIN;
       assert(iz - INT8_MIN >= 0);
       assert(iz - INT8_MIN < 256);
@@ -96,7 +95,7 @@ namespace gpuVertexFinder {
       auto loop = [&](uint32_t j) {
         if (i == j)
           return;
-        auto dist = ABS(zt[i] - zt[j]);
+        auto dist = abs(zt[i] - zt[j]);
         if (dist > eps)
           return;
         //        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
@@ -118,7 +117,7 @@ namespace gpuVertexFinder {
           return;
         if (nn[j] < minT)
           return;  // DBSCAN core rule
-        auto dist = ABS(zt[i] - zt[j]);
+        auto dist = abs(zt[i] - zt[j]);
         if (dist > eps)
           return;
         //        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
@@ -167,7 +166,7 @@ namespace gpuVertexFinder {
       auto loop = [&](uint32_t j) {
         if (nn[j] < minT)
           return;  // DBSCAN core rule
-        auto dist = ABS(zt[i] - zt[j]);
+        auto dist = abs(zt[i] - zt[j]);
         if (dist > eps)
           return;
         //  if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
@@ -193,7 +192,7 @@ namespace gpuVertexFinder {
       auto loop = [&](uint32_t j) {
         if (nn[j] < minT)
           return;  // DBSCAN core rule
-        auto dist = ABS(zt[i] - zt[j]);
+        auto dist = abs(zt[i] - zt[j]);
         if (dist > mdist)
           return;
         if (dist * dist > chi2max * (ezt2[i] + ezt2[j]))

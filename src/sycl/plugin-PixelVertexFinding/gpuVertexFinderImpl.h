@@ -122,6 +122,9 @@ namespace gpuVertexFinder {
 
 ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa, float ptMin) const {
     // std::cout << "producing Vertices on GPU" << std::endl;
+        
+    constexpr int MAXTK = 512;
+
     ZVertexHeterogeneous vertices(cms::sycltools::make_device_unique<ZVertexSoA>(stream));
     assert(tksoa);
     auto* soa = vertices.get();
@@ -165,43 +168,43 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       auto errmax_kernel = errmax;
       auto chi2max_kernel = chi2max;
       sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              hist_acc(sycl::range<1>(sizeof(Hist) * numberOfBlocks), cgh);
+              hist_acc(sycl::range<1>(sizeof(Hist)), cgh);
       sycl::accessor<Hist::Counter, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              hws_acc(sycl::range<1>(sizeof(Hist::Counter) * numberOfBlocks), cgh);
+              hws_acc(sycl::range<1>(sizeof(Hist::Counter) * 32), cgh);
       sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              foundClusters_acc(sycl::range<1>(sizeof(unsigned int) * numberOfBlocks), cgh);
+              foundClusters_acc(sycl::range<1>(sizeof(unsigned int)), cgh);
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              noise_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+              noise_acc(sycl::range<1>(sizeof(int)), cgh);
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              it_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+              it_acc(sycl::range<1>(sizeof(uint32_t) * MAXTK), cgh);
       sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              zz_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+              zz_acc(sycl::range<1>(sizeof(float) * MAXTK), cgh);
       sycl::accessor<uint8_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              newV_acc(sycl::range<1>(sizeof(uint8_t) * numberOfBlocks), cgh);
+              newV_acc(sycl::range<1>(sizeof(uint8_t)) * MAXTK, cgh);
       sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              ww_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+              ww_acc(sycl::range<1>(sizeof(float) * MAXTK), cgh);
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              nq_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+              nq_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
       sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              znew_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+              znew_acc(sycl::range<1>(sizeof(float) * 2), cgh);
       sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              wnew_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+              wnew_acc(sycl::range<1>(sizeof(float) * 2), cgh);
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              igv_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+              igv_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
       sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              sws_acc(sycl::range<1>(sizeof(uint16_t) * numberOfBlocks), cgh);
+              sws_acc(sycl::range<1>(sizeof(uint16_t)), cgh);
       sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              c_acc(sycl::range<1>(sizeof(int32_t) * numberOfBlocks), cgh);
+              c_acc(sycl::range<1>(sizeof(int32_t)), cgh);
       sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              ct_acc(sycl::range<1>(sizeof(int32_t) * numberOfBlocks), cgh);
+              ct_acc(sycl::range<1>(sizeof(int32_t)), cgh);
       sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              cu_acc(sycl::range<1>(sizeof(int32_t) * numberOfBlocks), cgh);
+              cu_acc(sycl::range<1>(sizeof(int32_t)), cgh);
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              ibs_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+              ibs_acc(sycl::range<1>(sizeof(int)), cgh);
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              p_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh); //FIXME_ put here the size of the arrays
+              p_acc(sycl::range<1>(sizeof(int)), cgh); 
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              firstNeg_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+              firstNeg_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
       sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
@@ -236,12 +239,20 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       auto soa_kernel = soa;
       auto ws_kernel  = ws_d.get();
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              noise_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+              noise_acc(sycl::range<1>(sizeof(int)), cgh);
       sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
           [=](sycl::nd_item<1> item){ 
-              vertexFinderKernel1(soa_kernel, ws_kernel, minT, eps, errmax, chi2max, item, (int *)noise_acc.get_pointer(), out);
+              vertexFinderKernel1(soa_kernel, 
+                                  ws_kernel, 
+                                  minT, 
+                                  eps,
+                                  errmax,
+                                  chi2max,
+                                  item,
+                                  (int *)noise_acc.get_pointer(),
+                                  out);
       });
     });
 
@@ -251,22 +262,21 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       auto soa_kernel = soa;
       auto ws_kernel  = ws_d.get();
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              it_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+              it_acc(sycl::range<1>(sizeof(uint32_t) * MAXTK), cgh);
       sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              zz_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+              zz_acc(sycl::range<1>(sizeof(float) * MAXTK), cgh);
       sycl::accessor<uint8_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              newV_acc(sycl::range<1>(sizeof(uint8_t) * numberOfBlocks), cgh);
+              newV_acc(sycl::range<1>(sizeof(uint8_t)) * MAXTK, cgh);
       sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              ww_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+              ww_acc(sycl::range<1>(sizeof(float) * MAXTK), cgh);
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              nq_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+              nq_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
       sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              znew_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+              znew_acc(sycl::range<1>(sizeof(float) * 2), cgh);
       sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              wnew_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+              wnew_acc(sycl::range<1>(sizeof(float) * 2), cgh);
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              igv_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
-      sycl::stream out(1024, 768, cgh);
+              igv_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
           [=](sycl::nd_item<1> item){ 
@@ -289,21 +299,21 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       auto soa_kernel = soa;
       auto ws_kernel  = ws_d.get();
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              noise_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+              noise_acc(sycl::range<1>(sizeof(int)), cgh);
       sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              sws_acc(sycl::range<1>(sizeof(uint16_t) * numberOfBlocks), cgh);
+              sws_acc(sycl::range<1>(sizeof(uint16_t)), cgh);
       sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              c_acc(sycl::range<1>(sizeof(int32_t) * numberOfBlocks), cgh);
+              c_acc(sycl::range<1>(sizeof(int32_t)), cgh);
       sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              ct_acc(sycl::range<1>(sizeof(int32_t) * numberOfBlocks), cgh);
+              ct_acc(sycl::range<1>(sizeof(int32_t)), cgh);
       sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              cu_acc(sycl::range<1>(sizeof(int32_t) * numberOfBlocks), cgh);
+              cu_acc(sycl::range<1>(sizeof(int32_t)), cgh);
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              ibs_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+              ibs_acc(sycl::range<1>(sizeof(int)), cgh);
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              p_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+              p_acc(sycl::range<1>(sizeof(int)), cgh); 
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              firstNeg_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+              firstNeg_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
       sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
@@ -333,11 +343,11 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
         auto errmax_kernel = errmax;
         auto chi2max_kernel = chi2max;
         sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              hist_acc(sycl::range<1>(sizeof(Hist) * numberOfBlocks), cgh);
+              hist_acc(sycl::range<1>(sizeof(Hist)), cgh);
         sycl::accessor<Hist::Counter, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              hws_acc(sycl::range<1>(sizeof(Hist::Counter) * numberOfBlocks), cgh);
+              hws_acc(sycl::range<1>(sizeof(Hist::Counter) * 32), cgh);
         sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              foundClusters_acc(sycl::range<1>(sizeof(unsigned int) * numberOfBlocks), cgh);
+              foundClusters_acc(sycl::range<1>(sizeof(unsigned int)), cgh);
         sycl::stream out(1024, 768, cgh);
         cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
@@ -358,11 +368,11 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
         auto errmax_kernel = errmax;
         auto chi2max_kernel = chi2max;
         sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              hist_acc(sycl::range<1>(sizeof(Hist) * numberOfBlocks), cgh);
+              hist_acc(sycl::range<1>(sizeof(Hist)), cgh);
         sycl::accessor<Hist::Counter, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              hws_acc(sycl::range<1>(sizeof(Hist::Counter) * numberOfBlocks), cgh);
+              hws_acc(sycl::range<1>(sizeof(Hist::Counter) * 32), cgh);
         sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              foundClusters_acc(sycl::range<1>(sizeof(unsigned int) * numberOfBlocks), cgh);
+              foundClusters_acc(sycl::range<1>(sizeof(unsigned int)), cgh);
         sycl::stream out(1024, 768, cgh);
         cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
@@ -385,13 +395,13 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
         auto errmax_kernel = errmax;
         auto chi2max_kernel = chi2max;
         sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              hist_acc(sycl::range<1>(sizeof(Hist) * numberOfBlocks), cgh);
+              hist_acc(sycl::range<1>(sizeof(Hist)), cgh);
         sycl::accessor<Hist::Counter, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              hws_acc(sycl::range<1>(sizeof(Hist::Counter) * numberOfBlocks), cgh);
+              hws_acc(sycl::range<1>(sizeof(Hist::Counter) * 32), cgh);
         sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              foundClusters_acc(sycl::range<1>(sizeof(unsigned int) * numberOfBlocks), cgh);
+              foundClusters_acc(sycl::range<1>(sizeof(unsigned int)), cgh);
         sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              nloops_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+              nloops_acc(sycl::range<1>(sizeof(int)), cgh);
         sycl::stream out(1024, 768, cgh);
         cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
@@ -408,7 +418,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
         auto soa_kernel = soa;
         auto ws_kernel  = ws_d.get();
         sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              noise_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+              noise_acc(sycl::range<1>(sizeof(int)), cgh);
         sycl::stream out(1024, 768, cgh);
 
       cgh.parallel_for(
@@ -424,21 +434,21 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       auto soa_kernel = soa;
       auto ws_kernel  = ws_d.get();
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              it_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+              it_acc(sycl::range<1>(sizeof(uint32_t) * MAXTK), cgh);
       sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              zz_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+              zz_acc(sycl::range<1>(sizeof(float) * MAXTK), cgh);
       sycl::accessor<uint8_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              newV_acc(sycl::range<1>(sizeof(uint8_t) * numberOfBlocks), cgh);
+              newV_acc(sycl::range<1>(sizeof(uint8_t) * MAXTK), cgh);
       sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              ww_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+              ww_acc(sycl::range<1>(sizeof(float) * MAXTK), cgh);
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              nq_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+              nq_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
       sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              znew_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+              znew_acc(sycl::range<1>(sizeof(float) * 2), cgh);
       sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              wnew_acc(sycl::range<1>(sizeof(float) * numberOfBlocks), cgh);
+              wnew_acc(sycl::range<1>(sizeof(float) * 2), cgh);
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              igv_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+              igv_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
       sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
@@ -461,7 +471,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
         auto soa_kernel = soa;
         auto ws_kernel  = ws_d.get();
         sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              noise_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+              noise_acc(sycl::range<1>(sizeof(int)), cgh);
         sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
@@ -475,19 +485,19 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
         auto soa_kernel = soa;
         auto ws_kernel  = ws_d.get();
         sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              sws_acc(sycl::range<1>(sizeof(uint16_t) * numberOfBlocks), cgh);
+              sws_acc(sycl::range<1>(sizeof(uint16_t) * 32), cgh);
         sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                c_acc(sycl::range<1>(sizeof(int32_t) * numberOfBlocks), cgh);
+                c_acc(sycl::range<1>(sizeof(int32_t)), cgh);
         sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                ct_acc(sycl::range<1>(sizeof(int32_t) * numberOfBlocks), cgh);
+                ct_acc(sycl::range<1>(sizeof(int32_t)), cgh);
         sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                cu_acc(sycl::range<1>(sizeof(int32_t) * numberOfBlocks), cgh);
+                cu_acc(sycl::range<1>(sizeof(int32_t)), cgh);
         sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                ibs_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+                ibs_acc(sycl::range<1>(sizeof(int)), cgh);
         sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                p_acc(sycl::range<1>(sizeof(int) * numberOfBlocks), cgh);
+                p_acc(sycl::range<1>(sizeof(int)), cgh);
         sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                firstNeg_acc(sycl::range<1>(sizeof(uint32_t) * numberOfBlocks), cgh);
+                firstNeg_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
         cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
           [=](sycl::nd_item<1> item){ 

@@ -18,12 +18,10 @@ public:
 private:
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override;
 
-  bool m_OnGPU;
-
   edm::EDGetTokenT<cms::sycltools::Product<PixelTrackHeterogeneous>> tokenGPUTrack_;
-  edm::EDPutTokenT<ZVertexSYCLProduct> tokenGPUVertex_;
-  edm::EDGetTokenT<PixelTrackHeterogeneous> tokenCPUTrack_;
-  edm::EDPutTokenT<ZVertexHeterogeneous> tokenCPUVertex_;
+  edm::EDPutTokenT<cms::sycltools::Product<ZVertexHeterogeneous>> tokenGPUVertex_;
+  //edm::EDGetTokenT<PixelTrackHeterogeneous> tokenCPUTrack_;
+  //edm::EDPutTokenT<ZVertexHeterogeneous> tokenCPUVertex_;
 
   const gpuVertexFinder::Producer m_gpuAlgo;
 
@@ -32,8 +30,7 @@ private:
 };
 
 PixelVertexProducerSYCL::PixelVertexProducerSYCL(edm::ProductRegistry& reg)
-    : m_OnGPU(true), //FIXME_ also this one and all the if m_OnGPU shoulde be removed
-      m_gpuAlgo(true,   // oneKernel
+    : m_gpuAlgo(true,   // oneKernel
                 true,   // useDensity
                 false,  // useDBSCAN
                 false,  // useIterative
@@ -44,13 +41,8 @@ PixelVertexProducerSYCL::PixelVertexProducerSYCL(edm::ProductRegistry& reg)
                 ),
       m_ptMin(0.5)  // 0.5 GeV
 {
-  if (m_OnGPU) {
-    tokenGPUTrack_ = reg.consumes<cms::sycltools::Product<PixelTrackHeterogeneous>>();
-    tokenGPUVertex_ = reg.produces<ZVertexSYCLProduct>();
-  } else {
-    tokenCPUTrack_ = reg.consumes<PixelTrackHeterogeneous>();
-    tokenCPUVertex_ = reg.produces<ZVertexHeterogeneous>();
-  }
+  tokenGPUTrack_ = reg.consumes<cms::sycltools::Product<PixelTrackHeterogeneous>>();
+  tokenGPUVertex_ = reg.produces<cms::sycltools::Product<ZVertexHeterogeneous>>();
 }
 
 void PixelVertexProducerSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {

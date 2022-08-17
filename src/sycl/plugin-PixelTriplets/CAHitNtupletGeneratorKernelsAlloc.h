@@ -22,7 +22,7 @@ void CAHitNtupletGeneratorKernelsGPU::allocateOnGPU(sycl::queue stream) {
 
   //auto counters = (int*)counters_.get();
   //stream.memset(counters, 0, sizeof(Counters));
-  stream.memset(device_nCells_, 0, sizeof(uint32_t)); //FIXME_ 0
+  stream.memset(device_nCells_, 0, sizeof(uint32_t)); //RUNME_ doesn't work, value set to big numbers instead of zero
 
   cms::sycltools::launchZero(device_tupleMultiplicity_.get(), stream);
   cms::sycltools::launchZero(device_hitToTuple_.get(), stream);  // we may wish to keep it in the edm...

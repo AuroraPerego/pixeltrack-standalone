@@ -2,11 +2,16 @@
 #define RecoPixelVertexing_PixelTrackFitting_interface_FitUtils_h
 
 #include "SYCLCore/sycl_assert.h"
+#include <CL/sycl.hpp>
 
 #include "choleskyInversion.h"
 #include "FitResult.h"
 
 namespace Rfit {
+
+  using sycl::sqrt;
+  using sycl::abs;
+  using sycl::atan2;
 
   constexpr double d = 1.e-4;  //!< used in numerical derivative (J2 in Circle_fit())
 
@@ -220,7 +225,7 @@ namespace Rfit {
   template <typename VI5, typename MI5, typename VO5, typename MO5>
   inline void transformToPerigeePlane(VI5 const& ip, MI5 const& icov, VO5& op, MO5& ocov) {
     auto sinTheta2 = 1. / (1. + ip(3) * ip(3));
-    auto sinTheta = std::sqrt(sinTheta2);
+    auto sinTheta = sqrt(sinTheta2);
     auto cosTheta = ip(3) * sinTheta;
 
     op(0) = sinTheta * ip(2);

@@ -57,7 +57,7 @@ namespace pixelgpudetails {
         auto clusters_d_kernel = clusters_d.view(); 
         auto hits_d_kernel= hits_d.view();
         sycl::accessor<pixelCPEforGPU::ClusParams, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                   clusParams_acc(sycl::range<1>(32), cgh); //FIXME_ 32 is correct??
+                   clusParams_acc(sycl::range<1>(sizeof(pixelCPEforGPU::ClusParams)), cgh); 
         cgh.parallel_for(
           sycl::nd_range<3>(blocks * sycl::range<3>(1, 1, threadsPerBlock), sycl::range<3>(1, 1, threadsPerBlock)),
           [=](sycl::nd_item<3> item){ 
@@ -71,10 +71,9 @@ namespace pixelgpudetails {
                                        (pixelCPEforGPU::ClusParams *)clusParams_acc.get_pointer());  
       });
     });
-    //cudaCheck(0);
+
 #ifdef GPU_DEBUG
     stream.wait();
-    //cudaCheck(cudaGetLastError());
 #endif
 
     // assuming full warp of threads is better than a smaller number...
@@ -87,18 +86,15 @@ namespace pixelgpudetails {
           sycl::nd_range<3>(sycl::range<3>(1, 1, 32), sycl::range<3>(1, 1, 32)),
           [=](sycl::nd_item<3> item){
               setHitsLayerStart(clusters_d_kernel, cpeParams_kernel, hits_d_kernel, item);
-      //cudaCheck(0);
     	});
       });
     }
     if (nHits) {
       cms::sycltools::fillManyFromVector(hits_d.phiBinner(), 10, hits_d.iphi(), hits_d.hitsLayerStart(), nHits, 256, stream);
-      //cudaCheck(0);
     }
 
 #ifdef GPU_DEBUG
     stream.wait();
-    //cudaCheck(cudaGetLastError());
 #endif
 
     return hits_d;

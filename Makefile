@@ -50,7 +50,8 @@ export TEST_DIR := $(BASE_DIR)/test
 
 # System external definitions
 # CUDA
-CUDA_BASE := /usr/local/cuda
+CUDA_BASE := /cvmfs/sft.cern.ch/lcg/views/dev4cuda/Tue/x86_64-ubuntu2004-gcc9-opt
+# /usr/local/cuda  
 ifeq ($(wildcard $(CUDA_BASE)),)
 # CUDA platform not found
 CUDA_BASE :=
@@ -269,7 +270,8 @@ SYCL_VERSION  := 2022.1.0
 ONEAPI_ENV    := $(ONEAPI_BASE)/setvars.sh
 DPCT_BASE     := $(ONEAPI_BASE)/dpcpp-ct/$(SYCL_VERSION)
 SYCL_BASE     := $(ONEAPI_BASE)/compiler/$(SYCL_VERSION)/linux
-DPCT_CXXFLAGS := -Wsycl-strict -isystem $(DPCT_BASE)/include
+DPCT_CXXFLAGS := -Wsycl-strict -fsycl-targets=spir64_gen -Xsycl-target-backend=spir64_gen "-device xe_hp_sdv" -isystem $(DPCT_BASE)/include
+# -fsycl-targets=spir64_gen -Xsycl-target-backend=spir64_gen "-device xe_hp_sdv" 
 endif
 SYCL_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Wno-non-template-friend -Werror=format-contains-nul -Werror=return-local-addr -Werror=unused-but-set-variable
 

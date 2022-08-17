@@ -37,7 +37,6 @@ void CAHitNtupletSYCL::produce(edm::Event& iEvent, const edm::EventSetup& es) {
   auto const& phits = iEvent.get(tokenHitGPU_);
   cms::sycltools::ScopedContextProduce ctx{phits};
   auto const& hits = ctx.get(phits);
-  std::cout << __LINE__ << "\n";
   ctx.emplace(iEvent, tokenTrackGPU_, gpuAlgo_.makeTuplesAsync(hits, bf, ctx.stream()));
 }
 

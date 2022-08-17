@@ -19,7 +19,7 @@
 #include "gpuFishbone.h"
 #include "gpuPixelDoublets.h"
 
-#define ABS(x) ((x < 0) ? -x : x)
+using sycl::abs;
 
 using HitsOnGPU = TrackingRecHit2DSOAView;
 using HitsOnCPU = TrackingRecHit2DSYCL;
@@ -107,7 +107,7 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
       out << "OuterHitOfCell overflow " << idx << "/n";
   }
 }
-/*
+
 void kernel_fishboneCleaner(GPUCACell const *cells, uint32_t const *__restrict__ nCells, Quality *quality,
                             sycl::nd_item<1> item) {
   constexpr auto bad = trackQuality::bad;
@@ -123,7 +123,7 @@ void kernel_fishboneCleaner(GPUCACell const *cells, uint32_t const *__restrict__
       quality[it] = bad;
   }
 }
-*/
+
 void kernel_earlyDuplicateRemover(GPUCACell const *cells,
                                   uint32_t const *__restrict__ nCells,
                                   HitContainer *foundNtuplets,
@@ -158,7 +158,7 @@ void kernel_earlyDuplicateRemover(GPUCACell const *cells,
     }
   }
 }
-/*
+
 void kernel_fastDuplicateRemover(GPUCACell const *__restrict__ cells,
                                  uint32_t const *__restrict__ nCells,
                                  HitContainer const *__restrict__ foundNtuplets,
@@ -182,7 +182,7 @@ void kernel_fastDuplicateRemover(GPUCACell const *__restrict__ cells,
     uint16_t im = 60000;
 
     auto score = [&](auto it) {
-      return ABS(tracks->tip(it));  // tip
+      return abs(tracks->tip(it));  // tip
       // return tracks->chi2(it);  //chi2
     };
 
@@ -200,7 +200,7 @@ void kernel_fastDuplicateRemover(GPUCACell const *__restrict__ cells,
     }
   }
 }
-*/
+
 void kernel_connect(cms::sycltools::AtomicPairCounter *apc1,
                     cms::sycltools::AtomicPairCounter *apc2,  // just to zero them,
                     GPUCACell::Hits const *__restrict__ hhp,
@@ -299,8 +299,8 @@ void kernel_find_ntuplets(GPUCACell::Hits const *__restrict__ hhp,
     if (doit) {
       GPUCACell::TmpTuple stack;
       stack.reset();
-    //  thisCell.find_ntuplets<6>(
-    //      hh, cells, *cellTracks, *foundNtuplets, *apc, quality, stack, minHitsPerNtuplet, pid < 3, out); 
+      thisCell.find_ntuplets<6>(
+          hh, cells, *cellTracks, *foundNtuplets, *apc, quality, stack, minHitsPerNtuplet, pid < 3, out); 
       assert(stack.empty());
       // out << "in " << cellIndex << " found quadruplets: " << apc->get() << "\n";
     }
@@ -362,13 +362,13 @@ void kernel_fillMultiplicity(HitContainer const *__restrict__ foundNtuplets,
     tupleMultiplicity->fillDirect(nhits, it);
   }
 }
-/*
+
 void kernel_classifyTracks(HitContainer const *__restrict__ tuples,
                            TkSoA const *__restrict__ tracks,
                            CAHitNtupletGeneratorKernelsGPU::QualityCuts cuts,
                            Quality *__restrict__ quality,
                            sycl::nd_item<1> item,
-			   sycl::stream out) {
+			                     sycl::stream out) {
   int first = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
   for (int it = first, nt = tuples->nbins(); it < nt;
        it += item.get_group_range(0) * item.get_local_range().get(0)) {
@@ -421,8 +421,8 @@ void kernel_classifyTracks(HitContainer const *__restrict__ tuples,
     //   - for quadruplets: |Tip| < 0.5 cm, pT > 0.3 GeV, |Zip| < 12.0 cm
     // (see CAHitNtupletGeneratorGPU.cc)
     auto const &region = (nhits > 3) ? cuts.quadruplet : cuts.triplet;
-    bool isOk = (ABS(tracks->tip(it)) < region.maxTip) and (tracks->pt(it) > region.minPt) and
-                (ABS(tracks->zip(it)) < region.maxZip);
+    bool isOk = (abs(tracks->tip(it)) < region.maxTip) and (tracks->pt(it) > region.minPt) and
+                (abs(tracks->zip(it)) < region.maxZip);
 
     if (isOk)
       quality[it] = trackQuality::loose;
@@ -475,7 +475,7 @@ void kernel_fillHitInTracks(HitContainer const *__restrict__ tuples,
       hitToTuple->fillDirect(*h, idx);
   }
 }
-*/
+
 void kernel_fillHitDetIndices(HitContainer const *__restrict__ tuples,
                               TrackingRecHit2DSOAView const *__restrict__ hhp,
                               HitContainer *__restrict__ hitDetIndices,
@@ -495,7 +495,7 @@ void kernel_fillHitDetIndices(HitContainer const *__restrict__ tuples,
     hitDetIndices->bins[idx] = hh.detectorIndex(tuples->bins[idx]);
   }
 }
-/*
+
 void kernel_doStatsForHitInTracks(CAHitNtupletGeneratorKernelsGPU::HitToTuple const *__restrict__ hitToTuple,
                                   CAHitNtupletGeneratorKernelsGPU::Counters *counters,
                                   sycl::nd_item<1> item) {
@@ -556,8 +556,8 @@ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
     // for triplets choose best tip!
     for (auto ip = hitToTuple.begin(idx); ip != hitToTuple.end(idx); ++ip) {
       auto const it = *ip;
-      if (quality[it] != bad && ABS(tracks.tip(it)) < mc) {
-        mc = ABS(tracks.tip(it));
+      if (quality[it] != bad && abs(tracks.tip(it)) < mc) {
+        mc = abs(tracks.tip(it));
         im = it;
       }
     }
@@ -639,4 +639,4 @@ void kernel_printCounters(cAHitNtupletGenerator::Counters const *counters, sycl:
       << c.nEmptyCells / double(c.nCells)
       << c.nZeroTrackCells / double(c.nCells)
       << "\n";
-}*/
+}

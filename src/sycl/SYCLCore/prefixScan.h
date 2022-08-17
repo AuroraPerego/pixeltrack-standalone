@@ -4,6 +4,8 @@
 #include <CL/sycl.hpp>
 #include <cstdint>
 
+#include <CL/sycl.hpp>
+
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
 
@@ -19,7 +21,7 @@ void __forceinline warpPrefixScan(T const* __restrict__ ci, T* __restrict__ co, 
     /*
     DPCT1023:17: The DPC++ sub-group does not support mask options for sycl::shift_group_right.
     */
-    auto y = sycl::shift_group_right(item.get_sub_group(), x, offset); //FIXME_ it was __shfl_up_sync
+    auto y = cms::sycltools::shift_sub_group_right(item.get_sub_group(), x, offset); //FIXME_ it was __shfl_up_sync
     if (laneId >= offset)
       x += y;
   }
@@ -35,7 +37,7 @@ void __forceinline warpPrefixScan(T* c, uint32_t i, uint32_t mask, sycl::nd_item
     /*
     DPCT1023:17: The DPC++ sub-group does not support mask options for sycl::shift_group_right.
     */
-    auto y = sycl::shift_group_right(item.get_sub_group(), x, offset); //FIXME_ it was __shfl_up_sync
+    auto y = cms::sycltools::shift_sub_group_right(item.get_sub_group(), x, offset); //FIXME_ it was __shfl_up_sync
     if (laneId >= offset)
       x += y;
   }
@@ -157,7 +159,7 @@ namespace cms {
     // see https://stackoverflow.com/questions/40021086/can-i-obtain-the-amount-of-allocated-dynamic-shared-memory-from-within-a-kernel/40021087#40021087
     __forceinline unsigned dynamic_smem_size() {
       unsigned ret;
-      //FIXME_ I added two %% instead of one % to make it work
+      //CUDA version: asm volatile("mov.u32 %0, %dynamic_smem_size;" : "=r"(ret));
       asm volatile("mov.u32 %%0, %%dynamic_smem_size;" : "=r"(ret));
       return ret;
     }

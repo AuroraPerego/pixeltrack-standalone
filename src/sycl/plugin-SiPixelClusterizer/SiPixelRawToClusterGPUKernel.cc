@@ -573,7 +573,6 @@ namespace pixelgpudetails {
 
       stream.memcpy(word_d, wordFed.word(), sizeof(uint32_t)*wordCounter);
       stream.memcpy(fedId_d, wordFed.fedId(), sizeof(uint8_t)*wordCounter/2);
-      //std::cout << __LINE__ << std::endl;
       stream.submit([&](sycl::handler &cgh) {
               auto cablingMap_kernel   = cablingMap;
               auto modToUnp_kernel     = modToUnp;
@@ -609,13 +608,9 @@ namespace pixelgpudetails {
                                                   );
                           });
 	});
-       /*
-       DPCT1010:31: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
-       */
-       //cudaCheck(0);
+
    #ifdef GPU_DEBUG
          stream.wait();
-         //cudaCheck(cudaGetLastError());
    #endif
          if (includeErrors) {
            digiErrors_d.copyErrorToHostAsync(stream);
@@ -655,13 +650,9 @@ namespace pixelgpudetails {
    							  out);
                              });
    		});
-         /*
-         DPCT1010:32: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
-         */
-         //cudaCheck(0);
+
    #ifdef GPU_DEBUG
          stream.wait();
-         //cudaCheck(cudaGetLastError());
    #endif
 
    #ifdef GPU_DEBUG
@@ -681,10 +672,7 @@ namespace pixelgpudetails {
    					     item);
                              });
    	});
-         /*
-         DPCT1010:33: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
-         */
-         //cudaCheck(0)  
+
          // read the number of modules into a data member, used by getProduct())
          stream.memcpy(&(nModules_Clusters_h[0]), clusters_d.moduleStart(), sizeof(uint32_t));     
          
@@ -750,13 +738,8 @@ namespace pixelgpudetails {
                  });
                      });
 
-         /*
-         DPCT1010:34: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
-         */
-         //cudaCheck(0);
    #ifdef GPU_DEBUG
          stream.wait();
-         //cudaCheck(cudaGetLastError());
    #endif  
          stream.submit([&](sycl::handler &cgh) {
              sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
@@ -793,11 +776,7 @@ namespace pixelgpudetails {
                                                     out);
                  });
                      });
-    
-         /*
-         DPCT1010:35: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
-         */
-         //cudaCheck(0)  
+
          // count the module start indices already here (instead of
          // rechits) so that the number of clusters/hits can be made
          // available in the rechit producer without additional points of
@@ -827,9 +806,7 @@ namespace pixelgpudetails {
 
    #ifdef GPU_DEBUG
          stream.wait();
-         //cudaCheck(cudaGetLastError());
    #endif
-      //std::cout << __LINE__ << std::endl;
 
     }  // end clusterizer scope
   }

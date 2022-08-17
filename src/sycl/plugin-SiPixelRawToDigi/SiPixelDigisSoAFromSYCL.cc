@@ -49,7 +49,7 @@ void SiPixelDigisSoAFromSYCL::acquire(const edm::Event& iEvent,
   clus_ = gpuDigis.clusToHostAsync(ctx.stream());
 }
 
-// FIXME_ Do we need it in sycl? pinned memory question
+// TODOME_ Do we need it in sycl? pinned memory question for later
 void SiPixelDigisSoAFromSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   // The following line copies the data from the pinned host memory to
   // regular host memory. In principle that feels unnecessary (why not

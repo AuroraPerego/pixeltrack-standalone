@@ -2,9 +2,13 @@
 #define RecoPixelVertexing_PixelTrackFitting_interface_RiemannFit_h
 
 #include "FitUtils.h"
-#define ABS(x) ((x < 0) ? -x : x)
 
 namespace Rfit {
+
+  using sycl::abs;
+  using sycl::atan;
+  using sycl::atan2;
+  using sycl::sqrt;
 
   /*!  Compute the Radiation length in the uniform hypothesis
  *
@@ -36,7 +40,7 @@ namespace Rfit {
     u_int n = length_values.rows();
     rad_lengths(0) = length_values(0) * XX_0_inv;
     for (u_int j = 1; j < n; ++j) {
-      rad_lengths(j) = ABS(length_values(j) - length_values(j - 1)) * XX_0_inv;
+      rad_lengths(j) = abs(length_values(j) - length_values(j - 1)) * XX_0_inv;
     }
   }
 
@@ -94,7 +98,7 @@ namespace Rfit {
     for (u_int k = 0; k < n; ++k) {
       for (u_int l = k; l < n; ++l) {
         for (u_int i = 0; i < std::min(k, l); ++i) {
-          tmp(k + n, l + n) += ABS(S_values(k) - S_values(i)) * ABS(S_values(l) - S_values(i)) * sig2_S(i);
+          tmp(k + n, l + n) += abs(S_values(k) - S_values(i)) * abs(S_values(l) - S_values(i)) * sig2_S(i);
         }
         tmp(l + n, k + n) = tmp(k + n, l + n);
       }
@@ -126,9 +130,9 @@ namespace Rfit {
                                                          VectorNd<N> const& rad,
                                                          double B) {
     constexpr u_int n = N;
-    double p_t = sycl::min(20., fast_fit(2) * B);  // limit pt to avoid too small error!!!
+    double p_t = std::min(20., fast_fit(2) * B);  // limit pt to avoid too small error!!!
     double p_2 = p_t * p_t * (1. + 1. / (fast_fit(3) * fast_fit(3)));
-    double theta = sycl::atan(fast_fit(3));
+    double theta = atan(fast_fit(3));
     theta = theta < 0. ? theta + M_PI : theta;
     VectorNd<N> s_values;
     VectorNd<N> rad_lengths;
@@ -139,16 +143,16 @@ namespace Rfit {
       Vector2d p = p2D.block(0, i, 2, 1) - o;
       const double cross = cross2D(-o, p);
       const double dot = (-o).dot(p);
-      const double atan2_ = sycl::atan2(cross, dot);
-      s_values(i) = ABS(atan2_ * fast_fit(2));
+      const double atan2_ = atan2(cross, dot);
+      s_values(i) = abs(atan2_ * fast_fit(2));
     }
-    computeRadLenUniformMaterial(s_values * sycl::sqrt(1. + 1. / (fast_fit(3) * fast_fit(3))), rad_lengths);
+    computeRadLenUniformMaterial(s_values * sqrt(1. + 1. / (fast_fit(3) * fast_fit(3))), rad_lengths);
     MatrixNd<N> scatter_cov_rad = MatrixNd<N>::Zero();
     VectorNd<N> sig2 = (1. + 0.038 * rad_lengths.array().log()).abs2() * rad_lengths.array();
     sig2 *= 0.000225 / (p_2 * sqr(sin(theta)));
     for (u_int k = 0; k < n; ++k) {
       for (u_int l = k; l < n; ++l) {
-        for (u_int i = 0; i < sycl::min(k, l); ++i) {
+        for (u_int i = 0; i < std::min(k, l); ++i) {
           scatter_cov_rad(k, l) += (rad(k) - rad(i)) * (rad(l) - rad(i)) * sig2(i);
         }
         scatter_cov_rad(l, k) = scatter_cov_rad(k, l);
@@ -313,9 +317,9 @@ namespace Rfit {
     printf("min_eigen3D - enter\n");
 #endif
     Eigen::SelfAdjointEigenSolver<Matrix3d> solver(3);
-    solver.computeDirect(A);
-    int min_index;
-    chi2 = solver.eigenvalues().minCoeff(&min_index); //FIXME_
+    //solver.computeDirect(A); //FIXME_ this is the line that causes the error, in kernel_test/kernel_comput.cpp it works
+    int min_index; 
+    chi2 = solver.eigenvalues().minCoeff(&min_index);
 #ifdef RFIT_DEBUG
     printf("min_eigen3D - exit\n");
 #endif
@@ -335,9 +339,9 @@ namespace Rfit {
 
   inline Vector3d min_eigen3D_fast(const Matrix3d& A) {
     Eigen::SelfAdjointEigenSolver<Matrix3f> solver(3);
-    solver.computeDirect(A.cast<float>());
+    solver.computeDirect(A.cast<float>()); //FIXME_ this is the line that causes the error, in kernel_test/kernel_comput.cpp it works
     int min_index;
-    solver.eigenvalues().minCoeff(&min_index); //FIXME_
+    solver.eigenvalues().minCoeff(&min_index); 
     return solver.eigenvectors().col(min_index).cast<double>();
   }
 
@@ -355,7 +359,7 @@ namespace Rfit {
     Eigen::SelfAdjointEigenSolver<Matrix2d> solver(2);
     solver.computeDirect(A);
     int min_index;
-    chi2 = solver.eigenvalues().minCoeff(&min_index); //FIXME_
+    chi2 = solver.eigenvalues().minCoeff(&min_index); 
     return solver.eigenvectors().col(min_index);
   }
 
@@ -393,7 +397,7 @@ namespace Rfit {
     // * build orthogonal lines through mid points
     // * make a system and solve for X0 and Y0.
     // * add the initial point
-    bool flip = ABS(b.x()) < ABS(b.y());
+    bool flip = abs(b.x()) < abs(b.y());
     auto bx = flip ? b.y() : b.x();
     auto by = flip ? b.x() : b.y();
     auto cx = flip ? c.y() : c.x();
@@ -414,7 +418,7 @@ namespace Rfit {
     printIt(&e, "Fast_fit - e: ");
     printIt(&d, "Fast_fit - d: ");
     // Compute the arc-length between first and last point: L = R * theta = R * atan (tan (Theta) )
-    auto dr = result(2) * sycl::atan2(cross2D(d, e), d.dot(e));
+    auto dr = result(2) * atan2(cross2D(d, e), d.dot(e));
     // Simple difference in Z between last and first hit
     auto dz = hits(2, n - 1) - hits(2, 0);
 
@@ -516,7 +520,7 @@ namespace Rfit {
 
     // scale
     const double q = mc.squaredNorm();
-    const double s = sycl::sqrt(n * 1. / q);  // scaling factor
+    const double s = sqrt(n * 1. / q);  // scaling factor
     p3D *= s;
 
     // project on paraboloid
@@ -544,41 +548,41 @@ namespace Rfit {
 #ifdef RFIT_DEBUG
     printf("circle_fit - AFTER MIN_EIGEN\n");
 #endif
-//    printIt(&v, "v BEFORE INVERSION");
-//    v *= (v(2) > 0) ? 1 : -1;  // TO FIX dovrebbe essere N(3)>0
-//    printIt(&v, "v AFTER INVERSION");
-//    // This hack to be able to run on GPU where the automatic assignment to a
-//    // double from the vector multiplication is not working.
-//#ifdef RFIT_DEBUG
-//    printf("circle_fit - AFTER MIN_EIGEN 1\n");
-//#endif
-//    Eigen::Matrix<double, 1, 1> cm;
+    printIt(&v, "v BEFORE INVERSION");
+    v *= (v(2) > 0) ? 1 : -1;  // TO FIX dovrebbe essere N(3)>0
+    printIt(&v, "v AFTER INVERSION");
+    // This hack to be able to run on GPU where the automatic assignment to a
+    // double from the vector multiplication is not working.
+#ifdef RFIT_DEBUG
+    printf("circle_fit - AFTER MIN_EIGEN 1\n");
+#endif
+    Eigen::Matrix<double, 1, 1> cm;
 #ifdef RFIT_DEBUG
     printf("circle_fit - AFTER MIN_EIGEN 2\n");
 #endif
-//    cm = -v.transpose() * r0;
+    cm = -v.transpose() * r0;
 #ifdef RFIT_DEBUG
     printf("circle_fit - AFTER MIN_EIGEN 3\n");
 #endif
-//    const double c = cm(0, 0);
-//    //  const double c = -v.transpose() * r0;
-//
-//#ifdef RFIT_DEBUG
-//    printf("circle_fit - COMPUTE CIRCLE PARAMETER\n");
-//#endif
-//    // COMPUTE CIRCLE PARAMETER
-//
-//    // auxiliary quantities
-//    const double h = sycl::sqrt(1. - sqr(v(2)) - 4. * c * v(2));
-//    const double v2x2_inv = 1. / (2. * v(2));
-//    const double s_inv = 1. / s;
-//    Vector3d par_uvr_;  // used in error propagation
-//    par_uvr_ << -v(0) * v2x2_inv, -v(1) * v2x2_inv, h * v2x2_inv;
+    const double c = cm(0, 0);
+    //  const double c = -v.transpose() * r0;
+
+#ifdef RFIT_DEBUG
+    printf("circle_fit - COMPUTE CIRCLE PARAMETER\n");
+#endif
+    // COMPUTE CIRCLE PARAMETER
+
+    // auxiliary quantities
+    const double h = sqrt(1. - sqr(v(2)) - 4. * c * v(2));
+    const double v2x2_inv = 1. / (2. * v(2));
+    const double s_inv = 1. / s;
+    Vector3d par_uvr_;  // used in error propagation
+    par_uvr_ << -v(0) * v2x2_inv, -v(1) * v2x2_inv, h * v2x2_inv;
 
     circle_fit circle;
-/*    circle.par << par_uvr_(0) * s_inv + h_(0), par_uvr_(1) * s_inv + h_(1), par_uvr_(2) * s_inv;
+    circle.par << par_uvr_(0) * s_inv + h_(0), par_uvr_(1) * s_inv + h_(1), par_uvr_(2) * s_inv;
     circle.q = Charge(hits2D, circle.par);
-    circle.chi2 = ABS(chi2) * renorm * 1. / sqr(2 * v(2) * par_uvr_(2) * s);
+    circle.chi2 = abs(chi2) * renorm * 1. / sqr(2 * v(2) * par_uvr_(2) * s);
     printIt(&circle.par, "circle_fit - CIRCLE PARAMETERS:");
     printIt(&circle.cov, "circle_fit - CIRCLE COVARIANCE:");
 #ifdef RFIT_DEBUG
@@ -719,7 +723,7 @@ namespace Rfit {
       for (u_int a = 0; a < 6; ++a) {
         const u_int i = nu[a][0], j = nu[a][1];
         Matrix3d Delta = Matrix3d::Zero();
-        Delta(i, j) = Delta(j, i) = ABS(A(i, j) * d);
+        Delta(i, j) = Delta(j, i) = abs(A(i, j) * d);
         J2.col(a) = min_eigen3D_fast(A + Delta);
         const int sign = (J2.col(a)(2) > 0) ? 1 : -1;
         J2.col(a) = (J2.col(a) * sign - v) / Delta(i, j);
@@ -767,7 +771,7 @@ namespace Rfit {
     printIt(&circle.cov, "Circle cov:");
 #ifdef RFIT_DEBUG
     printf("circle_fit - exit\n");
-#endif*/
+#endif
     return circle;
   }
 
@@ -836,7 +840,7 @@ namespace Rfit {
       const double dot = (-o).dot(p);
       // atan2(cross, dot) give back the angle in the transverse plane so tha the
       // final equation reads: x_i = -q*R*theta (theta = angle returned by atan2)
-      const double atan2_ = -circle.q * sycl::atan2(cross, dot);
+      const double atan2_ = -circle.q * atan2(cross, dot);
       //    p2D.coeffRef(1, i) = atan2_ * circle.par(2);
       p2D(0, i) = atan2_ * circle.par(2);
 
@@ -980,29 +984,29 @@ namespace Rfit {
                              const Eigen::Matrix<float, 6, N>& hits_ge,
                              const double B,
                              const bool error) {
-    constexpr u_int n = N;
-    VectorNd<4> rad = (hits.block(0, 0, 2, n).colwise().norm());
-
-    // Fast_fit gives back (X0, Y0, R, theta) w/o errors, using only 3 points.
-    Vector4d fast_fit;
-    Fast_fit(hits, fast_fit);
-    Rfit::Matrix2Nd<N> hits_cov = MatrixXd::Zero(2 * n, 2 * n);
-    Rfit::loadCovariance2D(hits_ge, hits_cov);
-    circle_fit circle = Circle_fit(hits.block(0, 0, 2, n), hits_cov, fast_fit, rad, B, error);
-    line_fit line = Line_fit(hits, hits_ge, circle, fast_fit, B, error);
-
-    par_uvrtopak(circle, B, error);
-
+  //  constexpr u_int n = N;
+  //  VectorNd<4> rad = (hits.block(0, 0, 2, n).colwise().norm());
+//
+  //  // Fast_fit gives back (X0, Y0, R, theta) w/o errors, using only 3 points.
+  //  Vector4d fast_fit;
+  //  Fast_fit(hits, fast_fit);
+  //  Rfit::Matrix2Nd<N> hits_cov = MatrixXd::Zero(2 * n, 2 * n);
+  //  Rfit::loadCovariance2D(hits_ge, hits_cov);
+  //  circle_fit circle = Circle_fit(hits.block(0, 0, 2, n), hits_cov, fast_fit, rad, B, error);
+  //  line_fit line = Line_fit(hits, hits_ge, circle, fast_fit, B, error);
+//
+  //  par_uvrtopak(circle, B, error);
+//
     helix_fit helix;
-    helix.par << circle.par, line.par;
-    if (error) {
-      helix.cov = MatrixXd::Zero(5, 5);
-      helix.cov.block(0, 0, 3, 3) = circle.cov;
-      helix.cov.block(3, 3, 2, 2) = line.cov;
-    }
-    helix.q = circle.q;
-    helix.chi2_circle = circle.chi2;
-    helix.chi2_line = line.chi2;
+  //  helix.par << circle.par, line.par;
+  //  if (error) {
+  //    helix.cov = MatrixXd::Zero(5, 5);
+  //    helix.cov.block(0, 0, 3, 3) = circle.cov;
+  //    helix.cov.block(3, 3, 2, 2) = line.cov;
+  //  }
+  //  helix.q = circle.q;
+  //  helix.chi2_circle = circle.chi2;
+  //  helix.chi2_line = line.chi2;
 
     return helix;
   }

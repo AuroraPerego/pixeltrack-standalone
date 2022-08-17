@@ -17,10 +17,9 @@
 #include "CAConstants.h"
 #include "GPUCACell.h"
 
-#define ABS(x) ((x < 0) ? -x : x)
-
 namespace gpuPixelDoublets {
-
+  
+  using sycl::abs;
   using CellNeighbors = CAConstants::CellNeighbors;
   using CellTracks = CAConstants::CellTracks;
   using CellNeighborsVector = CAConstants::CellNeighborsVector;
@@ -164,7 +163,7 @@ namespace gpuPixelDoublets {
         auto zo = hh.zGlobal(j);
         auto ro = hh.rGlobal(j);
         auto dr = ro - mer;
-        return dr > maxr[pairLayerId] || dr < 0 || ABS((mez * ro - mer * zo)) > z0cut * dr;
+        return dr > maxr[pairLayerId] || dr < 0 || abs((mez * ro - mer * zo)) > z0cut * dr;
       };
 
       auto zsizeCut = [&](int j) {
@@ -176,9 +175,9 @@ namespace gpuPixelDoublets {
         // FIXME move pred cut to z0cutoff to optmize loading of and computaiton ...
         auto zo = hh.zGlobal(j);
         auto ro = hh.rGlobal(j);
-        return onlyBarrel ? mes > 0 && so > 0 && ABS(so - mes) > dy
+        return onlyBarrel ? mes > 0 && so > 0 && int(abs(so - mes)) > dy
                           : (inner < 4) && mes > 0 &&
-                                ABS(mes - int(ABS((mez - zo) / (mer - ro)) * dzdrFact + 0.5f)) > maxDYPred;
+                                abs(mes - int(abs((mez - zo) / (mer - ro)) * dzdrFact + 0.5f)) > maxDYPred;
       };
 
       auto iphicut = phicuts[pairLayerId];
@@ -186,7 +185,7 @@ namespace gpuPixelDoublets {
       auto kl = Hist::bin(int16_t(mep - iphicut));
       auto kh = Hist::bin(int16_t(mep + iphicut));
       auto incr = [](auto& k) { return k = (k + 1) % Hist::nbins(); };
-      // bool piWrap = ABS(kh-kl) > Hist::nbins()/2;
+      // bool piWrap = abs(kh-kl) > Hist::nbins()/2;
 
 #ifdef GPU_DEBUG
       int tot = 0;
@@ -216,7 +215,7 @@ namespace gpuPixelDoublets {
             continue;
 
           auto mop = hh.iphi(oi);
-          uint16_t idphi = std::min(ABS(int16_t(mop - mep)), ABS(int16_t(mep - mop)));
+          uint16_t idphi = std::min(abs(int16_t(mop - mep)), abs(int16_t(mep - mop)));
           if (idphi > iphicut)
             continue;
 

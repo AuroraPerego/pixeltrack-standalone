@@ -70,9 +70,9 @@ namespace cms {
       auto nblocks = (Histo::totbins() + nthreads - 1) / nthreads;
       stream.submit([&](sycl::handler &cgh) {
           sycl::accessor<uint8_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              local_psum_acc(sycl::range<1>(sizeof(int32_t) * nblocks), cgh);
+              local_psum_acc(sycl::range<1>(sizeof(int8_t) * nblocks), cgh);
           sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              ws_acc(sycl::range<1>(32), cgh); //FIXME_ why 32? 
+              ws_acc(sycl::range<1>(sizeof(uint32_t) * 32), cgh); 
           sycl::accessor<bool, 0, sycl::access_mode::read_write, sycl::access::target::local>
               isLastBlockDone_acc(cgh);
 

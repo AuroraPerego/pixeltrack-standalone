@@ -12,6 +12,7 @@
 #include "gpuVertexFinder.h"
 
 namespace gpuVertexFinder {
+  using sycl::fabs;
 
   __forceinline void splitVertices(ZVertices* pdata, 
                                    WorkSpace* pws, 
