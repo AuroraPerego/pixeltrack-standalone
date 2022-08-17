@@ -53,17 +53,22 @@ namespace gpuCalibPixel {
 
       int row = x[i];
       int col = y[i];
+ 
       auto ret = ped->getPedAndGain(id[i], col, row, isDeadColumn, isNoisyColumn);
       float pedestal = ret.first;
       float gain = ret.second;
       // float pedestal = 0; float gain = 1.;
+
       if (isDeadColumn | isNoisyColumn) {
         id[i] = InvId;
         adc[i] = 0;
         out << "bad pixel at " << i << " in " << id[i] << "\n";
       } else {
         float vcal = adc[i] * gain - pedestal * gain;
-        adc[i] = sycl::max(100, int(vcal * conversionFactor + offset));
+        if (vcal < 0)
+        out << "adc was :" << adc[i] << " gain was :" << gain << " pedestal was :"<< pedestal << "\n";
+
+        adc[i] = std::max(100, int(vcal * conversionFactor + offset));
       }
     }
   }

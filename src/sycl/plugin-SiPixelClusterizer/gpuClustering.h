@@ -334,18 +334,21 @@ namespace gpuClustering {
             if (item.get_local_id(0) == 0) {
               nClustersInModule[thisModuleId] = *foundClusters;
               moduleId[item.get_group(0)] = thisModuleId;
-        // // //  #ifdef GPU_DEBUG
-        // // //        if (foundClusters > gMaxHit) {
-        // // //          gMaxHit = foundClusters;
-        // // //          if (*foundClusters > 8)
-        // // //            out << "max hit " << foundClusters << " in " << thisModuleId << "\n";
-        // // //        }
-        // // //  #endif
+         #ifdef GPU_DEBUG
+               if (foundClusters > gMaxHit) {
+                 gMaxHit = foundClusters;
+                 if (*foundClusters > 8)
+                   out << "max hit " << foundClusters << " in " << thisModuleId << "\n";
+               }
+         #endif
         //  if (thisModuleId % 100 == 1)
         //          out << *foundClusters << " clusters in module " << thisModuleId << "\n";
+        //out << *foundClusters << " ";
          #ifdef GPU_DEBUG
-               if (thisModuleId % 100 == 1)
+               if (thisModuleId % 100 == 1){
                  out << *foundClusters << " clusters in module " << thisModuleId << "\n";
+                 //out << *foundClusters << " ";
+               }
          #endif
               }
      }

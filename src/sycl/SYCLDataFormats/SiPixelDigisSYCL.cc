@@ -71,3 +71,24 @@ int32_t* SiPixelDigisSYCL::clusToHostAsyncTest(sycl::queue stream) const {
   //cms::sycltools::copyAsync(ret, clus_d, nDigis(), stream);
   return ret;
 }
+
+uint16_t* SiPixelDigisSYCL::adcToHostAsyncTest(sycl::queue stream) const {
+  uint16_t* ret = (uint16_t*)sycl::malloc_host(sizeof(uint16_t) * 48316, stream);
+  stream.memcpy(ret, adc_d.get(), 48316 * sizeof(uint16_t)).wait();
+  //cms::sycltools::copyAsync(ret, adc_d, nDigis(), stream);
+  return ret;
+}
+
+uint16_t* SiPixelDigisSYCL::xxToHostAsyncTest(sycl::queue stream) const {
+  uint16_t* ret = (uint16_t*)sycl::malloc_host(sizeof(uint16_t) * 48316, stream);
+  stream.memcpy(ret, xx_d.get(), 48316 * sizeof(uint16_t)).wait();
+  //cms::sycltools::copyAsync(ret, adc_d, nDigis(), stream);
+  return ret;
+}
+
+uint16_t* SiPixelDigisSYCL::yyToHostAsyncTest(sycl::queue stream) const {
+  uint16_t* ret = (uint16_t*)sycl::malloc_host(sizeof(uint16_t) * 48316, stream);
+  stream.memcpy(ret, yy_d.get(), 48316 * sizeof(uint16_t)).wait();
+  //cms::sycltools::copyAsync(ret, adc_d, nDigis(), stream);
+  return ret;
+}

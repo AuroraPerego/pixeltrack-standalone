@@ -76,20 +76,23 @@ namespace gpuClustering {
     DPCT1065:0: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
     */
     item.barrier();
-
     for (auto i = first; i < numElements; i += item.get_local_range(0)) {
-
-      //out << "adc[ " << i << "] is :" << adc[i] << "\n";
-      if (clusterId[i] > 1024)
-       out << "we will have an issue with clusterId[" << i << "] = " << clusterId[i] << "\n";
-      if (id[i] == InvId)
-        continue;  // not valid
-      if (id[i] != thisModuleId)
-        break;  // end of module
-        //cms::sycltools::atomic_fetch_add_shared<int32_t>(&charge[clusterId[i]], 
-                                                        //static_cast<int32_t>(adc[i]));
-      //cms::sycltools::AtomicAdd(&charge[clusterId[i]], adc[i]);
+    out << charge[clusterId[i]] << " ";
+    //out << adc[i] << " ";
     }
+    // for (auto i = first; i < numElements; i += item.get_local_range(0)) {
+    //   out << charge[clusterId[i]] << " ";
+    //   out << adc[i] << " ";
+    //   if (clusterId[i] > 1024)
+    //    out << "we will have an issue with clusterId[" << i << "] = " << clusterId[i] << "\n";
+    //   if (id[i] == InvId)
+    //     continue;  // not valid
+    //   if (id[i] != thisModuleId)
+    //     break;  // end of module
+    //     //cms::sycltools::atomic_fetch_add_shared<int32_t>(&charge[clusterId[i]], 
+    //                                                     //static_cast<int32_t>(adc[i]));
+    //   //cms::sycltools::AtomicAdd(&charge[clusterId[i]], adc[i]);
+    // }
     /*
     DPCT1065:1: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
     */

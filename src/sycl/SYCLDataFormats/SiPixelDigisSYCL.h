@@ -57,6 +57,9 @@ public:
   //cms::sycltools::host::unique_ptr<uint16_t[]> moduleIndToHostAsync(sycl::queue stream) const;
   uint16_t* moduleIndToHostAsync(sycl::queue stream) const;
     int32_t* clusToHostAsyncTest(sycl::queue stream) const;
+    uint16_t* adcToHostAsyncTest(sycl::queue stream) const;
+    uint16_t* xxToHostAsyncTest(sycl::queue stream) const;
+    uint16_t* yyToHostAsyncTest(sycl::queue stream) const;
 
 
   class DeviceConstView {
