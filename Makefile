@@ -270,7 +270,7 @@ SYCL_VERSION  := 2022.1.0
 ONEAPI_ENV    := $(ONEAPI_BASE)/setvars.sh
 DPCT_BASE     := $(ONEAPI_BASE)/dpcpp-ct/$(SYCL_VERSION)
 SYCL_BASE     := $(ONEAPI_BASE)/compiler/$(SYCL_VERSION)/linux
-DPCT_CXXFLAGS := -Wsycl-strict -fsycl-targets=spir64_gen -Xsycl-target-backend=spir64_gen "-device xe_hp_sdv" -isystem $(DPCT_BASE)/include
+DPCT_CXXFLAGS := -Wsycl-strict -isystem $(DPCT_BASE)/include
 # -fsycl-targets=spir64_gen -Xsycl-target-backend=spir64_gen "-device xe_hp_sdv" 
 endif
 SYCL_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Wno-non-template-friend -Werror=format-contains-nul -Werror=return-local-addr -Werror=unused-but-set-variable

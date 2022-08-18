@@ -62,7 +62,7 @@ namespace gpuCalibPixel {
         out << "bad pixel at " << i << " in " << id[i] << "\n";
       } else {
         float vcal = adc[i] * gain - pedestal * gain;
-        adc[i] = sycl::max(100, int(vcal * conversionFactor + offset));
+        adc[i] = std::max(100, int(vcal * conversionFactor + offset));
       }
     }
   }

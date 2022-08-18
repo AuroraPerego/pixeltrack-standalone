@@ -33,6 +33,8 @@
 #include "gpuClusterChargeCut.h"
 #include "gpuClustering.h"
 
+#define GPU_DEBUG 1
+
 namespace pixelgpudetails {
 
   // number of words for all the FEDs
@@ -371,6 +373,7 @@ namespace pixelgpudetails {
                                    sycl::nd_item<1> item,
                                    sycl::stream out
                                    ) {
+    debug=true;
     //if (threadIdx.x==0) printf("Event: %u blockIdx.x: %u start: %u end: %u\n", eventno, blockIdx.x, begin, end);
      int32_t first = item.get_local_id(0) + item.get_group(0) * item.get_local_range(0);
      for (int32_t iloop = first, nend = wordCounter; iloop < nend;
@@ -479,7 +482,7 @@ namespace pixelgpudetails {
   }  // end of Raw to Digi kernel
 
   void fillHitsModuleStart(uint32_t const *__restrict__ cluStart, uint32_t *__restrict__ moduleStart,
-                           sycl::nd_item<1> item, uint32_t *ws) {
+                           sycl::nd_item<1> item, uint32_t *ws, sycl::stream out) {
     assert(gpuClustering::MaxNumModules < 2048);  // easy to extend at least till 32*1024
     assert(1 == item.get_group_range(0));
     assert(0 == item.get_group(0));
@@ -488,6 +491,8 @@ namespace pixelgpudetails {
 
     // limit to MaxHitsInModule;
     for (int i = first, iend = gpuClustering::MaxNumModules; i < iend; i += item.get_local_range(0)) {
+      //if (cluStart[i] != 0)
+      //  out << gpuClustering::maxHitsInModule() << " " << cluStart[i] << "\n";
       moduleStart[i + 1] = std::min(gpuClustering::maxHitsInModule(), cluStart[i]);
     }
 
@@ -517,7 +522,7 @@ namespace pixelgpudetails {
       // [BPX1, BPX2, BPX3, BPX4,  FP1,  FP2,  FP3,  FN1,  FN2,  FN3, LAST_VALID]
       // [   0,   96,  320,  672, 1184, 1296, 1408, 1520, 1632, 1744,       1856]
       if (i == 96 || i == 1184 || i == 1744 || i == gpuClustering::MaxNumModules)
-        printf("moduleStart %d %d\n", i, moduleStart[i]);
+        out << "moduleStart " << i << " " << moduleStart[i] << "\n";
     }
 #endif
 
@@ -586,6 +591,9 @@ namespace pixelgpudetails {
               auto digis_mod_kernel    = digis_d.moduleInd();
               auto digiErrors_d_kernel = digiErrors_d.error();
         sycl::stream out(4096, 2048, cgh);
+#ifdef GPU_DEBUG
+    std::cout << "Entering RawToDigi_kernel" << std::endl;
+#endif
         cgh.parallel_for(sycl::nd_range<1>(globalSize, numthreadsPerBlock),
                           [=](sycl::nd_item<1> item) {
                                 RawToDigi_kernel(cablingMap_kernel,
@@ -634,6 +642,9 @@ namespace pixelgpudetails {
            auto clusters_s_kernel  = clusters_d.moduleStart();
            auto clusters_in_kernel = clusters_d.clusInModule();
            auto clusters_cs_kernel = clusters_d.clusModuleStart();
+#ifdef GPU_DEBUG
+    std::cout << "Entering calibDigis" << std::endl;
+#endif
    	cgh.parallel_for(sycl::nd_range<1>(sycl::range<1>(blocks) * sycl::range<1>(threadsPerBlock), sycl::range<1>(threadsPerBlock)),
                              [=](sycl::nd_item<1> item) {
                                    gpuCalibPixel::calibDigis(isRun2,
@@ -787,14 +798,15 @@ namespace pixelgpudetails {
          // apply charge cut
                  auto clusters_in_kernel  = clusters_d.c_clusInModule();
                  auto clusters_s_kernel  = clusters_d.clusModuleStart();
+                 sycl::stream out(50000, 768, cgh);
             cgh.parallel_for(
                  sycl::nd_range<1>(sycl::range<1>(1024), sycl::range<1>(1024)),
                  [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
                                 fillHitsModuleStart(clusters_in_kernel, 
                                                     clusters_s_kernel,
                                                     item,
-                                                    (uint32_t *)local_ws_acc.get_pointer()
-                                                    );
+                                                    (uint32_t *)local_ws_acc.get_pointer(),
+                                                    out);
                  });
                      });  
 //       // MUST be ONE block

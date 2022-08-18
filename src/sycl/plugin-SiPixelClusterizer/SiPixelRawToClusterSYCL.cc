@@ -75,7 +75,7 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
   }
   // get the GPU product already here so that the async transfer can begin
   //std::cout << "once" << std::endl;
-  const auto* gpuMap = hgpuMap.getGPUProductAsync(ctx.stream());
+  const auto* gpuMap = hgpuMap.getGPUProductAsync(ctx.stream()); 
   const unsigned char* gpuModulesToUnpack = hgpuMap.getModToUnpAllAsync(ctx.stream());
 
   auto const& hgains = iSetup.get<SiPixelGainCalibrationForHLTGPU>();
@@ -146,8 +146,8 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
     assert(0 == (ew - bw) % 2);
     wordFedAppender_->initializeWordFed(fedId, wordCounterGPU, bw, (ew - bw));
     wordCounterGPU += (ew - bw);
+    //SAME AS SERIAL UNTIL HERE
   }  // end of for loop
-  //std::cout << "HELLO" << std::endl;
 
   gpuAlgo_.makeClustersAsync(isRun2_,
                              gpuMap,
@@ -159,7 +159,7 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
                              fedCounter,
                              useQuality_,
                              includeErrors_,
-                             false,  // debug
+                             true,  // debug
                              ctx.stream());
 }
 
