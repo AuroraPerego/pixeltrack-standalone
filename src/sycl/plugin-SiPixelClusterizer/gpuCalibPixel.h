@@ -34,6 +34,7 @@ namespace gpuCalibPixel {
   ) {
     int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
     // zero for next kernels...
+
     if (0 == first)
       clusModuleStart[0] = moduleStart[0] = 0;
     for (int i = first; i < (int)(gpuClustering::MaxNumModules);
@@ -52,16 +53,21 @@ namespace gpuCalibPixel {
 
       int row = x[i];
       int col = y[i];
+ 
       auto ret = ped->getPedAndGain(id[i], col, row, isDeadColumn, isNoisyColumn);
       float pedestal = ret.first;
       float gain = ret.second;
       // float pedestal = 0; float gain = 1.;
+
       if (isDeadColumn | isNoisyColumn) {
         id[i] = InvId;
         adc[i] = 0;
         out << "bad pixel at " << i << " in " << id[i] << "\n";
       } else {
         float vcal = adc[i] * gain - pedestal * gain;
+        if (vcal < 0)
+        out << "adc was :" << adc[i] << " gain was :" << gain << " pedestal was :"<< pedestal << "\n";
+
         adc[i] = std::max(100, int(vcal * conversionFactor + offset));
       }
     }
