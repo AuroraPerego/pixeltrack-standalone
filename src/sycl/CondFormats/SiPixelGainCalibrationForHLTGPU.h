@@ -17,6 +17,13 @@ public:
   const SiPixelGainForHLTonGPU *getGPUProductAsync(sycl::queue stream) const;
   const SiPixelGainForHLTonGPU *getCPUProduct() const { return gainForHLTonHost_; }
 
+
+   const void printgainData() const{
+    for (int i=0; i<48316 ;i++)
+    std::cout << gainData_[i] << std::endl;
+  }
+
+
 private:
   SiPixelGainForHLTonGPU *gainForHLTonHost_ = nullptr;
   std::vector<char> gainData_;
@@ -24,9 +31,13 @@ private:
     GPUData() = default;
     ~GPUData() {}
 
-    std::unique_ptr<SiPixelGainForHLTonGPU, cms::sycltools::device::impl::DeviceDeleter> gainForHLTonGPU;
-    std::unique_ptr<SiPixelGainForHLTonGPU_DecodingStructure[], cms::sycltools::device::impl::DeviceDeleter>
-        gainDataOnGPU;
+    // std::unique_ptr<SiPixelGainForHLTonGPU, cms::sycltools::device::impl::DeviceDeleter> gainForHLTonGPU;
+    // std::unique_ptr<SiPixelGainForHLTonGPU_DecodingStructure[], cms::sycltools::device::impl::DeviceDeleter>
+    //     gainDataOnGPU;
+
+    SiPixelGainForHLTonGPU *gainForHLTonGPU = nullptr;
+    SiPixelGainForHLTonGPU_DecodingStructure *gainDataOnGPU = nullptr;
+    
   };
   cms::sycltools::ESProduct<GPUData> gpuData_;
 };
