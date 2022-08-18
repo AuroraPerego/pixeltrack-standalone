@@ -81,6 +81,8 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
   auto const& hgains = iSetup.get<SiPixelGainCalibrationForHLTGPU>();
   // get the GPU product already here so that the async transfer can begin
   //std::cout << "twice" << std::endl;
+   //hgains.printgainData();
+  
   const auto* gpuGains = hgains.getGPUProductAsync(ctx.stream());
 
   auto const& fedIds_ = iSetup.get<SiPixelFedIds>().fedIds();

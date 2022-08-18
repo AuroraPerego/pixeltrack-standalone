@@ -266,6 +266,7 @@ ONEAPI_BASE := /cvmfs/projects.cern.ch/intelsw/oneAPI/linux/x86_64/2022
 # /opt/intel/oneapi
 ifneq ($(wildcard $(ONEAPI_BASE)),)
 # OneAPI platform found
+#-fsycl-targets=spir64_gen -Xsycl-target-backend=spir64_gen "-device xe_hp_sdv"
 SYCL_VERSION  := 2022.1.0
 ONEAPI_ENV    := $(ONEAPI_BASE)/setvars.sh
 DPCT_BASE     := $(ONEAPI_BASE)/dpcpp-ct/$(SYCL_VERSION)

@@ -12,8 +12,10 @@
 #include "assert.h"
 #include <cassert>
 
+
 #include "gpuClusteringConstants.h"
 
+#define ABS(x) ((x < 0) ? -x : x)
 namespace gpuClustering {
 
 #define GPU_DEBUG TRUE

@@ -4,7 +4,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
-
+#include <iostream>
 #include <CL/sycl.hpp>
 
 namespace cms {
@@ -16,15 +16,19 @@ namespace cms {
         public:
           DeviceDeleter() = default;  // for edm::Wrapper
           DeviceDeleter(sycl::queue stream) : stream_{stream} {}
+          DeviceDeleter(sycl::queue stream, std::string varName) : stream_{stream}, varName_{varName} {}
 
           void operator()(void *ptr) {
             if (stream_) {
+              //if (ptr != nullptr && !varName_.empty())
+              //  std::cout << "Deallocating " << varName_ << std::endl;
               sycl::free(ptr, *stream_);
             }
           }
 
         private:
           std::optional<sycl::queue> stream_;
+          std::string varName_;
         };
       }  // namespace impl
 
@@ -58,13 +62,14 @@ namespace cms {
 
     template <typename T>
     typename device::impl::make_device_unique_selector<T>::unbounded_array make_device_unique(size_t n,
-                                                                                              sycl::queue stream) {
+                                                                                              sycl::queue stream,
+                                                                                              std::string varName="") {
       using element_type = typename std::remove_extent<T>::type;
       static_assert(std::is_trivially_constructible<element_type>::value,
                     "Allocating with non-trivial constructor on the device memory is not supported");
       void *mem = sycl::malloc_device(n * sizeof(element_type), stream);
       return typename device::impl::make_device_unique_selector<T>::unbounded_array{
-          reinterpret_cast<element_type *>(mem), device::impl::DeviceDeleter{stream}};
+          reinterpret_cast<element_type *>(mem), device::impl::DeviceDeleter{stream, varName}};
     }
 
     template <typename T, typename... Args>

@@ -76,64 +76,73 @@ namespace gpuClustering {
     DPCT1065:0: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
     */
     item.barrier();
-
     for (auto i = first; i < numElements; i += item.get_local_range(0)) {
-      if (id[i] == InvId)
-        continue;  // not valid
-      if (id[i] != thisModuleId)
-        break;  // end of module
-      cms::sycltools::AtomicAdd(&charge[clusterId[i]], adc[i]);
+    out << charge[clusterId[i]] << " ";
+    //out << adc[i] << " ";
     }
+    // for (auto i = first; i < numElements; i += item.get_local_range(0)) {
+    //   out << charge[clusterId[i]] << " ";
+    //   out << adc[i] << " ";
+    //   if (clusterId[i] > 1024)
+    //    out << "we will have an issue with clusterId[" << i << "] = " << clusterId[i] << "\n";
+    //   if (id[i] == InvId)
+    //     continue;  // not valid
+    //   if (id[i] != thisModuleId)
+    //     break;  // end of module
+    //     //cms::sycltools::atomic_fetch_add_shared<int32_t>(&charge[clusterId[i]], 
+    //                                                     //static_cast<int32_t>(adc[i]));
+    //   //cms::sycltools::AtomicAdd(&charge[clusterId[i]], adc[i]);
+    // }
     /*
     DPCT1065:1: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
     */
-    item.barrier();
+     item.barrier();
 
-    auto chargeCut = thisModuleId < 96 ? 2000 : 4000;  // move in constants (calib?)
-    for (auto i = item.get_local_id(0); i < nclus; i += item.get_local_range(0)) {
-      newclusId[i] = ok[i] = charge[i] > chargeCut ? 1 : 0;
-    }
+    // auto chargeCut = thisModuleId < 96 ? 2000 : 4000;  // move in constants (calib?)
+    // for (auto i = item.get_local_id(0); i < nclus; i += item.get_local_range(0)) {
+    //   newclusId[i] = ok[i] = charge[i] > chargeCut ? 1 : 0;
+    // }
 
-    /*
-    DPCT1065:2: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
-    */
-    item.barrier();
+    // /*
+    // DPCT1065:2: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
+    // */
+    // item.barrier();
 
-    // renumber
+    // // renumber
 
-    cms::sycltools::blockPrefixScan(newclusId, nclus, item, ws);
+    // cms::sycltools::blockPrefixScan(newclusId, nclus, item, ws);
 
-    assert(nclus >= newclusId[nclus - 1]);
+    // assert(nclus >= newclusId[nclus - 1]);
 
-    if (nclus == newclusId[nclus - 1])
-      return;
+    // if (nclus == newclusId[nclus - 1])
+    //   return;
 
-    nClustersInModule[thisModuleId] = newclusId[nclus - 1];
-    /*
-    DPCT1065:3: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
-    */
-    item.barrier();
+    // nClustersInModule[thisModuleId] = newclusId[nclus - 1];
+    // /*
+    // DPCT1065:3: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
+    // */
+    // item.barrier();
 
-    // mark bad cluster again
-    for (auto i = item.get_local_id(0); i < nclus; i += item.get_local_range(0)) {
-      if (0 == ok[i])
-        newclusId[i] = InvId + 1;
-    }
-    /*
-    DPCT1065:4: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
-    */
-    item.barrier();
+    // // mark bad cluster again
+    // for (auto i = item.get_local_id(0); i < nclus; i += item.get_local_range(0)) {
+    //   if (0 == ok[i])
+    //     newclusId[i] = InvId + 1;
+    // }
+    // /*
+    // DPCT1065:4: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
+    // */
+    // item.barrier();
 
-    // reassign id
-    for (auto i = first; i < numElements; i += item.get_local_range(0)) {
-      if (id[i] == InvId)
-        continue;  // not valid
-      if (id[i] != thisModuleId)
-        break;  // end of module
-      clusterId[i] = newclusId[clusterId[i]] - 1;
-      if (clusterId[i] == InvId)
-        id[i] = InvId;
-    }
+    // // reassign id
+    // for (auto i = first; i < numElements; i += item.get_local_range(0)) {
+    //   if (id[i] == InvId)
+    //     continue;  // not valid
+    //   if (id[i] != thisModuleId)
+    //     break;  // end of module
+    //   clusterId[i] = newclusId[clusterId[i]] - 1;
+    //   if (clusterId[i] == InvId)
+    //     id[i] = InvId;
+    // }
 
     //done
   }
