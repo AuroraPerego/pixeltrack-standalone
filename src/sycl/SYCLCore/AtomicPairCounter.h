@@ -39,7 +39,9 @@ namespace cms {
         c_type c = i;
         c += incr;
         Atomic2 ret;
-        ret.ac = AtomicAdd<cms::sycltools::AtomicPairCounter::c_type>(&counter.ac, c);
+        
+        cms::sycltools::atomic_fetch_add<cms::sycltools::AtomicPairCounter::c_type>(&counter.ac, c);
+        //ret.ac = AtomicAdd<cms::sycltools::AtomicPairCounter::c_type>(&counter.ac, c);
 
         return ret.counters;
       }

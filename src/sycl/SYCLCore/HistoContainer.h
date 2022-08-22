@@ -70,12 +70,12 @@ namespace cms {
       auto nblocks = (Histo::totbins() + nthreads - 1) / nthreads;
       stream.submit([&](sycl::handler &cgh) {
           sycl::accessor<uint8_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              local_psum_acc(sycl::range<1>(sizeof(int8_t) * nblocks), cgh);
+              local_psum_acc(sycl::range<1>(sizeof(uint8_t) * nblocks), cgh);
           sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              ws_acc(sycl::range<1>(sizeof(uint32_t) * 32), cgh); 
+              ws_acc(sycl::range<1>(sizeof(uint32_t) * 32), cgh); //FIXME_ why 32? 
           sycl::accessor<bool, 0, sycl::access_mode::read_write, sycl::access::target::local>
               isLastBlockDone_acc(cgh);
-
+          
           auto Histo_totbins_kernel = Histo::totbins();
 
           cgh.parallel_for(
@@ -123,8 +123,8 @@ namespace cms {
     template <typename Hist, typename V, typename Func>
     __forceinline void forEachInBins(Hist const &hist, V value, int n, Func func) {
       int bs = Hist::bin(value);
-      int be = std::min(int(Hist::nbins() - 1), bs + n);
-      bs = std::max(0, bs - n);
+      int be = sycl::min(int(Hist::nbins() - 1), bs + n);
+      bs = sycl::max(0, bs - n);
       assert(be >= bs);
       for (auto pj = hist.begin(bs); pj < hist.end(be); ++pj) {
         func(*pj);
@@ -194,7 +194,8 @@ namespace cms {
       __forceinline void add(CountersOnly const &co) {
         for (uint32_t i = 0; i < totbins(); ++i) {
 
-          cms::sycltools::AtomicAdd<uint32_t>(off +i, co.off[i]);
+          cms::sycltools::atomic_fetch_add<uint32_t>(off +i, static_cast<uint32_t>(co.off[i]));
+          //cms::sycltools::AtomicAdd<uint32_t>(off +i, co.off[i]);
           //__CUDA_ARCH__
           //auto &a = (std::atomic<Counter> &)(off[i]);
           //a += co.off[i];
@@ -203,7 +204,8 @@ namespace cms {
 
       static __forceinline uint32_t atomicIncrement(Counter &x) {
 
-        return cms::sycltools::AtomicAdd(&x, 1);
+        return cms::sycltools::atomic_fetch_add<Counter>(&x, 1);
+        //return cms::sycltools::AtomicAdd(&x, 1);
         //__CUDA_ARCH__
         //auto &a = (std::atomic<Counter> &)(x);
         //return a++;
@@ -211,7 +213,8 @@ namespace cms {
       }
 
       static __forceinline uint32_t atomicDecrement(Counter &x) {
-        return cms::sycltools::AtomicSub(&x, 1);
+        return cms::sycltools::atomic_fetch_sub<Counter>(&x, 1);
+        //return cms::sycltools::AtomicSub(&x, 1);
         //__CUDA_ARCH__
         //auto &a = (std::atomic<Counter> &)(x);
         //return a--;

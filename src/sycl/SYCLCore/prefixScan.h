@@ -190,7 +190,8 @@ namespace cms {
         /*
         DPCT1039:14: The generated code assumes that "pc" points to the global memory address space. If it points to a local memory address space, replace "sycl::global_ptr" with "sycl::local_ptr".
         */
-        auto value = cms::sycltools::AtomicAdd(pc, 1);  // block counter
+        auto value =cms::sycltools::atomic_fetch_add<int32_t>(pc, static_cast<int32_t>(1));
+        //auto value = cms::sycltools::AtomicAdd(pc, 1);  // block counter
         *isLastBlockDone = (value == (int(item.get_group_range(0)) - 1));
       }
 
