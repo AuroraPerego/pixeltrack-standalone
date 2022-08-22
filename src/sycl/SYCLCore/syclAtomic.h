@@ -28,8 +28,24 @@ namespace cms {
     inline T atomic_fetch_add_shared(T* addr, T operand){
       auto atm = 
             cl::sycl::atomic_ref<T, cl::sycl::memory_order::relaxed, sycl::memory_scope::device, 
-                                  cl::sycl::access::address_space::local_space> (addr[0]);
+                                  cl::sycl::access::address_space::local_space>(addr[0]);
       return atm.fetch_add(operand);
+    }
+
+    template <typename T>
+    inline T atomic_fetch_sub(T* addr, T operand) {
+          auto atm =
+              cl::sycl::atomic_ref<T, cl::sycl::memory_order::relaxed, sycl::memory_scope::device,
+                                   cl::sycl::access::address_space::global_space>(addr[0]);
+      return atm.fetch_sub(operand);
+    }
+
+    template <typename T>
+    inline T atomic_fetch_sub_shared(T *addr, T operand) {
+          auto atm =
+              cl::sycl::atomic_ref<T, cl::sycl::memory_order::relaxed, sycl::memory_scope::device,
+                                   cl::sycl::access::address_space::local_space>(addr[0]);
+      return atm.fetch_sub(operand);
     }
 
     template <typename A, typename B>
