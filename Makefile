@@ -50,7 +50,8 @@ export TEST_DIR := $(BASE_DIR)/test
 
 # System external definitions
 # CUDA
-CUDA_BASE := /cvmfs/sft.cern.ch/lcg/views/dev4cuda/Tue/x86_64-ubuntu2004-gcc9-opt
+CUDA_BASE := /usr/local/cuda
+# /cvmfs/sft.cern.ch/lcg/views/dev4cuda/Tue/x86_64-ubuntu2004-gcc9-opt
 # /usr/local/cuda  
 ifeq ($(wildcard $(CUDA_BASE)),)
 # CUDA platform not found

@@ -723,22 +723,16 @@ namespace pixelgpudetails {
       							  out);
                                 });
       		});
-            /*
-            DPCT1010:32: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
-            */
-            //cudaCheck(0);
       #ifdef GPU_DEBUG
             stream.wait();
             std::cout << "Execution time of calibDigis is changed : " << clock.stop() << " seconds" << std::endl;
-
-            //cudaCheck(cudaGetLastError());
       #endif
 
-          // auto adcout = digis_d.adcToHostAsyncTest(stream);
-          // for (auto i=0; i<48316; i++)
-          // {
-          //   std::cout << "adc["<< i <<"] is : " << adcout[i] << std::endl;
-          // }
+         //  auto adcout = digis_d.adcToHostAsyncTest(stream);
+         //  for (auto i=0; i<48316; i++)
+         //  {
+         //    std::cout << "adc["<< i <<"] is : " << adcout[i] << std::endl;
+         //  }
       #ifdef GPU_DEBUG
             std::cout << "SYCL countModules kernel launch with " << blocks << " blocks of " << threadsPerBlock
                       << " threads\n";
@@ -758,14 +752,14 @@ namespace pixelgpudetails {
                                                                          out);
                                                             });
       	      }).wait();
-             /*
-            DPCT1010:33: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
-            */
-            //cudaCheck(0)  
-            // read the number of modules into a data member, used by getProduct())
-            stream.memcpy(&(nModules_Clusters_h[0]), clusters_d.moduleStart(), sizeof(uint32_t)).wait();  
-            std::cout << "nModules_Clusters_h[0] is : " << nModules_Clusters_h[0] << std::endl;          
+          // read the number of modules into a data member, used by getProduct())
+          stream.memcpy(&(nModules_Clusters_h[0]), clusters_d.moduleStart(), sizeof(uint32_t)).wait();  
+          //CHECKPOINT moduleStart CORRECT but shuffled every time (SAME AS CUDA)
 
+          //for (auto i=0; i<1791; i++)
+          //     {
+          //       std::cout << clusters_d.moduleStart()[i] << ", ";
+          //     }
           //auto moduleInd = digis_d.moduleIndToHostAsync(stream);
           //auto clus = digis_d.clusToHostAsyncTest(stream);
 
