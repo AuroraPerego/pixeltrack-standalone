@@ -565,7 +565,7 @@ namespace pixelgpudetails {
        if (includeErrors) {
          digiErrors_d = SiPixelDigiErrorsSYCL(pixelgpudetails::MAX_FED_WORDS, std::move(errors), stream);
        }
-       clusters_d = SiPixelClustersSYCL(gpuClustering::MaxNumModules, stream);  
+       clusters_d = SiPixelClustersSYCL(gpuClustering::MaxNumModules, stream);
        nModules_Clusters_h = cms::sycltools::make_host_unique<uint32_t[]>(2, stream);  
        if (wordCounter)  // protect in case of empty event....
        {
@@ -723,16 +723,28 @@ namespace pixelgpudetails {
       							  out);
                                 });
       		});
+            /*
+            DPCT1010:32: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
+            */
+            //cudaCheck(0);
       #ifdef GPU_DEBUG
             stream.wait();
             std::cout << "Execution time of calibDigis is changed : " << clock.stop() << " seconds" << std::endl;
+
+            //cudaCheck(cudaGetLastError());
       #endif
 
-         //  auto adcout = digis_d.adcToHostAsyncTest(stream);
-         //  for (auto i=0; i<48316; i++)
-         //  {
-         //    std::cout << "adc["<< i <<"] is : " << adcout[i] << std::endl;
-         //  }
+          // auto adcout = digis_d.adcToHostAsyncTest(stream);
+          // for (auto i=0; i<48316; i++)
+          // {
+          //   std::cout << "adc["<< i <<"] is : " << adcout[i] << std::endl;
+          // }
+
+          //  auto moduleStart = clusters_d.clusModuleStartToHostAsyncTest(stream);
+          //  for (auto i=0; i<1791; i++)
+          //      {
+          //        std::cout << "moduleStart["<< i <<"] is : " << clusters_d.moduleStart()[i] << std::endl;
+          //      }
       #ifdef GPU_DEBUG
             std::cout << "SYCL countModules kernel launch with " << blocks << " blocks of " << threadsPerBlock
                       << " threads\n";
@@ -752,27 +764,33 @@ namespace pixelgpudetails {
                                                                          out);
                                                             });
       	      }).wait();
-          // read the number of modules into a data member, used by getProduct())
-          stream.memcpy(&(nModules_Clusters_h[0]), clusters_d.moduleStart(), sizeof(uint32_t)).wait();  
-          //CHECKPOINT moduleStart CORRECT but shuffled every time (SAME AS CUDA)
+      //        /*
+      //       DPCT1010:33: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
+      //       */
+      //       //cudaCheck(0)  
+      //       // read the number of modules into a data member, used by getProduct())
+             stream.memcpy(&(nModules_Clusters_h[0]), clusters_d.moduleStart(), sizeof(uint32_t)).wait();  
+             std::cout << "nModules_Clusters_h[0] is : " << nModules_Clusters_h[0] << std::endl;          
 
-          //for (auto i=0; i<1791; i++)
-          //     {
-          //       std::cout << clusters_d.moduleStart()[i] << ", ";
-          //     }
-          //auto moduleInd = digis_d.moduleIndToHostAsync(stream);
-          //auto clus = digis_d.clusToHostAsyncTest(stream);
+
+               //auto moduleStart = clusters_d.clusModuleStartToHostAsyncTest(stream);
+              //    for (auto i=0; i<1791; i++)
+              //  {
+              //    std::cout << "moduleStart["<< i <<"] is " << clusters_d.moduleStart()[i] << std::endl;
+              //  }
+      //     //auto moduleInd = digis_d.moduleIndToHostAsync(stream);
+      //     //auto clus = digis_d.clusToHostAsyncTest(stream);
 
           // for (auto i=0; i<48316; i++)
           // {
-          //   std::cout << "clus["<< i <<"] is : " << clus[i] << std::endl;
+          //   std::cout << "clus["<< i <<"] is : " << digis_d.clus()[i] << std::endl;
           // }
-          // for (auto i=0; i<48316; i++)
-          // {
-          //   std::cout << "moduleInd["<< i <<"] is : " << moduleInd[i] << std::endl;
-          // }
+      //     // for (auto i=0; i<48316; i++)
+      //     // {
+      //     //   std::cout << "moduleInd["<< i <<"] is : " << moduleInd[i] << std::endl;
+      //     // }
 
-            threadsPerBlock = 256;
+            threadsPerBlock = 32;
             blocks = MaxNumModules;
             sycl::range<1> numthreadsPerBlock1(threadsPerBlock);
             sycl::range<1> globalSize1(blocks*threadsPerBlock);
@@ -802,7 +820,7 @@ namespace pixelgpudetails {
                     local_n0_acc(sycl::range<1>(sizeof(int)), cgh);
                 sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
                     foundClusters_acc(sycl::range<1>(sizeof(unsigned int)), cgh); 
-      	        sycl::stream out(50000, 2048, cgh);
+      	        sycl::stream out(1024, 1024, cgh);
                     auto digis_x_kernel     = digis_d.c_xx();
                     auto digis_y_kernel     = digis_d.c_yy();
                     auto digis_ind_kernel   = digis_d.c_moduleInd();
@@ -835,10 +853,10 @@ namespace pixelgpudetails {
                     });
                         });
 
-      //       /*
-      //       DPCT1010:34: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
-      //       */
-      //       //cudaCheck(0);
+      // //       /*
+      // //       DPCT1010:34: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
+      // //       */
+      // //       //cudaCheck(0);
       #ifdef GPU_DEBUG
             stream.wait();
             //cudaCheck(cudaGetLastError());
@@ -862,79 +880,85 @@ namespace pixelgpudetails {
           //   std::cout << "moduleInd["<< i <<"] is : " << moduleInd[i] << std::endl;
           // }
 
-            // stream.submit([&](sycl::handler &cgh) {
-            //     sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-            //         charge_acc(sycl::range<1>(sizeof(int32_t) * 1024), cgh);
-            //     sycl::accessor<uint8_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-            //         ok_acc(sycl::range<1>(sizeof(int32_t) * 1024), cgh);
-            //     sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-            //         newclusId_acc(sycl::range<1>(sizeof(int32_t) * 1024), cgh); //FIXME_ why 32?
-            //     sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-            //         local_ws_acc(sycl::range<1>(sizeof(int32_t) * 32), cgh);
-            //     sycl::stream out(50000, 768, cgh);
-            // // apply charge cut
-            //         auto digis_ind_kernel   = digis_d.moduleInd();  
-            //         auto digis_adc_kernel   = digis_d.c_adc();
-            //         auto clusters_s_kernel  = clusters_d.c_moduleStart();
-            //         auto clusters_in_kernel = clusters_d.clusInModule();
-            //         auto clusters_cs_kernel = clusters_d.c_moduleId();
-            //         auto digis_clus_kernel  = digis_d.clus();
-            //     cgh.parallel_for(
-            //         sycl::nd_range<1>(globalSize1, numthreadsPerBlock1),
-            //         [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
-            //                           clusterChargeCut(digis_ind_kernel,
-            //                                            digis_adc_kernel,
-            //                                            clusters_s_kernel,
-            //                                            clusters_in_kernel,
-            //                                            clusters_cs_kernel,
-            //                                            digis_clus_kernel,
-            //                                            wordCounter,
-            //                                            item,
-            //                                            (int32_t *)charge_acc.get_pointer(),
-            //                                            (uint8_t *)ok_acc.get_pointer(),
-            //                                            (uint16_t *)newclusId_acc.get_pointer(),
-            //                                            (uint16_t *)local_ws_acc.get_pointer(),
-            //                                            out);
-            //         });
-            //             }).wait();
+            threadsPerBlock = 256;
+            blocks = MaxNumModules;
+            sycl::range<1> numthreadsPerBlock2(threadsPerBlock);
+            sycl::range<1> globalSize2(blocks*threadsPerBlock);
+
+            stream.submit([&](sycl::handler &cgh) {
+                sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                    charge_acc(sycl::range<1>(sizeof(int32_t) * 1024), cgh);
+                sycl::accessor<uint8_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                    ok_acc(sycl::range<1>(sizeof(int32_t) * 1024), cgh);
+                sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                    newclusId_acc(sycl::range<1>(sizeof(int32_t) * 1024), cgh); //FIXME_ why 32?
+                sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                    local_ws_acc(sycl::range<1>(sizeof(int32_t) * 32), cgh);
+                sycl::stream out(50000, 768, cgh);
+            // apply charge cut
+                    auto digis_ind_kernel   = digis_d.moduleInd();  
+                    auto digis_adc_kernel   = digis_d.c_adc();
+                    auto clusters_s_kernel  = clusters_d.c_moduleStart();
+                    auto clusters_in_kernel = clusters_d.clusInModule();
+                    auto clusters_cs_kernel = clusters_d.c_moduleId();
+                    auto digis_clus_kernel  = digis_d.clus();
+                cgh.parallel_for(
+                    sycl::nd_range<1>(globalSize2, numthreadsPerBlock2),
+                    [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
+                                      clusterChargeCut(digis_ind_kernel,
+                                                       digis_adc_kernel,
+                                                       clusters_s_kernel,
+                                                       clusters_in_kernel,
+                                                       clusters_cs_kernel,
+                                                       digis_clus_kernel,
+                                                       wordCounter,
+                                                       item,
+                                                       (int32_t *)charge_acc.get_pointer(),
+                                                       (uint8_t *)ok_acc.get_pointer(),
+                                                       (uint16_t *)newclusId_acc.get_pointer(),
+                                                       (uint16_t *)local_ws_acc.get_pointer(),
+                                                       out);
+                    });
+                        }).wait();
    
-    //         /*
-    //         DPCT1010:35: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
-    //         */
-    //         //cudaCheck(0)  
-    //         // count the module start indices already here (instead of
-    //         // rechits) so that the number of clusters/hits can be made
-    //         // available in the rechit producer without additional points of
-    //         // synchronization/ExternalWor  
-    //         stream.submit([&](sycl::handler &cgh) {
-    //             sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-    //                 local_ws_acc(sycl::range<1>(sizeof(uint32_t)), cgh);  
-    //         // apply charge cut
-    //                 auto clusters_in_kernel  = clusters_d.c_clusInModule();
-    //                 auto clusters_s_kernel  = clusters_d.clusModuleStart();
-    //                 sycl::stream out(1024, 768, cgh);
-    //            cgh.parallel_for(
-    //                 sycl::nd_range<1>(sycl::range<1>(1024), sycl::range<1>(1024)),
-    //                 [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
-    //                                fillHitsModuleStart(clusters_in_kernel, 
-    //                                                    clusters_s_kernel,
-    //                                                    item,
-    //                                                    (uint32_t *)local_ws_acc.get_pointer(),
-    //                                                    out);
-    //                 });
-    //                     });  
-    //         // MUST be ONE block
+            /*
+            DPCT1010:35: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
+            */
+            //cudaCheck(0)  
+            // count the module start indices already here (instead of
+            // rechits) so that the number of clusters/hits can be made
+            // available in the rechit producer without additional points of
+            // synchronization/ExternalWor  
+            stream.submit([&](sycl::handler &cgh) {
+                sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                    local_ws_acc(sycl::range<1>(sizeof(uint32_t) * 32), cgh);  
+            // apply charge cut
+                    auto clusters_in_kernel  = clusters_d.c_clusInModule();
+                    auto clusters_s_kernel  = clusters_d.clusModuleStart();
+                    sycl::stream out(1024, 768, cgh);
+               cgh.parallel_for(
+                    sycl::nd_range<1>(sycl::range<1>(1024), sycl::range<1>(1024)),
+                    [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
+                                   fillHitsModuleStart(clusters_in_kernel, 
+                                                       clusters_s_kernel,
+                                                       item,
+                                                       (uint32_t *)local_ws_acc.get_pointer(),
+                                                       out);
+                    });
+                        });  
+            // MUST be ONE block
 
-    //         // last element holds the number of all clusters
-    //         stream.memcpy(&(nModules_Clusters_h[1]), 
-    //                         clusters_d.moduleStart() + gpuClustering::MaxNumModules, 
-    //                         sizeof(int32_t)); 
+            // last element holds the number of all clusters
+            stream.memcpy(&(nModules_Clusters_h[1]), 
+                            clusters_d.clusModuleStart() + gpuClustering::MaxNumModules, 
+                            sizeof(int32_t)).wait(); 
 
-    // #ifdef GPU_DEBUG
-    //       stream.wait();
-    //       //cudaCheck(cudaGetLastError());
-    // #endif
-    //    //std::cout << __LINE__ << std::endl;
+    #ifdef GPU_DEBUG
+          stream.wait();
+          //cudaCheck(cudaGetLastError());
+    #endif
+          std::cout << "LALALA : " << nModules_Clusters_h[0] << " " << nModules_Clusters_h[1] << std::endl;
+       //std::cout << __LINE__ << std::endl;
 
     }  // end clusterizer scope
   }
