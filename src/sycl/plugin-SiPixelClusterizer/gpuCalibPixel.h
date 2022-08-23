@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <iomanip>
 
 #include "CondFormats/SiPixelGainForHLTonGPU.h"
 #include "SYCLCore/sycl_assert.h"
@@ -65,10 +66,10 @@ namespace gpuCalibPixel {
         out << "bad pixel at " << i << " in " << id[i] << "\n";
       } else {
         float vcal = adc[i] * gain - pedestal * gain;
-        if (vcal < 0)
-        out << "adc was :" << adc[i] << " gain was :" << gain << " pedestal was :"<< pedestal << "\n";
-
-        adc[i] = std::max(100, int(vcal * conversionFactor + offset));
+        if (i==47848){
+        out << "adc[47848]  was : "<< sycl::stream_manipulator::fixed << sycl::setprecision(10) <<  adc[47848] << "gain was : " << gain << "pedestal was :  " <<  pedestal << "\n";
+        out << "vcal was : "<< sycl::stream_manipulator::fixed << sycl::setprecision(10) <<vcal << "conversionFactor was : " << conversionFactor << "offset was :  " <<  offset << "\n";}
+        adc[i] = sycl::max(100, int(vcal * conversionFactor + offset));
       }
     }
   }
