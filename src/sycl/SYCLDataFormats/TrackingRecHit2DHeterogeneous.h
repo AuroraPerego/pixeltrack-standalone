@@ -137,9 +137,6 @@ TrackingRecHit2DHeterogeneous<Traits>::TrackingRecHit2DHeterogeneous(uint32_t nH
   }
 }
 
-using TrackingRecHit2DGPU = TrackingRecHit2DHeterogeneous<cms::syclcompat::GPUTraits>;
-using TrackingRecHit2DSYCL = TrackingRecHit2DHeterogeneous<cms::syclcompat::GPUTraits>;
-using TrackingRecHit2DCPU = TrackingRecHit2DHeterogeneous<cms::syclcompat::CPUTraits>;
-using TrackingRecHit2DHost = TrackingRecHit2DHeterogeneous<cms::syclcompat::HostTraits>;
+using TrackingRecHit2DSYCL = TrackingRecHit2DHeterogeneous<cms::syclcompat::GPUTraits>; //TODO_ remove the template like in alpaka
 
 #endif  // SYCLDataFormats_TrackingRecHit_interface_TrackingRecHit2DHeterogeneous_h

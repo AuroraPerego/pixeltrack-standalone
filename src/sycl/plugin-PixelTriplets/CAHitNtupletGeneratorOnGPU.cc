@@ -91,10 +91,9 @@ PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecH
   auto* soa = tracks.get();
 
   CAHitNtupletGeneratorKernelsGPU kernels(m_params);
-  //kernels.counters_ = m_counters;
 
-  //kernels.allocateOnGPU(stream);
-
+  //kernels.counters_ = m_counters; 
+  kernels.allocateOnGPU(stream);
   kernels.buildDoublets(hits_d, stream);
   kernels.launchKernels(hits_d, soa, stream);
   kernels.fillHitDetIndices(hits_d.view(), soa, stream);  // in principle needed only if Hits not "available"
@@ -107,6 +106,5 @@ PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecH
     fitter.launchBrokenLineKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
   }
   kernels.classifyTuples(hits_d, soa, stream);
-
   return tracks;
 }

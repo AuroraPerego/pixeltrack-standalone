@@ -31,10 +31,9 @@ void kernelBLFastFit(Tuples const * foundNtuplets,
                      double * pfast_fit,
                      uint32_t nHits,
                      uint32_t offset,
-                     sycl::nd_item<3> item,
+                     sycl::nd_item<1> item,
                      int* done) { 
   constexpr uint32_t hitsInFit = N;
-
   assert(hitsInFit <= nHits);
 
   assert(hhp);
@@ -43,7 +42,7 @@ void kernelBLFastFit(Tuples const * foundNtuplets,
   assert(tupleMultiplicity);
 
   // look in bin for this hit multiplicity
-  auto local_start = item.get_local_range().get(2) * item.get_group(2) + item.get_local_id(2);
+  auto local_start = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
 
 #ifdef BROKENLINE_DEBUG
   if (0 == local_start) {
@@ -53,7 +52,7 @@ void kernelBLFastFit(Tuples const * foundNtuplets,
 #endif
 
   for (int local_idx = local_start, nt = Rfit::maxNumberOfConcurrentFits(); local_idx < nt;
-       local_idx += item.get_group_range(2) * item.get_local_range().get(2)) {
+       local_idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     auto tuple_idx = local_idx + offset;
     if (tuple_idx >= tupleMultiplicity->size(nHits))
       break;
@@ -71,7 +70,7 @@ void kernelBLFastFit(Tuples const * foundNtuplets,
 #ifdef BL_DUMP_HITS
     done = 0;
     item.barrier();
-    bool dump = (foundNtuplets->size(tkid) == 5 && 0 == cms::sycltools::atomicAdd(&done, 1);
+    bool dump = (foundNtuplets->size(tkid) == 5 && 0 == cms::sycltools::atomicAdd(&done, 1));
 #endif
 
     // Prepare data structure
@@ -106,6 +105,7 @@ void kernelBLFastFit(Tuples const * foundNtuplets,
       hits.col(i) << hhp->xGlobal(hit), hhp->yGlobal(hit), hhp->zGlobal(hit);
       hits_ge.col(i) << ge[0], ge[1], ge[2], ge[3], ge[4], ge[5];
     }
+
     BrokenLine::BL_Fast_fit(hits, fast_fit);
 
     // no NaN here....
@@ -125,7 +125,7 @@ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMultipl
                             double *__restrict__ pfast_fit,
                             uint32_t nHits,
                             uint32_t offset,
-                            sycl::nd_item<3> item) {
+                            sycl::nd_item<1> item) {
   assert(N <= nHits);
 
   assert(results);
@@ -134,9 +134,9 @@ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMultipl
   // same as above...
 
   // look in bin for this hit multiplicity
-  auto local_start = item.get_local_range().get(2) * item.get_group(2) + item.get_local_id(2);
+  auto local_start = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
   for (int local_idx = local_start, nt = Rfit::maxNumberOfConcurrentFits(); local_idx < nt;
-       local_idx += item.get_group_range(2) * item.get_local_range().get(2)) {
+       local_idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     auto tuple_idx = local_idx + offset;
     if (tuple_idx >= tupleMultiplicity->size(nHits))
       break;
@@ -159,8 +159,9 @@ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMultipl
     BrokenLine::BL_Circle_fit(hits, hits_ge, fast_fit, B, data, circle);
 
     results->stateAtBS.copyFromCircle(circle.par, circle.cov, line.par, line.cov, 1.f / float(B), tkid);
-    results->pt(tkid) = float(B) / float(std::abs(circle.par(2)));
-    results->eta(tkid) = asinhf(line.par(0));
+    results->pt(tkid) = float(B) / float(sycl::abs(circle.par(2)));
+    results->eta(tkid) = sycl::asinh(line.par(0)); //FIXME_ asinhf!!
+    //results->eta(tkid) = asinhf(line.par(0));
     results->chi2(tkid) = (circle.chi2 + line.chi2) / (2 * N - 5);
 
 #ifdef BROKENLINE_DEBUG

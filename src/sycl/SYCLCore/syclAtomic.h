@@ -1,13 +1,27 @@
 #ifndef HeterogeneousCore_SYCLUtilities_interface_syclAtomic_h
 #define HeterogeneousCore_SYCLUtilities_interface_syclAtomic_h
 
-// TODO add here also atomicCAS
+// TODO_ add here also atomicCAS
 
 #include <CL/sycl.hpp>
 #include <cstdint>
 
 namespace cms {
   namespace sycltools {
+
+    //from the DPCT library
+    template <typename T>
+    T shift_sub_group_right(sycl::sub_group g, T x, unsigned int delta,
+                            int logical_sub_group_size = 32) {
+      unsigned int id = g.get_local_linear_id();
+      unsigned int start_index =
+          id / logical_sub_group_size * logical_sub_group_size;
+      T result = sycl::shift_group_right(g, x, delta);
+      if ((id - start_index) < delta) {
+        result = x;
+      }
+      return result;
+    }
 
     //analog of cuda atomicAdd
     template <typename A, typename B>

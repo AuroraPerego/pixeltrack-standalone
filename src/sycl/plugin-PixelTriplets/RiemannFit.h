@@ -5,6 +5,11 @@
 
 namespace Rfit {
 
+  using sycl::abs;
+  using sycl::atan;
+  using sycl::atan2;
+  using sycl::sqrt;
+
   /*!  Compute the Radiation length in the uniform hypothesis
  *
  * The Pixel detector, barrel and forward, is considered as an omogeneous
@@ -35,7 +40,7 @@ namespace Rfit {
     u_int n = length_values.rows();
     rad_lengths(0) = length_values(0) * XX_0_inv;
     for (u_int j = 1; j < n; ++j) {
-      rad_lengths(j) = std::abs(length_values(j) - length_values(j - 1)) * XX_0_inv;
+      rad_lengths(j) = abs(length_values(j) - length_values(j - 1)) * XX_0_inv;
     }
   }
 
@@ -93,7 +98,7 @@ namespace Rfit {
     for (u_int k = 0; k < n; ++k) {
       for (u_int l = k; l < n; ++l) {
         for (u_int i = 0; i < std::min(k, l); ++i) {
-          tmp(k + n, l + n) += std::abs(S_values(k) - S_values(i)) * std::abs(S_values(l) - S_values(i)) * sig2_S(i);
+          tmp(k + n, l + n) += abs(S_values(k) - S_values(i)) * abs(S_values(l) - S_values(i)) * sig2_S(i);
         }
         tmp(l + n, k + n) = tmp(k + n, l + n);
       }
@@ -139,7 +144,7 @@ namespace Rfit {
       const double cross = cross2D(-o, p);
       const double dot = (-o).dot(p);
       const double atan2_ = atan2(cross, dot);
-      s_values(i) = std::abs(atan2_ * fast_fit(2));
+      s_values(i) = abs(atan2_ * fast_fit(2));
     }
     computeRadLenUniformMaterial(s_values * sqrt(1. + 1. / (fast_fit(3) * fast_fit(3))), rad_lengths);
     MatrixNd<N> scatter_cov_rad = MatrixNd<N>::Zero();
@@ -312,9 +317,9 @@ namespace Rfit {
     printf("min_eigen3D - enter\n");
 #endif
     Eigen::SelfAdjointEigenSolver<Matrix3d> solver(3);
-    solver.computeDirect(A);
-    int min_index;
-    chi2 = solver.eigenvalues().minCoeff(&min_index); //FIXME_
+    //solver.computeDirect(A); //FIXME_ this is the line that causes the error, in kernel_test/kernel_comput.cpp it works
+    int min_index; 
+    chi2 = solver.eigenvalues().minCoeff(&min_index);
 #ifdef RFIT_DEBUG
     printf("min_eigen3D - exit\n");
 #endif
@@ -334,9 +339,9 @@ namespace Rfit {
 
   inline Vector3d min_eigen3D_fast(const Matrix3d& A) {
     Eigen::SelfAdjointEigenSolver<Matrix3f> solver(3);
-    solver.computeDirect(A.cast<float>());
+    solver.computeDirect(A.cast<float>()); //FIXME_ this is the line that causes the error, in kernel_test/kernel_comput.cpp it works
     int min_index;
-    solver.eigenvalues().minCoeff(&min_index); //FIXME_
+    solver.eigenvalues().minCoeff(&min_index); 
     return solver.eigenvectors().col(min_index).cast<double>();
   }
 
@@ -354,7 +359,7 @@ namespace Rfit {
     Eigen::SelfAdjointEigenSolver<Matrix2d> solver(2);
     solver.computeDirect(A);
     int min_index;
-    chi2 = solver.eigenvalues().minCoeff(&min_index); //FIXME_
+    chi2 = solver.eigenvalues().minCoeff(&min_index); 
     return solver.eigenvectors().col(min_index);
   }
 
@@ -458,6 +463,7 @@ namespace Rfit {
                                                    const VectorNd<N>& rad,
                                                    const double B,
                                                    const bool error) {
+                                                   
 #ifdef RFIT_DEBUG
     printf("circle_fit - enter\n");
 #endif
@@ -978,29 +984,29 @@ namespace Rfit {
                              const Eigen::Matrix<float, 6, N>& hits_ge,
                              const double B,
                              const bool error) {
-    constexpr u_int n = N;
-    VectorNd<4> rad = (hits.block(0, 0, 2, n).colwise().norm());
-
-    // Fast_fit gives back (X0, Y0, R, theta) w/o errors, using only 3 points.
-    Vector4d fast_fit;
-    Fast_fit(hits, fast_fit);
-    Rfit::Matrix2Nd<N> hits_cov = MatrixXd::Zero(2 * n, 2 * n);
-    Rfit::loadCovariance2D(hits_ge, hits_cov);
-    circle_fit circle = Circle_fit(hits.block(0, 0, 2, n), hits_cov, fast_fit, rad, B, error);
-    line_fit line = Line_fit(hits, hits_ge, circle, fast_fit, B, error);
-
-    par_uvrtopak(circle, B, error);
-
+  //  constexpr u_int n = N;
+  //  VectorNd<4> rad = (hits.block(0, 0, 2, n).colwise().norm());
+//
+  //  // Fast_fit gives back (X0, Y0, R, theta) w/o errors, using only 3 points.
+  //  Vector4d fast_fit;
+  //  Fast_fit(hits, fast_fit);
+  //  Rfit::Matrix2Nd<N> hits_cov = MatrixXd::Zero(2 * n, 2 * n);
+  //  Rfit::loadCovariance2D(hits_ge, hits_cov);
+  //  circle_fit circle = Circle_fit(hits.block(0, 0, 2, n), hits_cov, fast_fit, rad, B, error);
+  //  line_fit line = Line_fit(hits, hits_ge, circle, fast_fit, B, error);
+//
+  //  par_uvrtopak(circle, B, error);
+//
     helix_fit helix;
-    helix.par << circle.par, line.par;
-    if (error) {
-      helix.cov = MatrixXd::Zero(5, 5);
-      helix.cov.block(0, 0, 3, 3) = circle.cov;
-      helix.cov.block(3, 3, 2, 2) = line.cov;
-    }
-    helix.q = circle.q;
-    helix.chi2_circle = circle.chi2;
-    helix.chi2_line = line.chi2;
+  //  helix.par << circle.par, line.par;
+  //  if (error) {
+  //    helix.cov = MatrixXd::Zero(5, 5);
+  //    helix.cov.block(0, 0, 3, 3) = circle.cov;
+  //    helix.cov.block(3, 3, 2, 2) = line.cov;
+  //  }
+  //  helix.q = circle.q;
+  //  helix.chi2_circle = circle.chi2;
+  //  helix.chi2_line = line.chi2;
 
     return helix;
   }

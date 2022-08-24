@@ -18,7 +18,8 @@
 #include "GPUCACell.h"
 
 namespace gpuPixelDoublets {
-
+  
+  using sycl::abs;
   using CellNeighbors = CAConstants::CellNeighbors;
   using CellTracks = CAConstants::CellTracks;
   using CellNeighborsVector = CAConstants::CellNeighborsVector;
@@ -43,7 +44,8 @@ namespace gpuPixelDoublets {
                                        uint32_t maxNumOfDoublets,
                                        sycl::nd_item<3> item,
                                        uint32_t* innerLayerCumulativeSize,
-                                       uint32_t* ntot) {
+                                       uint32_t* ntot,
+                                       sycl::stream out) {
     // ysize cuts (z in the barrel)  times 8
     // these are used if doClusterCut is true
     constexpr int minYsizeB1 = 36;
@@ -113,7 +115,7 @@ namespace gpuPixelDoublets {
       if (mi > 2000)
         continue;  // invalid
 
-      /* maybe clever, not effective when zoCut is on
+      /*maybe clever, not effective when zoCut is on
       auto bpos = (mi%8)/4;  // if barrel is 1 for z>0
       auto fpos = (outer>3) & (outer<7);
       if ( ((inner<3) & (outer>3)) && bpos!=fpos) continue;
@@ -161,7 +163,7 @@ namespace gpuPixelDoublets {
         auto zo = hh.zGlobal(j);
         auto ro = hh.rGlobal(j);
         auto dr = ro - mer;
-        return dr > maxr[pairLayerId] || dr < 0 || std::abs((mez * ro - mer * zo)) > z0cut * dr;
+        return dr > maxr[pairLayerId] || dr < 0 || abs((mez * ro - mer * zo)) > z0cut * dr;
       };
 
       auto zsizeCut = [&](int j) {
@@ -173,9 +175,9 @@ namespace gpuPixelDoublets {
         // FIXME move pred cut to z0cutoff to optmize loading of and computaiton ...
         auto zo = hh.zGlobal(j);
         auto ro = hh.rGlobal(j);
-        return onlyBarrel ? mes > 0 && so > 0 && std::abs(so - mes) > dy
+        return onlyBarrel ? mes > 0 && so > 0 && int(abs(so - mes)) > dy
                           : (inner < 4) && mes > 0 &&
-                                std::abs(mes - int(std::abs((mez - zo) / (mer - ro)) * dzdrFact + 0.5f)) > maxDYPred;
+                                abs(mes - int(abs((mez - zo) / (mer - ro)) * dzdrFact + 0.5f)) > maxDYPred;
       };
 
       auto iphicut = phicuts[pairLayerId];
@@ -183,7 +185,7 @@ namespace gpuPixelDoublets {
       auto kl = Hist::bin(int16_t(mep - iphicut));
       auto kh = Hist::bin(int16_t(mep + iphicut));
       auto incr = [](auto& k) { return k = (k + 1) % Hist::nbins(); };
-      // bool piWrap = std::abs(kh-kl) > Hist::nbins()/2;
+      // bool piWrap = abs(kh-kl) > Hist::nbins()/2;
 
 #ifdef GPU_DEBUG
       int tot = 0;
@@ -213,7 +215,7 @@ namespace gpuPixelDoublets {
             continue;
 
           auto mop = hh.iphi(oi);
-          uint16_t idphi = std::min(std::abs(int16_t(mop - mep)), std::abs(int16_t(mep - mop)));
+          uint16_t idphi = std::min(abs(int16_t(mop - mep)), abs(int16_t(mep - mop)));
           if (idphi > iphicut)
             continue;
 
@@ -239,11 +241,10 @@ namespace gpuPixelDoublets {
       }
 #ifdef GPU_DEBUG
       if (tooMany > 0)
-        printf("OuterHitOfCell full for %d in layer %d/%d, %d,%d %d\n", i, inner, outer, nmin, tot, tooMany);
+        out << "OuterHitOfCell full for %d in layer %d/%d, %d,%d %d\n", i, inner, outer, nmin, tot, tooMany;
 #endif
     }  // loop in block...
   }
-
 }  // namespace gpuPixelDoublets
 
 #endif  // RecoLocalTracker_SiPixelRecHits_plugins_gpuPixelDoupletsAlgos_h

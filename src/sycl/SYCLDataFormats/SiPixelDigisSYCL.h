@@ -3,7 +3,6 @@
 
 #include "SYCLCore/device_unique_ptr.h"
 #include "SYCLCore/host_unique_ptr.h"
-//#include "SYCLCore/syclCompat.h"
 
 #include <CL/sycl.hpp>
 

@@ -40,9 +40,9 @@ const SiPixelGainForHLTonGPU* SiPixelGainCalibrationForHLTGPU::getGPUProductAsyn
 
      stream.memcpy(hostSock, (data.gainForHLTonGPU), sizeof(SiPixelGainForHLTonGPU)).wait();
 
-     for (int i=0; i<50; i++)
-     std::cout << static_cast<int>(hostSock->v_pedestals[i].gain) << " ";            
-    //  for (int i=0; i<48316; i++)
+    //for (int i=0; i<50; i++)
+    //  std::cout << static_cast<int>(hostSock->v_pedestals[i].gain) << " ";            
+    //for (int i=0; i<48316; i++)
     //  std::cout << static_cast<int>(data.gainForHLTonGPU->v_pedestals->ped) << " ";
   
   });

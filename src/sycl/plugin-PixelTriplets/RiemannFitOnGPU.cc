@@ -114,7 +114,7 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
       });
     });
-    
+   
     stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
 	auto bField_kernel = bField_;

@@ -9,11 +9,11 @@
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
 
-
 #include "gpuVertexFinder.h"
 
 namespace gpuVertexFinder {
 
+  using sycl::abs;
   using Hist = cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
 
   // this algo does not really scale as it works in a single block...
@@ -95,7 +95,7 @@ namespace gpuVertexFinder {
       auto loop = [&](uint32_t j) {
         if (i == j)
           return;
-        auto dist = std::abs(zt[i] - zt[j]);
+        auto dist = abs(zt[i] - zt[j]);
         if (dist > eps)
           return;
         //        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
@@ -117,7 +117,7 @@ namespace gpuVertexFinder {
           return;
         if (nn[j] < minT)
           return;  // DBSCAN core rule
-        auto dist = std::abs(zt[i] - zt[j]);
+        auto dist = abs(zt[i] - zt[j]);
         if (dist > eps)
           return;
         //        if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
@@ -166,7 +166,7 @@ namespace gpuVertexFinder {
       auto loop = [&](uint32_t j) {
         if (nn[j] < minT)
           return;  // DBSCAN core rule
-        auto dist = std::abs(zt[i] - zt[j]);
+        auto dist = abs(zt[i] - zt[j]);
         if (dist > eps)
           return;
         //  if (dist*dist>chi2max*(ezt2[i]+ezt2[j])) return;
@@ -192,7 +192,7 @@ namespace gpuVertexFinder {
       auto loop = [&](uint32_t j) {
         if (nn[j] < minT)
           return;  // DBSCAN core rule
-        auto dist = std::abs(zt[i] - zt[j]);
+        auto dist = abs(zt[i] - zt[j]);
         if (dist > mdist)
           return;
         if (dist * dist > chi2max * (ezt2[i] + ezt2[j]))

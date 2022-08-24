@@ -150,7 +150,7 @@ public:
 
   using HitsView = TrackingRecHit2DSOAView;
   using HitsOnGPU = TrackingRecHit2DSOAView;
-  using HitsOnCPU = TrackingRecHit2DHeterogeneous<Traits>;
+  using HitsOnCPU = TrackingRecHit2DHeterogeneous<Traits>; //when TODO_ the other one remove also this and its template
 
   using HitToTuple = CAConstants::HitToTuple;
   using TupleMultiplicity = CAConstants::TupleMultiplicity;
@@ -179,6 +179,8 @@ public:
  
 private:
   // workspace
+  //unique_ptr<Counters> counters_;
+
   unique_ptr<unsigned char[]> cellStorage_;
   unique_ptr<CAConstants::CellNeighborsVector> device_theCellNeighbors_;
   CAConstants::CellNeighbors* device_theCellNeighborsContainer_;

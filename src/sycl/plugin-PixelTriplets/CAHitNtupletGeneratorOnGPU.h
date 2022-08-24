@@ -37,7 +37,7 @@ public:
 
   ~CAHitNtupletGeneratorOnGPU() = default;
 
-  PixelTrackHeterogeneous makeTuplesAsync(TrackingRecHit2DGPU const& hits_d, float bfield, sycl::queue stream) const;
+  PixelTrackHeterogeneous makeTuplesAsync(TrackingRecHit2DSYCL const& hits_d, float bfield, sycl::queue stream) const;
 
 private:
   void buildDoublets(HitsOnCPU const& hh, sycl::queue stream) const;
