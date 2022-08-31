@@ -49,11 +49,11 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
   auto &c = *counters;
   // counters once per event
   if (0 == first) {
-    cms::sycltools::AtomicAdd(&c.nEvents, 1);
-    cms::sycltools::AtomicAdd(&c.nHits, nHits);
-    cms::sycltools::AtomicAdd(&c.nCells, *nCells);
-    cms::sycltools::AtomicAdd(&c.nTuples, apc->get().m);
-    cms::sycltools::AtomicAdd(&c.nFitTracks, tupleMultiplicity->size());
+    cms::sycltools::atomic_fetch_add<unsigned long long>(&c.nEvents, (unsigned long long)1);
+    cms::sycltools::atomic_fetch_add<unsigned long long>(&c.nHits, (unsigned long long)nHits);
+    cms::sycltools::atomic_fetch_add<unsigned long long>(&c.nCells, (unsigned long long)*nCells);
+    cms::sycltools::atomic_fetch_add<unsigned long long>(&c.nTuples, (unsigned long long)apc->get().m);
+    cms::sycltools::atomic_fetch_add<unsigned long long>(&c.nFitTracks, (unsigned long long)tupleMultiplicity->size());
   }
 
 #ifdef NTUPLE_DEBUG
@@ -94,11 +94,11 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
     if (thisCell.tracks().full())  //++tooManyTracks[thisCell.theLayerPairId];
       out << "Tracks overflow " <<idx << " in " << thisCell.theLayerPairId << "\n";
     if (thisCell.theDoubletId < 0)
-      cms::sycltools::AtomicAdd(&c.nKilledCells, 1);
+      cms::sycltools::atomic_fetch_add<unsigned long long>(&c.nKilledCells, (unsigned long long)1);
     if (0 == thisCell.theUsed)
-      cms::sycltools::AtomicAdd(&c.nEmptyCells, 1);
+      cms::sycltools::atomic_fetch_add<unsigned long long>(&c.nEmptyCells, (unsigned long long)1);
     if (thisCell.tracks().empty())
-      cms::sycltools::AtomicAdd(&c.nZeroTrackCells, 1);
+      cms::sycltools::atomic_fetch_add<unsigned long long>(&c.nZeroTrackCells, (unsigned long long)1);
   }
 
   for (int idx = first, nt = nHits; idx < nt; 
@@ -214,7 +214,8 @@ void kernel_connect(cms::sycltools::AtomicPairCounter *apc1,
                     float CAThetaCutForward,
                     float dcaCutInnerTriplet,
                     float dcaCutOuterTriplet,
-                    sycl::nd_item<3> item) {
+                    sycl::nd_item<3> item,
+		                sycl::stream out) {
   auto const &hh = *hhp;
 
   auto firstCellIndex = item.get_local_id(1) + item.get_group(1) * item.get_local_range().get(1);
@@ -229,11 +230,14 @@ void kernel_connect(cms::sycltools::AtomicPairCounter *apc1,
   for (int idx = firstCellIndex, nt = (*nCells); idx < nt;
        idx += item.get_group_range(1) * item.get_local_range().get(1)) {
     auto cellIndex = idx;
+    //out << cellIndex << " "; -> serial da 0 a 79171, sycl uguale ma ogni numero ripetuto 4 volte
     auto &thisCell = cells[idx];
     //if (thisCell.theDoubletId < 0 || thisCell.theUsed>1)
     //  continue;
     auto innerHitId = thisCell.get_inner_hit_id();
+    //out << innerHitId << " "; -> come sopra, same ma sycl 4x, da 4 a 11248 non tutti i numeri
     int numberOfPossibleNeighbors = isOuterHitOfCell[innerHitId].size();
+    //out << numberOfPossibleNeighbors <<  " "; -> come sopra, same ma sycl 4x,
     auto vi = isOuterHitOfCell[innerHitId].data();
 
     constexpr uint32_t last_bpix1_detIndex = 96;
@@ -244,9 +248,11 @@ void kernel_connect(cms::sycltools::AtomicPairCounter *apc1,
     auto ro = thisCell.get_outer_r(hh);
     auto zo = thisCell.get_outer_z(hh);
     auto isBarrel = thisCell.get_inner_detIndex(hh) < last_barrel_detIndex;
-
+    // item.barrier(); -> seg fault
     for (int j = first; j < numberOfPossibleNeighbors; j += stride) {
-      auto otherCell = *(vi + j);
+      //J is the same for serial and sycl(1 stride)
+      auto otherCell = vi[j];
+      //out << otherCell << " ";
       auto &oc = cells[otherCell];
       // if (cells[otherCell].theDoubletId < 0 ||
       //    cells[otherCell].theUsed>1 )
@@ -254,20 +260,22 @@ void kernel_connect(cms::sycltools::AtomicPairCounter *apc1,
       auto r1 = oc.get_inner_r(hh);
       auto z1 = oc.get_inner_z(hh);
       // auto isBarrel = oc.get_outer_detIndex(hh) < last_barrel_detIndex;
-      bool aligned = GPUCACell::areAlignedRZ(z1,
-                                             r1,
+      bool aligned = GPUCACell::areAlignedRZ(r1,
+                                             z1,
                                              ri,
                                              zi,
                                              ro,
                                              zo,
                                              ptmin,
                                              isBarrel ? CAThetaCutBarrel : CAThetaCutForward);  // 2.f*thetaCut); // FIXME tune cuts
-      if (aligned &&
+    //aligned same, dcaCut 1 difference
+    if (aligned &&
           thisCell.dcaCut(hh,
                           oc,
                           oc.get_inner_detIndex(hh) < last_bpix1_detIndex ? dcaCutInnerTriplet : dcaCutOuterTriplet,
-                          hardCurvCut)) {  // FIXME tune cuts
-        oc.addOuterNeighbor(cellIndex, *cellNeighbors, item);
+                          hardCurvCut, out)) {  // FIXME tune cuts
+        //out << cellIndex << " ";
+	      oc.addOuterNeighbor(cellIndex, *cellNeighbors, out);
         thisCell.theUsed |= 1;
         oc.theUsed |= 1;
       }
@@ -302,7 +310,7 @@ void kernel_find_ntuplets(GPUCACell::Hits const *__restrict__ hhp,
       thisCell.find_ntuplets<6>(
           hh, cells, *cellTracks, *foundNtuplets, *apc, quality, stack, minHitsPerNtuplet, pid < 3, out); 
       assert(stack.empty());
-      // out << "in " << cellIndex << " found quadruplets: " << apc->get() << "\n";
+      //out << "in " << cellIndex << " found quadruplets: " << apc->get() << "\n";
     }
   }
 }
@@ -440,7 +448,7 @@ void kernel_doStatsForTracks(HitContainer const *__restrict__ tuples,
       break;  //guard
     if (quality[idx] != trackQuality::loose)
       continue;
-    cms::sycltools::AtomicAdd(&(counters->nGoodTracks), 1);
+    cms::sycltools::atomic_fetch_add<unsigned long long>(&(counters->nGoodTracks), (unsigned long long)1);
   }
 }
 
@@ -505,9 +513,9 @@ void kernel_doStatsForHitInTracks(CAHitNtupletGeneratorKernelsGPU::HitToTuple co
        idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     if (hitToTuple->size(idx) == 0)
       continue;  // SHALL NOT BE break
-    cms::sycltools::AtomicAdd(&c.nUsedHits, 1);
+    cms::sycltools::atomic_fetch_add<unsigned long long>(&c.nUsedHits, (unsigned long long)1);
     if (hitToTuple->size(idx) > 1)
-      cms::sycltools::AtomicAdd(&c.nDupHits, 1);
+      cms::sycltools::atomic_fetch_add<unsigned long long>(&c.nDupHits, (unsigned long long)1);
   }
 }
 

@@ -43,8 +43,7 @@ namespace {
 
 using namespace std;
 CAHitNtupletGeneratorOnGPU::CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg)
-    : m_params(true,              // onGPU
-               3,                 // minHitsPerNtuplet,
+    : m_params(3,                 // minHitsPerNtuplet,
                458752,            // maxNumberOfDoublets
                false,             //useRiemannFit
                true,              // fit5as4,
@@ -96,15 +95,16 @@ PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecH
   kernels.allocateOnGPU(stream);
   kernels.buildDoublets(hits_d, stream);
   kernels.launchKernels(hits_d, soa, stream);
-  kernels.fillHitDetIndices(hits_d.view(), soa, stream);  // in principle needed only if Hits not "available"
+  //kernels.fillHitDetIndices(hits_d.view(), soa, stream);  // in principle needed only if Hits not "available"
 
-  HelixFitOnGPU fitter(bfield, m_params.fit5as4_);
-  fitter.allocateOnGPU(&(soa->hitIndices), kernels.tupleMultiplicity(), soa);
-  if (m_params.useRiemannFit_) {
-    fitter.launchRiemannKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
-  } else {
-    fitter.launchBrokenLineKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
-  }
-  kernels.classifyTuples(hits_d, soa, stream);
+  //HelixFitOnGPU fitter(bfield, m_params.fit5as4_);
+  //fitter.allocateOnGPU(&(soa->hitIndices), kernels.tupleMultiplicity(), soa);
+  //if (m_params.useRiemannFit_) {
+  //  fitter.launchRiemannKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
+  //} else {
+  //  fitter.launchBrokenLineKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
+  //}
+  //kernels.classifyTuples(hits_d, soa, stream);
+  stream.wait();
   return tracks;
 }

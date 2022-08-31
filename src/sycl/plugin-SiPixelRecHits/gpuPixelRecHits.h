@@ -12,7 +12,6 @@
 #include "CondFormats/pixelCPEforGPU.h"
 #include "SYCLCore/AtomicPairCounter.h"
 
-#define GPU_DEBUG 1
 namespace gpuPixelRecHits {
 
   void getHits(pixelCPEforGPU::ParamsOnGPU const* __restrict__ cpeParams,

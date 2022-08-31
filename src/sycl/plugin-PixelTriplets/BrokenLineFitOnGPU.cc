@@ -1,5 +1,6 @@
 #include "BrokenLineFitOnGPU.h"
 #include "SYCLCore/device_unique_ptr.h"
+#define CPU_DEBUG 1
 
 void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                             uint32_t hitsInFit,
@@ -42,6 +43,10 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                    (int *)done_acc.get_pointer());
       });
     });
+
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
     
     stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
@@ -65,6 +70,10 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                item);
       });
     });
+    
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
 
     // fit quads
     stream.submit([&](sycl::handler &cgh) {
@@ -91,6 +100,9 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                    (int *)done_acc.get_pointer());
       });
     });
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
 
     stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
@@ -114,6 +126,9 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                item);
       });
     });
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
 
     if (fit5as4_) {
       // fit penta (only first 4)
@@ -141,8 +156,11 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                    (int *)done_acc.get_pointer());
           });
         });
-
-      stream.submit([&](sycl::handler &cgh) {
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
+    
+    stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
       auto bField_kernel              = bField_;
       auto hitsGPU_kernel             = hitsGPU_.get(); 
@@ -164,6 +182,10 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                item);
         });
       });
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
+
     } else {
       // fit penta (all 5)
       stream.submit([&](sycl::handler &cgh) {
@@ -190,6 +212,9 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                    (int *)done_acc.get_pointer());
           });
         });
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
 
       stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
@@ -213,7 +238,9 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                item);
         });
       });
-
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
     }
   }  // loop on concurrent fits
 }

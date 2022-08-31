@@ -14,8 +14,6 @@
 #include "PixelRecHits.h"
 #include "gpuPixelRecHits.h"
 
-#define GPU_DEBUG 1
-
 namespace {
   void setHitsLayerStart(uint32_t const* __restrict__ hitsModuleStart,
                          pixelCPEforGPU::ParamsOnGPU const* cpeParams,

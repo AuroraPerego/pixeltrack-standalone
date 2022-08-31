@@ -13,9 +13,12 @@
 #include "SYCLCore/VecArray.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/AtomicPairCounter.h"
+#include "SYCLCore/syclAtomic.h"
 
 #include "CAConstants.h"
 #include "GPUCACell.h"
+
+#define GPU_DEBUG
 
 namespace gpuPixelDoublets {
   
@@ -106,6 +109,7 @@ namespace gpuPixelDoublets {
       i += offsets[inner];
 
       // printf("Hit in Layer %d %d %d %d\n", i, inner, pairLayerId, j);
+      // out << "Hit in Layer " <<  i << " " << inner << " " << pairLayerId << " " << j << "\n";
 
       assert(i >= offsets[inner]);
       assert(i < offsets[inner + 1]);
@@ -202,9 +206,11 @@ namespace gpuPixelDoublets {
 #endif
         auto const* __restrict__ p = hist.begin(kk + hoff);
         auto const* __restrict__ e = hist.end(kk + hoff);
+        //out << j << " " << *p << " " << *e << "\n";
         p += first;
         for (; p < e; p += stride) {
           auto oi = *(p);
+          //SAME oi in sycl and serial
           assert(oi >= offsets[outer]);
           assert(oi < offsets[outer + 1]);
           auto mo = hh.detectorIndex(oi);
@@ -215,7 +221,7 @@ namespace gpuPixelDoublets {
             continue;
 
           auto mop = hh.iphi(oi);
-          uint16_t idphi = std::min(abs(int16_t(mop - mep)), abs(int16_t(mep - mop)));
+          uint16_t idphi = sycl::min(abs(int16_t(mop - mep)), abs(int16_t(mep - mop)));
           if (idphi > iphicut)
             continue;
 
@@ -224,14 +230,18 @@ namespace gpuPixelDoublets {
           if (doPtCut && ptcut(oi, idphi))
             continue;
 
-          auto ind = cms::sycltools::AtomicAdd(nCells, 1);
+          auto ind = cms::sycltools::atomic_fetch_add<uint32_t>(nCells, (uint32_t)1);
           if (ind >= maxNumOfDoublets) {
-            cms::sycltools::AtomicSub(nCells, 1);
+            cms::sycltools::atomic_fetch_sub<uint32_t>(nCells, (uint32_t)1);
             break;
           }  // move to SimpleVector??
           // int layerPairId, int doubletId, int innerHitId, int outerHitId)
           cells[ind].init(*cellNeighbors, *cellTracks, hh, pairLayerId, ind, i, oi);
+          //out << pairLayerId << " " << i << " " << oi << "\n";
+          //SAME ind sycl and serial
           isOuterHitOfCell[oi].push_back(ind);
+          //out << oi << " " << isOuterHitOfCell[oi][pos] << "\n";
+          out << j << " " << oi << " " << ind << "\n"; //-> sycl2
 #ifdef GPU_DEBUG
           if (isOuterHitOfCell[oi].full())
             ++tooMany;
@@ -239,9 +249,10 @@ namespace gpuPixelDoublets {
 #endif
         }
       }
+
 #ifdef GPU_DEBUG
       if (tooMany > 0)
-        out << "OuterHitOfCell full for %d in layer %d/%d, %d,%d %d\n", i, inner, outer, nmin, tot, tooMany;
+        out << "OuterHitOfCell full for " << i << " in layer " << inner << "/" << outer << ", " << nmin << ", " << tot << " " << tooMany << "\n";
 #endif
     }  // loop in block...
   }

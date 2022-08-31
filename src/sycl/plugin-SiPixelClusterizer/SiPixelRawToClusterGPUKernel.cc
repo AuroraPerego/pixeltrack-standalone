@@ -529,8 +529,7 @@ namespace pixelgpudetails {
       // [BPX1, BPX2, BPX3, BPX4,  FP1,  FP2,  FP3,  FN1,  FN2,  FN3, LAST_VALID]
       // [   0,   96,  320,  672, 1184, 1296, 1408, 1520, 1632, 1744,       1856]
       if (i == 96 || i == 1184 || i == 1744 || i == gpuClustering::MaxNumModules)
-        //printf("moduleStart %d %d\n", i, moduleStart[i]);
-        out << "moduleStart " << i << "  hell  " << moduleStart[i] << "\n" ;
+        out << "moduleStart [" << i << "] = " << moduleStart[i] << "\n" ;
     }
 #endif
 
@@ -770,8 +769,7 @@ namespace pixelgpudetails {
       //       //cudaCheck(0)  
       //       // read the number of modules into a data member, used by getProduct())
              stream.memcpy(&(nModules_Clusters_h[0]), clusters_d.moduleStart(), sizeof(uint32_t)).wait();  
-             std::cout << "nModules_Clusters_h[0] is : " << nModules_Clusters_h[0] << std::endl;          
-
+             
 
                //auto moduleStart = clusters_d.clusModuleStartToHostAsyncTest(stream);
               //    for (auto i=0; i<1791; i++)
@@ -957,7 +955,7 @@ namespace pixelgpudetails {
           stream.wait();
           //cudaCheck(cudaGetLastError());
     #endif
-          std::cout << "LALALA : " << nModules_Clusters_h[0] << " " << nModules_Clusters_h[1] << std::endl;
+          std::cout << "nModules_Clusters_h[0] : " << nModules_Clusters_h[0] << " and nModules_Clusters_h[1] : " << nModules_Clusters_h[1] << std::endl;
        //std::cout << __LINE__ << std::endl;
 
     }  // end clusterizer scope

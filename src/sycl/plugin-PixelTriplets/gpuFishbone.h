@@ -22,7 +22,8 @@ namespace gpuPixelDoublets {
                   GPUCACell::OuterHitOfCell const* __restrict__ isOuterHitOfCell,
                   uint32_t nHits,
                   bool checkTrack,
-                  sycl::nd_item<3> item) {
+                  sycl::nd_item<3> item,
+                  sycl::stream out) {
     constexpr auto maxCellsPerHit = GPUCACell::maxCellsPerHit;
 
     auto const& hh = *hhp;
@@ -86,6 +87,8 @@ namespace gpuPixelDoublets {
         }  //cj
       }    // ci
     }      // hits
+    //for (int i=0; i < maxCellsPerHit; i++)
+    //  out << "cc[" << i << "]=" << cc[i] << " ";
   }
 }  // namespace gpuPixelDoublets
 

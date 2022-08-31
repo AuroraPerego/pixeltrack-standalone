@@ -70,7 +70,7 @@ void kernelBLFastFit(Tuples const * foundNtuplets,
 #ifdef BL_DUMP_HITS
     done = 0;
     item.barrier();
-    bool dump = (foundNtuplets->size(tkid) == 5 && 0 == cms::sycltools::atomicAdd(&done, 1));
+    bool dump = (foundNtuplets->size(tkid) == 5 && 0 == cms::sycltools::atomic_fetch_add(&done, 1));
 #endif
 
     // Prepare data structure

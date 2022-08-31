@@ -1,6 +1,8 @@
 #include "RiemannFitOnGPU.h"
 //#include "SYCLCore/device_unique_ptr.h"
 
+#define CPU_DEBUG 1
+
 void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                          uint32_t nhits,
                                          uint32_t maxNumberOfTuples,
@@ -45,6 +47,10 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
       });
     });
+
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
     
     stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
@@ -67,6 +73,9 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                    item);
       });
     });
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
 
     stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
@@ -91,6 +100,9 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
       });
     });
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
 
     // quads
     stream.submit([&](sycl::handler &cgh) {
@@ -114,7 +126,10 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
       });
     });
-   
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
+
     stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
 	auto bField_kernel = bField_;
@@ -136,6 +151,9 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                    item);
       });
     });
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
 
     stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
@@ -160,7 +178,10 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
       });
     });
-    
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
+
     if (fit5as4_) {
       // penta
       stream.submit([&](sycl::handler &cgh) {
@@ -184,7 +205,10 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
         });
       });
-      
+     #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
+
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
 	      auto bField_kernel = bField_;
@@ -206,7 +230,10 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                      item);
         });
       });
-  
+     #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
+
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
 	auto bField_kernel = bField_;
@@ -230,7 +257,9 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                    item);
         });
       });
-      
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif    
 
     } else {
       // penta all 5
@@ -255,7 +284,10 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                    item);
           });
       });
-      
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif 
+
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
 	auto bField_kernel = bField_;
@@ -277,7 +309,10 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                      item);
         });
       });
-  
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
+
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
 	auto bField_kernel = bField_;
@@ -301,6 +336,10 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                    item);
         });
       });
+
+    #ifdef CPU_DEBUG
+      stream.wait();
+    #endif
     }
   }
 }

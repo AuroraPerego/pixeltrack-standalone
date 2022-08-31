@@ -1,6 +1,7 @@
 #include "CAHitNtupletGeneratorKernelsImpl.h"
-
+  
 #define NTUPLE_DEBUG TRUE
+#define GPU_DEBUG TRUE
 
 template <>
 void CAHitNtupletGeneratorKernelsGPU::fillHitDetIndices(HitsView const *hv, TkSoA *tracks_d, sycl::queue stream) {
@@ -52,7 +53,10 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
   assert(numberOfBlocks < 65536);
   assert(blockSize > 0 && 0 == blockSize % 16);
   sycl::range<3> blks(1, numberOfBlocks, 1);
-  sycl::range<3> thrs(stride, blockSize, 1);
+  sycl::range<3> thrs(1, blockSize, stride);
+    #ifdef NTUPLE_DEBUG
+      std::cout << "kernel_connect launched with " << numberOfBlocks << " blocks of "  << blockSize << " threads with " << stride << " strides.\n";
+    #endif
 
   stream.submit([&](sycl::handler &cgh) {
       auto device_hitTuple_apc_kernel     = device_hitTuple_apc_;
@@ -63,6 +67,7 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
       auto device_theCellNeighbors_kernel = device_theCellNeighbors_.get();
       auto device_isOuterHitOfCell_kernel = device_isOuterHitOfCell_.get();
       auto m_params_kernel = m_params;
+      sycl::stream out(5000000, 1024, cgh);
       cgh.parallel_for(
           sycl::nd_range<3>(blks * thrs, thrs),
           [=](sycl::nd_item<3> item){ 
@@ -79,9 +84,23 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
                              m_params_kernel.CAThetaCutForward_,
                              m_params_kernel.dcaCutInnerTriplet_,
                              m_params_kernel.dcaCutOuterTriplet_,
-                             item);
+                             item,
+			     out);
       });
     });
+
+  for (int j = 0; j < (int)nhits; j++){
+    int space = 0;
+    for (int i = 0; i< 128; i++){
+      auto a = device_isOuterHitOfCell_[j].data()[i];
+      if (a != 0){
+        std::cout << a << " ";
+        space++;
+      }
+    }
+    if (space != 0)
+      std::cout << "\n";
+  }
 
   if (nhits > 1 && m_params.earlyFishbone_) {
     auto nthTot = 128;
@@ -89,12 +108,16 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
     auto blockSize = nthTot / stride;
     auto numberOfBlocks = (nhits + blockSize - 1) / blockSize;
     sycl::range<3> blks(1, numberOfBlocks, 1);
-    sycl::range<3> thrs(stride, blockSize, 1);
+    sycl::range<3> thrs(1, blockSize, stride);
+    #ifdef NTUPLE_DEBUG
+      std::cout << "fishbone kernel launched with " << numberOfBlocks << " blocks of "  << blockSize << " threads with " << stride << " strides.\n";
+    #endif
     stream.submit([&](sycl::handler &cgh) {
       auto hh_kernel                      = hh.view();
       auto device_theCells_kernel         = device_theCells_.get();
       auto device_nCells_kernel           = device_nCells_;
       auto device_isOuterHitOfCell_kernel = device_isOuterHitOfCell_.get();
+      sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<3>(blks * thrs, thrs),
           [=](sycl::nd_item<3> item){ 
@@ -104,7 +127,8 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
                                          device_isOuterHitOfCell_kernel, 
                                          nhits, 
                                          false,
-                                         item);
+                                         item,
+                                         out);
       
       });
     });
@@ -112,6 +136,9 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
 
   blockSize = 64;
   numberOfBlocks = (3 * m_params.maxNumberOfDoublets_ / 4 + blockSize - 1) / blockSize;
+      #ifdef NTUPLE_DEBUG
+      std::cout << "kernel_find_ntuplets launched with " << numberOfBlocks << " blocks of "  << blockSize << " threads.\n";
+    #endif
   stream.submit([&](sycl::handler &cgh) {
       auto m_params_kernel = m_params.minHitsPerNtuplet_;
       auto hh_kernel                      = hh.view();
@@ -140,6 +167,9 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
     });
 
   if (m_params.doStats_)
+      #ifdef NTUPLE_DEBUG
+      std::cout << "kernel_mark_used launched with " << numberOfBlocks << " blocks of "  << blockSize << " threads.\n";
+    #endif
     stream.submit([&](sycl::handler &cgh) {
       auto hh_kernel                      = hh.view();
       auto device_theCells_kernel         = device_theCells_.get();
@@ -157,6 +187,9 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
 
   blockSize = 128;
   numberOfBlocks = (HitContainer::totbins() + blockSize - 1) / blockSize;
+    #ifdef NTUPLE_DEBUG
+      std::cout << "finalizeBulk launched with " << numberOfBlocks << " blocks of "  << blockSize << " threads.\n";
+    #endif
   stream.submit([&](sycl::handler &cgh) {
       auto tuples_d_kernel                = tuples_d;
       auto device_hitTuple_apc_kernel     = device_hitTuple_apc_;
@@ -169,6 +202,9 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
 
   // remove duplicates (tracks that share a doublet)
   numberOfBlocks = (3 * m_params.maxNumberOfDoublets_ / 4 + blockSize - 1) / blockSize;
+   #ifdef NTUPLE_DEBUG
+      std::cout << "kernel_earlyDuplicateRemover launched with " << numberOfBlocks << " blocks of "  << blockSize << " threads.\n";
+    #endif
   stream.submit([&](sycl::handler &cgh) {
       auto tuples_d_kernel                = tuples_d;
       auto quality_d_kernel               = quality_d;
@@ -184,6 +220,9 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
 
   blockSize = 128;
   numberOfBlocks = (3 * CAConstants::maxTuples() / 4 + blockSize - 1) / blockSize;
+   #ifdef NTUPLE_DEBUG
+      std::cout << "kernel_countMultiplicity launched with " << numberOfBlocks << " blocks of "  << blockSize << " threads.\n";
+    #endif
   stream.submit([&](sycl::handler &cgh) {
       auto tuples_d_kernel                 = tuples_d;
       auto device_tupleMultiplicity_kernel = device_tupleMultiplicity_.get();
@@ -197,6 +236,9 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
     });
   
   cms::sycltools::launchFinalize(device_tupleMultiplicity_.get(), stream);
+  #ifdef NTUPLE_DEBUG
+    std::cout << "kernel_fillMultiplicity launched with " << numberOfBlocks << " blocks of "  << blockSize << " threads.\n";
+  #endif
   stream.submit([&](sycl::handler &cgh) {
       auto tuples_d_kernel                 = tuples_d;
       auto device_tupleMultiplicity_kernel = device_tupleMultiplicity_.get();
@@ -217,11 +259,15 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
     auto numberOfBlocks = (nhits + blockSize - 1) / blockSize;
     sycl::range<3> blks(1, numberOfBlocks, 1);
     sycl::range<3> thrs(stride, blockSize, 1);
+     #ifdef NTUPLE_DEBUG
+      std::cout << "fishbone launched with " << numberOfBlocks << " blocks of "  << blockSize << " threads with "<< stride << "strides.\n";
+    #endif
     stream.submit([&](sycl::handler &cgh) {
       auto hh_kernel                      = hh.view();
       auto device_theCells_kernel         = device_theCells_.get();
       auto device_nCells_kernel           = device_nCells_;
       auto device_isOuterHitOfCell_kernel = device_isOuterHitOfCell_.get();
+      sycl::stream out(1024, 768, cgh);
       cgh.parallel_for(
           sycl::nd_range<3>(blks * thrs, thrs),
           [=](sycl::nd_item<3> item){ 
@@ -231,7 +277,8 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
                                          device_isOuterHitOfCell_kernel, 
                                          nhits, 
                                          true,
-                                         item);
+                                         item,
+                                         out);
       
       });
     });
@@ -239,6 +286,9 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
 
   if (m_params.doStats_) {
     numberOfBlocks = (std::max(nhits, m_params.maxNumberOfDoublets_) + blockSize - 1) / blockSize;
+     #ifdef NTUPLE_DEBUG
+      std::cout << "kernel_checkOverflows launched with " << numberOfBlocks << " blocks of "  << blockSize << " threads.\n";
+    #endif
     stream.submit([&](sycl::handler &cgh) {
       auto tuples_d_kernel                 = tuples_d;
       auto device_tupleMultiplicity_kernel = device_tupleMultiplicity_.get();
@@ -307,6 +357,9 @@ void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, sycl::q
     int threadsPerBlock = 128;
     // at least one block!
     int blocks = (std::max(1U, nhits) + threadsPerBlock - 1) / threadsPerBlock;
+    #ifdef NTUPLE_DEBUG
+      std::cout << "initDoublets kernel launched with " << blocks << " blocks of "  << threadsPerBlock << " threads.\n";
+    #endif
     stream.submit([&](sycl::handler &cgh) {
       auto device_theCellNeighbors_kernel  = device_theCellNeighbors_.get();
       auto device_theCellNeighborsContainer_kernel  = device_theCellNeighborsContainer_;
@@ -350,7 +403,10 @@ void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, sycl::q
   int threadsPerBlock = gpuPixelDoublets::getDoubletsFromHistoMaxBlockSize / stride;
   int blocks = (4 * nhits + threadsPerBlock - 1) / threadsPerBlock;
   sycl::range<3> blks(1, blocks, 1);
-  sycl::range<3> thrs(stride, threadsPerBlock, 1);
+  sycl::range<3> thrs(1, threadsPerBlock, stride);
+  #ifdef NTUPLE_DEBUG
+    std::cout << "getDoubletsFromHisto kernel launched with " << blocks << " of "  << threadsPerBlock << " threads.\n";
+  #endif
   stream.submit([&](sycl::handler &cgh) {
       auto nActualPairs_kernel             = nActualPairs;
       auto hh_kernel                       = hh.view();
@@ -360,7 +416,7 @@ void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, sycl::q
       auto device_theCellTracks_kernel     = device_theCellTracks_.get();
       auto device_isOuterHitOfCell_kernel  = device_isOuterHitOfCell_.get();
       auto m_params_kernel                 = m_params;
-      sycl::stream out(1024, 768, cgh);
+      sycl::stream out(5000000, 65000, cgh);
       const int nPairsMax = CAConstants::maxNumberOfLayerPairs();
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
               innerLayerCumulativeSize_acc(sycl::range<1>(sizeof(uint32_t)) * nPairsMax, cgh); 
@@ -391,7 +447,20 @@ void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, sycl::q
 #ifdef GPU_DEBUG
   stream.wait();
 #endif
-}
+
+//   for (int j = 0; j < 12285; j++){
+//     int space = 0;
+//     for (int i = 0; i< 64; i++){
+//       auto a = device_isOuterHitOfCell_.get()[j].data()[i];
+//       if (a != 0){
+//         std::cout << a << " ";
+//         space++;
+//       }
+//     }
+//     if (space != 0)
+//       std::cout << "\n";
+//   }
+ }
 
 template <>
 void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA *tracks_d, sycl::queue stream) {
@@ -427,7 +496,7 @@ void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA 
     stream.submit([&](sycl::handler &cgh) {
       auto device_theCells_kernel = device_theCells_.get();
       auto device_nCells_kernel = device_nCells_;
-      auto quality_d_kernel = quality_d;
+      auto quality_d_kernel = quality_d; 
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 

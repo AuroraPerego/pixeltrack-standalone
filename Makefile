@@ -538,11 +538,11 @@ external_eigen: $(EIGEN_BASE)
 
 $(EIGEN_BASE):
 	# from Eigen master branch as of 2021.08.18
-	#git clone -b cms/master/82dd3710dac619448f50331c1d6a35da673f764a https://github.com/cms-externals/eigen-git-mirror.git $@
-	git clone https://gitlab.com/libeigen/eigen.git $@
+	#git clone https://gitlab.com/libeigen/eigen.git $@
+	git clone https://gitlab.com/AuroraPerego/eigen.git $@
 	# include all Patatrack updates
-	#cd $@ && git reset --hard 6294f3471cc18068079ec6af8ceccebe34b40021
-	cd $@ && git reset --hard 34780d8bd13d0af0cf17a22789ef286e8512594d
+	#cd $@ && git reset --hard 34780d8bd13d0af0cf17a22789ef286e8512594d
+	cd $@ && git reset --hard 8f72c321d98fd9a8f77b479d2be4a74fce6b0859
 # Boost
 .PHONY: external_boost
 external_boost: $(BOOST_BASE)

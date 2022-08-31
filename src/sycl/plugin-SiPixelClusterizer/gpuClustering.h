@@ -14,10 +14,8 @@
 
 #include "gpuClusteringConstants.h"
 
-#define ABS(x) ((x < 0) ? -x : x)
 namespace gpuClustering {
 
-#define GPU_DEBUG TRUE
 #ifdef GPU_DEBUG
   uint32_t gMaxHit = 0;
 #endif
