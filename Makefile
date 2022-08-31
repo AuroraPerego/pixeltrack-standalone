@@ -542,7 +542,7 @@ $(EIGEN_BASE):
 	git clone https://gitlab.com/AuroraPerego/eigen.git $@
 	# include all Patatrack updates
 	#cd $@ && git reset --hard 34780d8bd13d0af0cf17a22789ef286e8512594d
-	cd $@ && git reset --hard 8f72c321d98fd9a8f77b479d2be4a74fce6b0859
+	cd $@ && git reset --hard bf40b0f023d47953834deed3c41b30d5ff20e756
 # Boost
 .PHONY: external_boost
 external_boost: $(BOOST_BASE)
