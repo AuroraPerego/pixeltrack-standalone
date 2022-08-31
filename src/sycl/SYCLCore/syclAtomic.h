@@ -176,6 +176,19 @@ namespace cms {
       first.fetch_add(j);
       return ret;
     }
+
+    template <typename T>
+        inline T atomic_compare_exchange_strong(T *addr, T expected, T desired,
+			 cl::sycl::memory_order success = cl::sycl::memory_order::relaxed,
+			 cl::sycl::memory_order fail = cl::sycl::memory_order::relaxed) {
+ 		    auto atm = cl::sycl::atomic_ref<T,
+		                                    cl::sycl::memory_order::relaxed,
+		                                    cl::sycl::memory_scope::device,
+		                                    cl::sycl::access::address_space::global_space>(addr[0]);
+		    atm.compare_exchange_strong(expected, desired, success, fail);
+	    return expected;
+	 }
+
   }  // namespace sycltools
 }  // namespace cms
 

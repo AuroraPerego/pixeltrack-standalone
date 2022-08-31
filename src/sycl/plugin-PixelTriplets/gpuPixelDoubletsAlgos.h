@@ -241,7 +241,7 @@ namespace gpuPixelDoublets {
           //SAME ind sycl and serial
           isOuterHitOfCell[oi].push_back(ind);
           //out << oi << " " << isOuterHitOfCell[oi][pos] << "\n";
-          out << j << " " << oi << " " << ind << "\n"; //-> sycl2
+          //out << j << " " << oi << " " << ind << "\n"; //-> sycl2
 #ifdef GPU_DEBUG
           if (isOuterHitOfCell[oi].full())
             ++tooMany;
