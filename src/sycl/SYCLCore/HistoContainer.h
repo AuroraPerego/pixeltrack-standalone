@@ -194,7 +194,7 @@ namespace cms {
       __forceinline void add(CountersOnly const &co) {
         for (uint32_t i = 0; i < totbins(); ++i) {
 
-          cms::sycltools::atomic_fetch_add<uint32_t>(off +i, static_cast<uint32_t>(co.off[i]));
+          cms::sycltools::atomic_fetch_add_shared<uint32_t>(off +i, static_cast<uint32_t>(co.off[i]));
           //cms::sycltools::AtomicAdd<uint32_t>(off +i, co.off[i]);
           //__CUDA_ARCH__
           //auto &a = (std::atomic<Counter> &)(off[i]);
@@ -204,7 +204,7 @@ namespace cms {
 
       static __forceinline uint32_t atomicIncrement(Counter &x) {
 
-        return cms::sycltools::atomic_fetch_add<Counter>(&x, 1);
+        return cms::sycltools::atomic_fetch_add_shared<Counter>(&x, 1);
         //return cms::sycltools::AtomicAdd(&x, 1);
         //__CUDA_ARCH__
         //auto &a = (std::atomic<Counter> &)(x);
@@ -213,7 +213,7 @@ namespace cms {
       }
 
       static __forceinline uint32_t atomicDecrement(Counter &x) {
-        return cms::sycltools::atomic_fetch_sub<Counter>(&x, 1);
+        return cms::sycltools::atomic_fetch_sub_shared<Counter>(&x, 1);
         //return cms::sycltools::AtomicSub(&x, 1);
         //__CUDA_ARCH__
         //auto &a = (std::atomic<Counter> &)(x);

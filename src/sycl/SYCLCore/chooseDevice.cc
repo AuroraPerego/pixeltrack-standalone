@@ -26,7 +26,7 @@ namespace cms::sycltools {
 
   sycl::device chooseDevice(edm::StreamID id) {
       auto const devices = *(enumerateDevices());
-      auto device = devices[1];
+      auto device = devices[4];
     //  std::cout << "Almost seg fault" << std::endl;
     //
     //// For startes we "statically" assign the device based on

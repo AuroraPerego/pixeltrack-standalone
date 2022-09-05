@@ -62,8 +62,8 @@ namespace gpuClustering {
                 sycl::nd_item<1> item,
                 uint32_t* gMaxHit,
                 int* msize,
-                Hist* hist,
-                Hist::Counter* ws,  //was ws[32], maybe this can be set in accessore definition
+                //Hist* hist,
+                //Hist::Counter* ws,  //was ws[32], maybe this can be set in accessore definition
                 uint32_t* totGood,
                 uint32_t* n40,
                 uint32_t* n60,
@@ -95,6 +95,11 @@ namespace gpuClustering {
         break;
       }
     }
+    
+     auto wsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t[32]>(item.get_group());
+     uint32_t* ws = (uint32_t*)wsbuff.get();
+     auto histbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<Hist>(item.get_group());
+     Hist* hist = (Hist*)histbuff.get();
 
     //constexpr auto nbins = phase1PixelTopology::numColsInModule + 2;  //2+2
     for (auto j = item.get_local_id(0); j < Hist::totbins(); j += item.get_local_range(0)) {
@@ -346,7 +351,7 @@ namespace gpuClustering {
     //          out << *foundClusters << " clusters in module " << thisModuleId << "\n";
     //  #endif
     }
-    //out << *foundClusters << " clusters in module " << thisModuleId << "\n";
+    out << *foundClusters << " clusters in module " << thisModuleId << "\n";
   }
 
 }  // namespace gpuClustering

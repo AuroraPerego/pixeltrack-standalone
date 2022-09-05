@@ -594,8 +594,6 @@ namespace pixelgpudetails {
         //  }
 
          //std::cout << __LINE__ << std::endl;
-         Clock clock;
-         clock.start();
          stream.submit([&](sycl::handler &cgh) {
                  auto cablingMap_kernel   = cablingMap;
                  auto modToUnp_kernel     = modToUnp;
@@ -630,8 +628,7 @@ namespace pixelgpudetails {
    						                                      out
                                                      );
                              });
-   	}).wait();
-    std::cout << "Execution time: " << clock.stop() << " seconds" << std::endl;
+   	});
 
           // auto adcout = digis_d.adcToHostAsyncTest(stream);
           // for (auto i=0; i<48316; i++)
@@ -649,7 +646,7 @@ namespace pixelgpudetails {
           */
           //cudaCheck(0);
       #ifdef GPU_DEBUG
-            //stream.wait();
+            stream.wait();
             //cudaCheck(cudaGetLastError());
       #endif
 
@@ -687,6 +684,8 @@ namespace pixelgpudetails {
           //   std::cout << "pedestal = " << pedestal << " gain = "<< gain << std::endl;
 
           // }
+          sycl::free(word_d,stream);
+          sycl::free(fedId_d,stream);
        }
           // End of Raw2Digi and passing data for clusterin  
           {
@@ -695,8 +694,6 @@ namespace pixelgpudetails {
             int threadsPerBlock = 256;
             int blocks =
                 (std::max(int(wordCounter), int(gpuClustering::MaxNumModules)) + threadsPerBlock - 1) / threadsPerBlock;
-         Clock clock;
-         clock.start();      
             stream.submit([&](sycl::handler &cgh) {
       	sycl::stream out(50000, 768, cgh);
               auto digis_x_kernel     = digis_d.c_xx();
@@ -729,7 +726,6 @@ namespace pixelgpudetails {
             //cudaCheck(0);
       #ifdef GPU_DEBUG
             stream.wait();
-            std::cout << "Execution time of calibDigis is changed : " << clock.stop() << " seconds" << std::endl;
 
             //cudaCheck(cudaGetLastError());
       #endif
@@ -806,10 +802,10 @@ namespace pixelgpudetails {
                     local_gMaxHit_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
                 sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
                     local_mSize_acc(sycl::range<1>(sizeof(int)), cgh);
-                sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    hist_acc(sycl::range<1>(sizeof(Hist)), cgh); //FIXME_ why 32?
-                sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    local_ws_acc(sycl::range<1>(sizeof(Hist::Counter) * 32), cgh);
+                //sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                //    hist_acc(sycl::range<1>(sizeof(Hist)), cgh); //FIXME_ why 32?
+                //sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                //    local_ws_acc(sycl::range<1>(sizeof(Hist::Counter) * 32), cgh);
                 sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
                     local_totGood_acc(sycl::range<1>(sizeof(int32_t)), cgh);
                 sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
@@ -842,8 +838,8 @@ namespace pixelgpudetails {
                                                item,
                                                (uint32_t *)local_gMaxHit_acc.get_pointer(),
                                                (int *)local_mSize_acc.get_pointer(),
-                                               (Hist *)hist_acc.get_pointer(),
-                                               (uint32_t *)local_ws_acc.get_pointer(),
+                                               //(Hist *)hist_acc.get_pointer(),
+                                               //(uint32_t *)local_ws_acc.get_pointer(),
                                                (uint32_t *)local_totGood_acc.get_pointer(),
                                                (uint32_t *)local_n40_acc.get_pointer(),
                                                (uint32_t *)local_n60_acc.get_pointer(),
