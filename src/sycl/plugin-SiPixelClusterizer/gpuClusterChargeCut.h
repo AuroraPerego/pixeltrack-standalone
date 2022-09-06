@@ -42,9 +42,6 @@ namespace gpuClustering {
       out << "Warning too many clusters in module " << thisModuleId << " in block " << item.get_group(0) << ": " << nclus << " > " << MaxNumClustersPerModules << "\n";
     }
 
-    //find another way of printing! This is the stream!
-    //stream_ct1 << "Warning too many clusters in module %d in block %d: %d > %d\n";
-
     auto first = firstPixel + item.get_local_id(0);
 
     if (nclus > MaxNumClustersPerModules) {
@@ -72,32 +69,25 @@ namespace gpuClustering {
     for (auto i = item.get_local_id(0); i < nclus; i += item.get_local_range(0)) {
       charge[i] = 0;
     }
-    /*
-    DPCT1065:0: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
-    */
+
     item.barrier();
     for (auto i = first; i < numElements; i += item.get_local_range(0)) {
       if (id[i] == InvId)
         continue;  // not valid
       if (id[i] != thisModuleId)
         break;  // end of module
-        cms::sycltools::atomic_fetch_add_shared<int32_t>(&charge[clusterId[i]], 
-                                                        static_cast<int32_t>(adc[i]));
-      //cms::sycltools::AtomicAdd(&charge[clusterId[i]], adc[i]);
+        cms::sycltools::atomic_fetch_add<int32_t,
+                                         sycl::access::address_space::local_space,
+                                         sycl::memory_scope::work_group>
+                                         (&charge[clusterId[i]], static_cast<int32_t>(adc[i]));
     }
-    /*
-    DPCT1065:1: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
-    */
-     item.barrier();
+    item.barrier();
 
     auto chargeCut = thisModuleId < 96 ? 2000 : 4000;  // move in constants (calib?)
     for (auto i = item.get_local_id(0); i < nclus; i += item.get_local_range(0)) {
       newclusId[i] = ok[i] = charge[i] > chargeCut ? 1 : 0;
     }
 
-    /*
-    DPCT1065:2: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
-    */
     item.barrier();
 
     // renumber
@@ -110,9 +100,6 @@ namespace gpuClustering {
       return;
 
     nClustersInModule[thisModuleId] = newclusId[nclus - 1];
-    /*
-    DPCT1065:3: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
-    */
     item.barrier();
 
     // mark bad cluster again
@@ -120,9 +107,6 @@ namespace gpuClustering {
       if (0 == ok[i])
         newclusId[i] = InvId + 1;
     }
-    /*
-    DPCT1065:4: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
-    */
     item.barrier();
 
     // reassign id
@@ -135,7 +119,6 @@ namespace gpuClustering {
       if (clusterId[i] == InvId)
         id[i] = InvId;
     }
-
     //done
   }
 

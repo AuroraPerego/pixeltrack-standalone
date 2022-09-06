@@ -1,15 +1,10 @@
 #ifndef HeterogeneousCore_SYCLUtilities_interface_prefixScan_h
 #define HeterogeneousCore_SYCLUtilities_interface_prefixScan_h
 
-#include <CL/sycl.hpp>
+
 #include <cstdint>
-
 #include <CL/sycl.hpp>
-
-#include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
-
-//#ifdef __CUDA_ARCH__
 
 template <typename T>
 void __forceinline warpPrefixScan(T const* __restrict__ ci, T* __restrict__ co, uint32_t i, uint32_t mask, sycl::nd_item<1> item) {
@@ -18,10 +13,7 @@ void __forceinline warpPrefixScan(T const* __restrict__ ci, T* __restrict__ co, 
   int laneId = item.get_local_id(0) & 0x1f;
 #pragma unroll
   for (int offset = 1; offset < 32; offset <<= 1) {
-    /*
-    DPCT1023:17: The DPC++ sub-group does not support mask options for sycl::shift_group_right.
-    */
-    auto y = cms::sycltools::shift_sub_group_right(item.get_sub_group(), x, offset); //FIXME_ it was __shfl_up_sync
+    auto y = sycl::shift_group_right(item.get_sub_group(), x, offset); //FIXME_ it was __shfl_up_sync
     if (laneId >= offset)
       x += y;
   }
@@ -37,7 +29,7 @@ void __forceinline warpPrefixScan(T* c, uint32_t i, uint32_t mask, sycl::nd_item
     /*
     DPCT1023:17: The DPC++ sub-group does not support mask options for sycl::shift_group_right.
     */
-    auto y = cms::sycltools::shift_sub_group_right(item.get_sub_group(), x, offset); //FIXME_ it was __shfl_up_sync
+    auto y = sycl::shift_group_right(item.get_sub_group(), x, offset); //FIXME_ it was __shfl_up_sync
     if (laneId >= offset)
       x += y;
   }
@@ -56,53 +48,43 @@ namespace cms {
                                        uint32_t size,
                                        sycl::nd_item<1> item,
 				                                T* ws) {
-//#ifdef __CUDA_ARCH__
-      assert(ws);
-      assert(size <= 1024);
-      assert(0 == item.get_local_range(0) % 32);
       auto first = item.get_local_id(0);
-      auto mask = sycl::reduce_over_group(item.get_sub_group(),
-                                          (0xffffffff & (0x1 << item.get_sub_group().get_local_linear_id())) && first < size
-                                              ? (0x1 << item.get_sub_group().get_local_linear_id())
-                                              : 0,
-                                          sycl::ext::oneapi::plus<>());
+      
+      //__ballot_sync in CUDA
+      size_t id = item.get_sub_group().get_local_linear_id();
+      uint32_t local_val = (first < size ? 1u : 0u) << id;      
+      auto mask = sycl::reduce_over_group(item.get_sub_group(), local_val, sycl::plus<>());
+      //end of __ballot_sync equivalent
 
       for (auto i = first; i < size; i += item.get_local_range(0)) {
         warpPrefixScan(ci, co, i, mask, item);
         int laneId = item.get_local_id(0) & 0x1f;
         auto warpId = i / 32;
-        assert(warpId < 32);
         if (31 == laneId)
           ws[warpId] = co[i];
-        mask = sycl::reduce_over_group(item.get_sub_group(),
-                                      (mask & (0x1 << item.get_sub_group().get_local_linear_id())) && i + item.get_local_range(0) < size
-                                          ? (0x1 << item.get_sub_group().get_local_linear_id())
-                                          : 0,
-                                      sycl::ext::oneapi::plus<>());
+          
+        //__ballot_sync in CUDA
+        size_t id2 = item.get_sub_group().get_local_linear_id();
+        uint32_t local_val2 = ((i + item.get_local_range(0)) < size ? 1u : 0u) << id2;          
+        mask = sycl::reduce_over_group(item.get_sub_group(), local_val2, sycl::plus<>());
+        //end of __ballot_sync equivalent
       }
-      /*
-      2) Output from DPCT:
-      Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
-      It should improve the performance, can be evaluated in the future
-      */
       item.barrier(sycl::access::fence_space::local_space);
+      
       if (size <= 32)
         return;
+        
       if (item.get_local_id(0) < 32)
         warpPrefixScan(ws, item.get_local_id(0), 0xffffffff, item);
-      //Same as above (0)
+        
       item.barrier(sycl::access::fence_space::local_space);
+      
       for (auto i = first + 32; i < size; i += item.get_local_range(0)) {
         auto warpId = i / 32;
         co[i] += ws[warpId - 1];
       }
-      //Same as above (0)
-      item.barrier(sycl::access::fence_space::local_space);
-      //CUDA_ARCH
-      //co[0] = ci[0];
-      //for (uint32_t i = 1; i < size; ++i)
-      //  co[i] = ci[i] + co[i - 1];
 
+      item.barrier(sycl::access::fence_space::local_space);
     }
 
     // same as above (1), may remove
@@ -112,15 +94,14 @@ namespace cms {
                                          uint32_t size,
                                          sycl::nd_item<1> item,
                                          T* ws) {
-      assert(ws);
-      assert(size <= 1024);
-      assert(0 == item.get_local_range(0) % 32);
+    
       auto first = item.get_local_id(0);
-      auto mask = sycl::reduce_over_group(item.get_sub_group(),
-                                        (0xffffffff & (0x1 << item.get_sub_group().get_local_linear_id())) && first < size
-                                            ? (0x1 << item.get_sub_group().get_local_linear_id())
-                                            : 0,
-                                        sycl::ext::oneapi::plus<>());
+                                         
+      //__ballot_sync in CUDA
+      size_t id = item.get_sub_group().get_local_linear_id();
+      uint32_t local_val = (first < size ? 1u : 0u) << id;      
+      auto mask = sycl::reduce_over_group(item.get_sub_group(), local_val, sycl::plus<>());
+      //end of __ballot_sync equivalent
 
       for (auto i = first; i < size; i += item.get_local_range(0)) {
         warpPrefixScan(c, i, mask, item);
@@ -129,31 +110,27 @@ namespace cms {
         assert(warpId < 32);
         if (31 == laneId)
           ws[warpId] = c[i];
-        mask = sycl::reduce_over_group(item.get_sub_group(),
-                                      (mask & (0x1 << item.get_sub_group().get_local_linear_id())) && i + item.get_local_range(0) < size
-                                          ? (0x1 << item.get_sub_group().get_local_linear_id())
-                                          : 0,
-                                      sycl::ext::oneapi::plus<>());
+          
+       //__ballot_sync in CUDA
+        size_t id2 = item.get_sub_group().get_local_linear_id();
+        uint32_t local_val2 = ((i + item.get_local_range(0)) < size ? 1u : 0u) << id2;          
+        mask = sycl::reduce_over_group(item.get_sub_group(), local_val2, sycl::plus<>());
+        //end of __ballot_sync equivalent
       }
-      //Same as above (0)
       item.barrier(sycl::access::fence_space::local_space);
+      
       if (size <= 32)
         return;
+        
       if (item.get_local_id(0) < 32)
         warpPrefixScan(ws, item.get_local_id(0), 0xffffffff, item);
-      //Same as above (0)
+        
       item.barrier(sycl::access::fence_space::local_space);
       for (auto i = first + 32; i < size; i += item.get_local_range(0)) {
         auto warpId = i / 32;
         c[i] += ws[warpId - 1];
       }
-      //Same as above (0)
       item.barrier(sycl::access::fence_space::local_space);
-
-      //__CUDA_ARCH__
-      //for (uint32_t i = 1; i < size; ++i)
-      //  c[i] += c[i - 1];
-
     }
 
     // see https://stackoverflow.com/questions/40021086/can-i-obtain-the-amount-of-allocated-dynamic-shared-memory-from-within-a-kernel/40021087#40021087
@@ -190,12 +167,13 @@ namespace cms {
         /*
         DPCT1039:14: The generated code assumes that "pc" points to the global memory address space. If it points to a local memory address space, replace "sycl::global_ptr" with "sycl::local_ptr".
         */
-        auto value =cms::sycltools::atomic_fetch_add<int32_t>(pc, static_cast<int32_t>(1));
-        //auto value = cms::sycltools::AtomicAdd(pc, 1);  // block counter
+        auto value =cms::sycltools::atomic_fetch_add<int32_t,
+                                                     sycl::access::address_space::global_space,
+                                                     sycl::memory_scope::device>
+                                                     (pc, static_cast<int32_t>(1));
         *isLastBlockDone = (value == (int(item.get_group_range(0)) - 1));
       }
 
-      //Same as above (0)
       item.barrier(sycl::access::fence_space::local_space);
 
       if (!(*isLastBlockDone))

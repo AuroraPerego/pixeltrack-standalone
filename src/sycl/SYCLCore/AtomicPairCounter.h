@@ -40,8 +40,9 @@ namespace cms {
         c += incr;
         Atomic2 ret;
         
-        cms::sycltools::atomic_fetch_add<cms::sycltools::AtomicPairCounter::c_type>(&counter.ac, c);
-        //ret.ac = AtomicAdd<cms::sycltools::AtomicPairCounter::c_type>(&counter.ac, c);
+        ret.ac = cms::sycltools::atomic_fetch_add<cms::sycltools::AtomicPairCounter::c_type,
+                                                  sycl::access::address_space::global_space,
+                                                  sycl::memory_scope::device>(&counter.ac, c);
 
         return ret.counters;
       }

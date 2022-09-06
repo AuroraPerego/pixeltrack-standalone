@@ -126,7 +126,7 @@ __forceinline void radixSortImpl(
         //DPCT1023:17: The DPC++ sub-group does not support mask options for sycl::shift_group_right. FIXME_
         //
         //auto y = sycl::shift_group_right(0xffffffff, x, offset); 
-        auto y = cms::sycltools::shift_sub_group_right(item.get_sub_group(), x, offset); 
+        auto y = sycl::shift_group_right(item.get_sub_group(), x, offset); 
         if (laneId >= offset)
           x += y;
       }
