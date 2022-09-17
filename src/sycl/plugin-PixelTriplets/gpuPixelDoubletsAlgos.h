@@ -13,9 +13,12 @@
 #include "SYCLCore/VecArray.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/AtomicPairCounter.h"
+#include "SYCLCore/syclAtomic.h"
 
 #include "CAConstants.h"
 #include "GPUCACell.h"
+
+#define GPU_DEBUG
 
 namespace gpuPixelDoublets {
   
@@ -44,8 +47,7 @@ namespace gpuPixelDoublets {
                                        uint32_t maxNumOfDoublets,
                                        sycl::nd_item<3> item,
                                        uint32_t* innerLayerCumulativeSize,
-                                       uint32_t* ntot,
-                                       sycl::stream out) {
+                                       uint32_t* ntot) {
     // ysize cuts (z in the barrel)  times 8
     // these are used if doClusterCut is true
     constexpr int minYsizeB1 = 36;
@@ -138,7 +140,7 @@ namespace gpuPixelDoublets {
 
         if (inner == 0 && outer > 3)  // B1 and F1
           if (mes > 0 && mes < minYsizeB1)
-            continue;                 // only long cluster  (5*8)
+            continue;    // only long cluster  (5*8)
         if (inner == 1 && outer > 3)  // B2 and F1
           if (mes > 0 && mes < minYsizeB2)
             continue;
@@ -204,18 +206,17 @@ namespace gpuPixelDoublets {
         auto const* __restrict__ e = hist.end(kk + hoff);
         p += first;
         for (; p < e; p += stride) {
-          auto oi = *(p);
+          auto oi = *(p); 
           assert(oi >= offsets[outer]);
           assert(oi < offsets[outer + 1]);
           auto mo = hh.detectorIndex(oi);
           if (mo > 2000)
-            continue;  //    invalid
+            continue;   //    invalid
 
           if (doZ0Cut && z0cutoff(oi))
             continue;
-
           auto mop = hh.iphi(oi);
-          uint16_t idphi = std::min(abs(int16_t(mop - mep)), abs(int16_t(mep - mop)));
+          uint16_t idphi = sycl::min(abs(int16_t(mop - mep)), abs(int16_t(mep - mop)));
           if (idphi > iphicut)
             continue;
 
@@ -224,9 +225,9 @@ namespace gpuPixelDoublets {
           if (doPtCut && ptcut(oi, idphi))
             continue;
 
-          auto ind = cms::sycltools::AtomicAdd(nCells, 1);
+          auto ind = cms::sycltools::atomic_fetch_add<uint32_t>(nCells, (uint32_t)1);
           if (ind >= maxNumOfDoublets) {
-            cms::sycltools::AtomicSub(nCells, 1);
+            cms::sycltools::atomic_fetch_sub<uint32_t>(nCells, (uint32_t)1);
             break;
           }  // move to SimpleVector??
           // int layerPairId, int doubletId, int innerHitId, int outerHitId)
@@ -239,9 +240,10 @@ namespace gpuPixelDoublets {
 #endif
         }
       }
+
 #ifdef GPU_DEBUG
       if (tooMany > 0)
-        out << "OuterHitOfCell full for %d in layer %d/%d, %d,%d %d\n", i, inner, outer, nmin, tot, tooMany;
+        printf("OuterHitOfCell full for %d in layer %d/%d, %d,%d %d\n", i, inner, outer, nmin, tot, tooMany);
 #endif
     }  // loop in block...
   }

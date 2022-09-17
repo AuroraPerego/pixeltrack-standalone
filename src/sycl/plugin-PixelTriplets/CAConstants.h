@@ -60,8 +60,7 @@ namespace CAConstants {
 
   using OuterHitOfCell = cms::sycltools::VecArray<uint32_t, maxCellsPerHit()>;
   using TuplesContainer = cms::sycltools::OneToManyAssoc<hindex_type, maxTuples(), 5 * maxTuples()>;
-  using HitToTuple =
-      cms::sycltools::OneToManyAssoc<tindex_type, pixelGPUConstants::maxNumberOfHits, 4 * maxTuples()>;  // 3.5 should be enough
+  using HitToTuple = cms::sycltools::OneToManyAssoc<tindex_type, pixelGPUConstants::maxNumberOfHits, 4 * maxTuples()>;  // 3.5 should be enough
   using TupleMultiplicity = cms::sycltools::OneToManyAssoc<tindex_type, 8, maxTuples()>;
 
 }  // namespace CAConstants

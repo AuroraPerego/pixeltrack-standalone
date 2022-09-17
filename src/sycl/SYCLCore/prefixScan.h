@@ -133,13 +133,12 @@ namespace cms {
       item.barrier(sycl::access::fence_space::local_space);
     }
 
-    // see https://stackoverflow.com/questions/40021086/can-i-obtain-the-amount-of-allocated-dynamic-shared-memory-from-within-a-kernel/40021087#40021087
-    __forceinline unsigned dynamic_smem_size() {
-      unsigned ret;
-      //CUDA version: asm volatile("mov.u32 %0, %dynamic_smem_size;" : "=r"(ret));
-      asm volatile("mov.u32 %%0, %%dynamic_smem_size;" : "=r"(ret));
-      return ret;
-    }
+    // // see https://stackoverflow.com/questions/40021086/can-i-obtain-the-amount-of-allocated-dynamic-shared-memory-from-within-a-kernel/40021087#40021087
+    // __forceinline unsigned dynamic_smem_size() {
+    //   unsigned ret;
+    //   asm volatile("mov.u32 %0, %dynamic_smem_size;" : "=r"(ret)); FIXME_
+    //   return ret;
+    // }
 
 
     // in principle not limited....
@@ -149,7 +148,7 @@ namespace cms {
       volatile T const* ci = ici;
       volatile T* co = ico;
 
-      assert(sizeof(T) * item.get_group_range(0) <= dynamic_smem_size());  // size of psum below
+      // assert(sizeof(T) * item.get_group_range(0) <= dynamic_smem_size());  // size of psum below FIXME_
       assert((int32_t)(item.get_local_range(0) * item.get_group_range(0)) >= size);
       // first each block does a scan
       int off = item.get_local_range(0) * item.get_group(0);

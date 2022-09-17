@@ -67,11 +67,10 @@ namespace gpuPixelDoublets {
                     CellNeighbors* cellNeighborsContainer,
                     CellTracksVector* cellTracks,
                     CellTracks* cellTracksContainer,
-                    sycl::nd_item<1> item,
-                    sycl::stream out) {
+                    sycl::nd_item<1> item) {
     assert(isOuterHitOfCell);
-    int first = item.get_group(2) * item.get_local_range().get(2) + item.get_local_id(2);
-    for (int i = first; i < nHits; i += item.get_group_range(2) * item.get_local_range().get(2))
+    int first = item.get_group(0) * item.get_local_range().get(0) + item.get_local_id(0);
+    for (int i = first; i < nHits; i += item.get_group_range(0) * item.get_local_range().get(0))
       isOuterHitOfCell[i].reset();
 
     if (0 == first) {
@@ -89,9 +88,6 @@ namespace gpuPixelDoublets {
   constexpr auto getDoubletsFromHistoMaxBlockSize = 64;  // for both x and y
   constexpr auto getDoubletsFromHistoMinBlocksPerMP = 16;
 
-/*#ifdef SYCL_LANGUAGE_VERSION
-  __launch_bounds__(getDoubletsFromHistoMaxBlockSize, getDoubletsFromHistoMinBlocksPerMP)
-#endif*/ //FIXME_ do we have an equivalent??
   void getDoubletsFromHisto(GPUCACell* cells,
                                 uint32_t* nCells,
                                 CellNeighborsVector* cellNeighbors,
@@ -106,8 +102,7 @@ namespace gpuPixelDoublets {
                                 uint32_t maxNumOfDoublets,
 				                        sycl::nd_item<3> item,
 				                        uint32_t* innerLayerCumulativeSize,
-                                uint32_t* ntot,
-                                sycl::stream out) {
+                                uint32_t* ntot) {
     auto const& __restrict__ hh = *hhp;
     doubletsFromHisto(layerPairs,
                       nActualPairs,
@@ -128,8 +123,7 @@ namespace gpuPixelDoublets {
                       maxNumOfDoublets,
 		                  item,
                       innerLayerCumulativeSize,
-                      ntot,
-                      out);
+                      ntot);
   }
 
 }  // namespace gpuPixelDoublets

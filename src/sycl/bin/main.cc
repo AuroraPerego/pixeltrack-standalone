@@ -109,7 +109,7 @@ int main(int argc, char** argv) try {
   std::vector<std::string> edmodules;
   std::vector<std::string> esmodules;
   if (not empty) {
-    edmodules = {"BeamSpotToSYCL", "SiPixelRawToClusterSYCL", "SiPixelRecHitSYCL"};//, "CAHitNtupletSYCL", "PixelVertexProducerSYCL"};
+    edmodules = {"BeamSpotToSYCL", "SiPixelRawToClusterSYCL", "SiPixelRecHitSYCL", "CAHitNtupletSYCL"};//, "PixelVertexProducerSYCL"};
     esmodules = {"BeamSpotESProducer", "SiPixelFedCablingMapGPUWrapperESProducer", 
                  "SiPixelGainCalibrationForHLTGPUESProducer", "PixelCPEFastESProducer"};
     //for (int i = 0; i < (int)(edmodules.size()); i++){
