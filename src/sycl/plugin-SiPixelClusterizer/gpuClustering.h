@@ -9,13 +9,15 @@
 #include "SYCLCore/HistoContainer.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
+#include "SYCLCore/printf.h"
+
 #include "assert.h"
 #include <cassert>
 
 #include "gpuClusteringConstants.h"
 namespace gpuClustering {
 
-#define GPU_DEBUG TRUE
+// #define GPU_DEBUG
 
 #ifdef GPU_DEBUG
   uint32_t gMaxHit = 0;
@@ -25,8 +27,7 @@ namespace gpuClustering {
                     uint32_t* __restrict__ moduleStart,
                     int32_t* __restrict__ clusterId,
                     int numElements,
-                    sycl::nd_item<1> item,
-                    sycl::stream out) {
+                    sycl::nd_item<1> item) {
     int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
     for (int i = first; i < numElements; i += item.get_group_range(0) * item.get_local_range(0)) {
       clusterId[i] = i;
@@ -65,8 +66,7 @@ namespace gpuClustering {
                 uint32_t* n40,
                 uint32_t* n60,
                 int* n0,
-                unsigned int* foundClusters,
-                sycl::stream out) {
+                unsigned int* foundClusters) {
     if (item.get_group(0) >= moduleStart[0])
       return;
     auto firstPixel = moduleStart[1 + item.get_group(0)];
@@ -75,7 +75,7 @@ namespace gpuClustering {
 #ifdef GPU_DEBUG
   if (thisModuleId % 100 == 1)
     if (item.get_local_id(0) == 0)
-    out << "start clusterizer for module " << thisModuleId << " in block " << item.get_group(0) << "\n";
+      printf("start clusterizer for module %d in block %d\n", thisModuleId, item.get_group(0));
 #endif
 
     auto first = firstPixel + item.get_local_id(0);
@@ -113,8 +113,7 @@ namespace gpuClustering {
     // limit to maxPixInModule  (FIXME if recurrent (and not limited to simulation with low threshold) one will need to implement something cleverer)
     if (0 == item.get_local_id(0)) {
       if ((*msize - static_cast<int>(firstPixel)) > maxPixInModule) {
-        out << "too many pixels in module " << thisModuleId << ": " << *msize - static_cast<int>(firstPixel) << " > "
-            << maxPixInModule << "\n";
+        printf("too many pixels in module %d: %d > %d\n", thisModuleId, *msize - static_cast<int>(firstPixel), maxPixInModule);
         *msize = maxPixInModule + firstPixel;
       }
     }
@@ -149,7 +148,7 @@ namespace gpuClustering {
 #ifdef GPU_DEBUG
   if (thisModuleId % 100 == 1)
     if (item.get_local_id(0) == 0)
-    out << "histo size" << hist->size() <<"\n";
+      printf("histo size %d\n", hist->size());
 #endif
 
     for (int i = first; i < *msize; i += item.get_local_range(0)) {
@@ -159,7 +158,7 @@ namespace gpuClustering {
     }
 
     // assume that we can cover the whole module with up to 16 blockDim.x-wide iterations
-    constexpr int maxiter = 16;  // it was auto maxiter = hist->size(); ifndef CUDA_ARCH but ariable length arrays are not supported in SYC
+    constexpr int maxiter = 16;  // it was auto maxiter = hist->size(); ifndef CUDA_ARCH but ariable length arrays are not supported in SYCL
     // allocate space for duplicate pixels: a pixel can appear more than once with different charge in the same event
     constexpr int maxNeighbours = 10;
 
@@ -188,9 +187,9 @@ namespace gpuClustering {
     
     if (0 == item.get_local_id(0)) {
       if (*n60 > 0)
-        out << "columns with more than 60 px " << *n60 << " in " << thisModuleId << "\n";
+          printf("columns with more than 60 px %d in %d\n", *n60, thisModuleId);
       else if (*n40 > 0)
-        out << "columns with more than 40 px " << *n40 << " in " << thisModuleId << "\n";
+          printf("columns with more than 40 px %d in %d\n", *n40, thisModuleId);
     }
     item.barrier();
 #endif
@@ -225,9 +224,6 @@ namespace gpuClustering {
       // pixel in the cluster ( clus[i] == i ).
     bool more = true;
     int nloops = 0;
-    /*
-            DPCT1065:13: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier() for better performance if there is no access to global memory.
-            */
 
     while ((item.barrier(), sycl::any_of_group(item.get_group(), more))) {
       if (1 == nloops % 2) {
@@ -280,7 +276,6 @@ namespace gpuClustering {
           if (id[i] == InvId)  // skip invalid pixels
             continue;
           if (clusterId[i] == i) {
-            //out << "got here : " ;
             auto old = cms::sycltools::atomic_fetch_compare_inc<unsigned int,
                                                                 sycl::access::address_space::local_space,
                                                                 sycl::memory_scope::work_group>
@@ -312,19 +307,16 @@ namespace gpuClustering {
         if (item.get_local_id(0) == 0) {
           nClustersInModule[thisModuleId] = *foundClusters;
           moduleId[item.get_group(0)] = thisModuleId;
-    //  #ifdef GPU_DEBUG
-    //        if (foundClusters > gMaxHit) {
-    //          gMaxHit = foundClusters;
-    //          if (*foundClusters > 8)
-    //            out << "max hit " << foundClusters << " in " << thisModuleId << "\n";
-    //        }
-    //  #endif
-    //  #ifdef GPU_DEBUG
-    //        if (thisModuleId % 100 == 1)
-    //          out << *foundClusters << " clusters in module " << thisModuleId << "\n";
-    //  #endif
+      #ifdef GPU_DEBUG
+            if (foundClusters > gMaxHit) {
+              gMaxHit = foundClusters;
+              if (*foundClusters > 8)
+                printf("max hit %d in %d\n", foundClusters, thisModuleId);
+            }
+            if (thisModuleId % 100 == 1)
+              printf("%d clusters in module %d\n", foundClusters, thisModuleId);
+      #endif
     }
-    out << *foundClusters << " clusters in module " << thisModuleId << "\n";
   }
 
 }  // namespace gpuClustering

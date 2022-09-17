@@ -60,45 +60,69 @@ namespace cms {
 
       // thread-safe version of the vector, when used in a CUDA kernel
       int push_back(const T &element) {
-        auto previousSize = AtomicAdd<int>(&m_size, 1);
+        auto previousSize = cms::sycltools::atomic_fetch_add<int,
+	                                                           sycl::access::address_space::global_space,
+						                                                 sycl::memory_scope::device>
+						                                                 (&m_size, static_cast<int>(1));
         if (previousSize < m_capacity) {
           m_data[previousSize] = element;
           return previousSize;
         } else {
-          AtomicSub<int>(&m_size, 1);
+          cms::sycltools::atomic_fetch_sub<int,
+	                                         sycl::access::address_space::global_space,
+	                                         sycl::memory_scope::device>
+	                                         (&m_size, static_cast<int>(1));
           return -1;
         }
       }
 
       template <class... Ts>
       int emplace_back(Ts &&... args) {
-        auto previousSize = AtomicAdd<int>(&m_size, 1);
+        auto previousSize = cms::sycltools::atomic_fetch_add<int,
+	                                                           sycl::access::address_space::global_space,
+						                                                 sycl::memory_scope::device>
+						                                                 (&m_size, static_cast<int>(1));
         if (previousSize < m_capacity) {
           (new (&m_data[previousSize]) T(std::forward<Ts>(args)...));
           return previousSize;
         } else {
-          AtomicSub<int>(&m_size, 1);
+          cms::sycltools::atomic_fetch_sub<int,
+	                                         sycl::access::address_space::global_space,
+	                                         sycl::memory_scope::device>
+	                                         (&m_size, static_cast<int>(1));
           return -1;
         }
       }
 
       // thread safe version of resize
       int extend(int size = 1) {
-        auto previousSize = AtomicAdd<int>(&m_size, size);
+        auto previousSize = cms::sycltools::atomic_fetch_add<int,
+	                                                           sycl::access::address_space::global_space,
+						                                                 sycl::memory_scope::device>
+						                                                 (&m_size, static_cast<int>(size));
         if (previousSize < m_capacity) {
           return previousSize;
         } else {
-          AtomicSub<int>(&m_size, size);
+          cms::sycltools::atomic_fetch_sub<int,
+	                                         sycl::access::address_space::global_space,
+	                                         sycl::memory_scope::device>
+	                                         (&m_size, static_cast<int>(1));
           return -1;
         }
       }
 
       int shrink(int size = 1) {
-        auto previousSize = AtomicSub<int>(&m_size, size);
+        auto previousSize = cms::sycltools::atomic_fetch_sub<int,
+	                                                           sycl::access::address_space::global_space,
+	                                                           sycl::memory_scope::device>
+	                                                           (&m_size, static_cast<int>(1));
         if (previousSize >= size) {
           return previousSize - size;
         } else {
-          AtomicAdd<int>(&m_size, size);
+          cms::sycltools::atomic_fetch_add<int,
+	                                         sycl::access::address_space::global_space,
+	                                         sycl::memory_scope::device>
+	  		                                   (&m_size, static_cast<int>(size));
           return -1;
         }
       }

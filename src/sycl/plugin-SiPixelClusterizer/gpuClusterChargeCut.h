@@ -8,6 +8,7 @@
 #include "SYCLCore/syclAtomic.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/prefixScan.h"
+#include "SYCLCore/printf.h"
 
 #include "gpuClusteringConstants.h"
 
@@ -24,8 +25,7 @@ namespace gpuClustering {
                         int32_t* charge,
                         uint8_t* ok,
                         uint16_t* newclusId,
-                        uint16_t* ws,
-                        sycl::stream out) {
+                        uint16_t* ws) {
     if (item.get_group(0) >= moduleStart[0])
       return;
 
@@ -39,7 +39,7 @@ namespace gpuClustering {
       return;
 
     if (item.get_local_id(0) == 0 && nclus > MaxNumClustersPerModules) {
-      out << "Warning too many clusters in module " << thisModuleId << " in block " << item.get_group(0) << ": " << nclus << " > " << MaxNumClustersPerModules << "\n";
+      printf("Warning too many clusters in module %d in block %d: %d > %d\n", thisModuleId, item.get_group(0), nclus, MaxNumClustersPerModules);
     }
 
     auto first = firstPixel + item.get_local_id(0);
@@ -62,7 +62,7 @@ namespace gpuClustering {
 #ifdef GPU_DEBUG
     if (thisModuleId % 100 == 1)
       if (item.get_local_id(0) == 0)
-        out << "start clusterizer for module " << thisModuleId << " in block " << item.get_group(0) << "\n";
+        printf("start clusterizer for module %d in block %d\n", thisModuleId, item.get_group(0));
 #endif
 
     assert(nclus <= MaxNumClustersPerModules);
@@ -76,10 +76,10 @@ namespace gpuClustering {
         continue;  // not valid
       if (id[i] != thisModuleId)
         break;  // end of module
-        cms::sycltools::atomic_fetch_add<int32_t,
-                                         sycl::access::address_space::local_space,
-                                         sycl::memory_scope::work_group>
-                                         (&charge[clusterId[i]], static_cast<int32_t>(adc[i]));
+      cms::sycltools::atomic_fetch_add<int32_t,
+                                       sycl::access::address_space::local_space,
+                                       sycl::memory_scope::work_group>
+                                       (&charge[clusterId[i]], static_cast<int32_t>(adc[i]));
     }
     item.barrier();
 

@@ -161,18 +161,15 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
                              fedCounter,
                              useQuality_,
                              includeErrors_,
-                             true,  // debug
+                             false,  // debug
                              ctx.stream());
 }
 
 void SiPixelRawToClusterSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   cms::sycltools::ScopedContextProduce ctx{ctxState_};
-  //std::cout << "iNside the pRODUCE" << std::endl;
   auto tmp = gpuAlgo_.getResults();
-  //std::cout << "after gpualgoGETresults" << std::endl;
   ctx.emplace(iEvent, digiPutToken_, std::move(tmp.first));
   ctx.emplace(iEvent, clusterPutToken_, std::move(tmp.second));
-  //std::cout << "after gpualgoGETresults" << std::endl;
 
   if (includeErrors_) {
     ctx.emplace(iEvent, digiErrorPutToken_, gpuAlgo_.getErrors());

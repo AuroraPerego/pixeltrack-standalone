@@ -6,7 +6,6 @@
 #include <CL/sycl.hpp>
 
 // CMSSW headers
-//#include "SYCLCore/syclCheck.h"
 #include "SYCLCore/device_unique_ptr.h"
 #include "plugin-SiPixelClusterizer/SiPixelRawToClusterGPUKernel.h"  // !
 #include "plugin-SiPixelClusterizer/gpuClusteringConstants.h"        // !
@@ -14,14 +13,11 @@
 #include "PixelRecHits.h"
 #include "gpuPixelRecHits.h"
 
-#define GPU_DEBUG 1
-
 namespace {
   void setHitsLayerStart(uint32_t const* __restrict__ hitsModuleStart,
                          pixelCPEforGPU::ParamsOnGPU const* cpeParams,
                          uint32_t* hitsLayerStart,
-                         sycl::nd_item<1> item,
-                         sycl::stream out) {
+                         sycl::nd_item<1> item) {
     auto i = item.get_group(0) * item.get_local_range().get(0) + item.get_local_id(0);
 
     assert(0 == hitsModuleStart[0]);
@@ -29,7 +25,7 @@ namespace {
     if (i < 11) {
       hitsLayerStart[i] = hitsModuleStart[cpeParams->layerGeometry().layerStart[i]];
 #ifdef GPU_DEBUG
-      out << "LayerStart " << i << " " << cpeParams->layerGeometry().layerStart[i]<< ": "<< hitsLayerStart[i] <<"\n";
+      printf("LayerStart[%d] %d: %d\n", i, cpeParams->layerGeometry().layerStart[i], hitsLayerStart[i]);
 #endif
     }
   }
@@ -61,7 +57,6 @@ namespace pixelgpudetails {
         auto hits_d_kernel= hits_d.view();
         sycl::accessor<pixelCPEforGPU::ClusParams, 1, sycl::access_mode::read_write, sycl::access::target::local>
                    clusParams_acc(sycl::range<1>(sizeof(pixelCPEforGPU::ClusParams)), cgh);         
-        sycl::stream out(1024, 768, cgh);
         cgh.parallel_for(sycl::nd_range<1>(blocks * threadsPerBlock, threadsPerBlock),
           [=](sycl::nd_item<1> item){ 
               gpuPixelRecHits::getHits(cpeParams_kernel, 
@@ -71,13 +66,15 @@ namespace pixelgpudetails {
                                        clusters_d_kernel, 
                                        hits_d_kernel,
                                        item,
-                                       (pixelCPEforGPU::ClusParams *)clusParams_acc.get_pointer(),
-                                       out);  
+                                       (pixelCPEforGPU::ClusParams *)clusParams_acc.get_pointer());  
       });
     });
 
 #ifdef GPU_DEBUG
     stream.wait();
+#else
+    if((stream.get_device()).is_cpu())
+      stream.wait();
 #endif
 
     // assuming full warp of threads is better than a smaller number...
@@ -86,10 +83,9 @@ namespace pixelgpudetails {
         auto cpeParams_kernel = cpeParams; 
         auto hits_d_kernel = hits_d.hitsLayerStart(); 
         auto clusters_d_kernel = clusters_d.clusModuleStart(); 
-        sycl::stream out(1024, 768, cgh);
         cgh.parallel_for(sycl::nd_range<1>(32, 32),
           [=](sycl::nd_item<1> item){
-              setHitsLayerStart(clusters_d_kernel, cpeParams_kernel, hits_d_kernel, item, out);
+              setHitsLayerStart(clusters_d_kernel, cpeParams_kernel, hits_d_kernel, item);
     	    });
       });
     }
@@ -99,6 +95,9 @@ namespace pixelgpudetails {
 
 #ifdef GPU_DEBUG
     stream.wait();
+#else
+    if((stream.get_device()).is_cpu())
+      stream.wait();
 #endif
 
     return hits_d;

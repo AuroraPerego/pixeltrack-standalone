@@ -10,5 +10,3 @@ SiPixelClusterizer_DEPENDS := Framework SYCLCore SYCLDataFormats CondFormats Dat
 SiPixelRawToDigi_DEPENDS := Framework SYCLCore SYCLDataFormats CondFormats DataFormats
 SiPixelRecHits_DEPENDS := Framework SYCLCore SYCLDataFormats CondFormats
 Validation_DEPENDS := Framework SYCLCore SYCLDataFormats
-Test1_DEPENDS := Framework SYCLCore DataFormats
-Test2_DEPENDS := Framework SYCLCore

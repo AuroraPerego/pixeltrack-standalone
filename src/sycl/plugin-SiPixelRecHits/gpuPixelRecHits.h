@@ -11,8 +11,10 @@
 #include "SYCLCore/sycl_assert.h"
 #include "CondFormats/pixelCPEforGPU.h"
 #include "SYCLCore/AtomicPairCounter.h"
+#include "SYCLCore/printf.h"
 
-#define GPU_DEBUG 1
+//#define GPU_DEBUG
+
 namespace gpuPixelRecHits {
 
   void getHits(pixelCPEforGPU::ParamsOnGPU const* __restrict__ cpeParams,
@@ -22,8 +24,7 @@ namespace gpuPixelRecHits {
                           SiPixelClustersSYCL::DeviceConstView const* __restrict__ pclusters,
                           TrackingRecHit2DSOAView* phits,
                           sycl::nd_item<1> item,
-                          pixelCPEforGPU::ClusParams *clusParams,
-                          sycl::stream out) {
+                          pixelCPEforGPU::ClusParams *clusParams) {
     // FIXME
     // the compiler seems NOT to optimize loads from views (even in a simple test case)
     // The whole gimnastic here of copying or not is a pure heuristic exercise that seems to produce the fastest code with the above signature
@@ -84,7 +85,7 @@ namespace gpuPixelRecHits {
 #ifdef GPU_DEBUG
     if (me % 100 == 1)
       if (item.get_local_id(0) == 0)
-        out << "hitbuilder: " << nclus << " clusters in module " << me << ". will write at " << clusters.clusModuleStart(me) << "\n";
+        printf("hitbuilder: %d clusters in module %d. Will write at %d\n", nclus, me, clusters.clusModuleStart(me));
 #endif
 
     for (int startClus = 0, endClus = nclus; startClus < endClus; startClus += MaxHitsInIter) {
@@ -113,9 +114,6 @@ namespace gpuPixelRecHits {
 
       first += item.get_local_id(0);
 
-      /*
-      DPCT1065:0: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
-      */
       item.barrier();
 
       // one thead per "digi"
@@ -134,15 +132,23 @@ namespace gpuPixelRecHits {
         cl -= startClus;
         assert(cl >= 0);
         assert(cl < MaxHitsInIter);
-        cms::sycltools::AtomicMin(&clusParams->minRow[cl], x);
-        cms::sycltools::AtomicMax(&clusParams->maxRow[cl], x);
-        cms::sycltools::AtomicMin(&clusParams->minCol[cl], y);
-        cms::sycltools::AtomicMax(&clusParams->maxCol[cl], y);
+        cms::sycltools::atomic_fetch_min<uint32_t,
+                                         sycl::access::address_space::local_space,
+                                         sycl::memory_scope::device>
+                                         ((uint32_t*)&clusParams->minRow[cl], (uint32_t)x);
+        cms::sycltools::atomic_fetch_max<uint32_t,
+                                         sycl::access::address_space::local_space,
+                                         sycl::memory_scope::device>
+                                         ((uint32_t*)&clusParams->maxRow[cl], (uint32_t)x);
+        cms::sycltools::atomic_fetch_min<uint32_t,
+                                         sycl::access::address_space::local_space,
+                                         sycl::memory_scope::device>
+                                         ((uint32_t*)&clusParams->minCol[cl], (uint32_t)y);
+        cms::sycltools::atomic_fetch_max<uint32_t,
+                                         sycl::access::address_space::local_space,
+                                         sycl::memory_scope::device>
+                                         ((uint32_t*)&clusParams->maxCol[cl], (uint32_t)y);
       }
-
-      /*
-      DPCT1065:1: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
-      */
       item.barrier();
 
       // pixmx is not available in the binary dumps
@@ -162,24 +168,21 @@ namespace gpuPixelRecHits {
         assert(cl < MaxHitsInIter);
         auto x = digis.xx(i);
         auto y = digis.yy(i);
-        auto ch = std::min(digis.adc(i), pixmx);
-        cms::sycltools::AtomicAdd(&clusParams->charge[cl], ch);
+        auto ch = sycl::min(digis.adc(i), pixmx);
+        cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(&clusParams->charge[cl], (int)ch);
         if (clusParams->minRow[cl] == x)
-          cms::sycltools::AtomicAdd(&clusParams->Q_f_X[cl], ch);
+          cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(&clusParams->Q_f_X[cl], (int)ch);
         if (clusParams->maxRow[cl] == x)
-          cms::sycltools::AtomicAdd(&clusParams->Q_l_X[cl], ch);
+          cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(&clusParams->Q_l_X[cl], (int)ch);
         if (clusParams->minCol[cl] == y)
-          cms::sycltools::AtomicAdd(&clusParams->Q_f_Y[cl], ch);
+          cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(&clusParams->Q_f_Y[cl], (int)ch);
         if (clusParams->maxCol[cl] == y)
-          cms::sycltools::AtomicAdd(&clusParams->Q_l_Y[cl], ch);
+          cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(&clusParams->Q_l_Y[cl], (int)ch);
       }
 
-      /*
-      DPCT1065:2: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
-      */
       item.barrier();
 
-      // next one cluster per thread...
+      // next one cluster per thread... 
 
       first = clusters.clusModuleStart(me) + startClus;
 
@@ -216,6 +219,7 @@ namespace gpuPixelRecHits {
         // to global and compute phi...
         cpeParams->detParams(me).frame.toGlobal(xl, yl, xg, yg, zg);
         // here correct for the beamspot...
+
         xg -= bs->x;
         yg -= bs->y;
         zg -= bs->z;
@@ -227,9 +231,6 @@ namespace gpuPixelRecHits {
         hits.rGlobal(h) = sycl::sqrt(xg * xg + yg * yg);
         hits.iphi(h) = unsafe_atan2s<7>(yg, xg);
       }
-      /*
-      DPCT1065:3: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
-      */
       item.barrier();
     }  // end loop on batches
   }

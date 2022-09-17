@@ -27,7 +27,13 @@ namespace cms::sycltools {
   sycl::device chooseDevice(edm::StreamID id) {
       auto const devices = *(enumerateDevices());
       auto device = devices[4];
-    //  std::cout << "Almost seg fault" << std::endl;
+    //#ifdef DEVICE_IS_GPU
+    //  auto device = devices[DEVICE_IS_GPU + 3];
+    //#else
+    //  auto device = devices[1];
+    //#endif
+    
+      std::cout << "Device selected: " << device.get_info<cl::sycl::info::device::name>() << std::endl;
     //
     //// For startes we "statically" assign the device based on
     //// edm::Stream number. This is suboptimal if the number of
