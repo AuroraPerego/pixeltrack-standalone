@@ -53,7 +53,7 @@ CAHitNtupletGeneratorOnGPU::CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg
                true,              // earlyFishbone
                false,             // lateFishbone
                true,              // idealConditions
-               false,             // fillStatistics
+               true,             // fillStatistics
                true,              // doClusterCut
                true,              // doZ0Cut
                true,              // doPtCut
@@ -63,26 +63,7 @@ CAHitNtupletGeneratorOnGPU::CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg
                0.0328407224959,   // hardCurvCut
                0.15000000596,     // dcaCutInnerTriplet
                0.25,              // dcaCutOuterTriplet
-               makeQualityCuts()) {
-#ifdef DUMP_GPU_TK_TUPLES
-  printf("TK: %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s\n",
-         "tid",
-         "qual",
-         "nh",
-         "charge",
-         "pt",
-         "eta",
-         "phi",
-         "tip",
-         "zip",
-         "chi2",
-         "h1",
-         "h2",
-         "h3",
-         "h4",
-         "h5");
-#endif
-}
+               makeQualityCuts()) {}
 
 PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecHit2DSYCL const& hits_d,
                                                                     float bfield,
@@ -102,20 +83,27 @@ PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecH
   kernels.launchKernels(hits_d, soa, stream);
   kernels.fillHitDetIndices(hits_d.view(), soa, stream);  // in principle needed only if Hits not "available"
 
-  // HelixFitOnGPU fitter(bfield, m_params.fit5as4_);
-  // fitter.allocateOnGPU(&(soa->hitIndices), kernels.tupleMultiplicity(), soa);
-  // if (m_params.useRiemannFit_) {
-  //  fitter.launchRiemannKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
-  // } else {
-  //  fitter.launchBrokenLineKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
-  // }
+  std::cout << "------------------------\n";
+  std::cout << "Starting n-tuplets fit..\n";
 
-  // kernels.classifyTuples(hits_d, soa, stream);
+  HelixFitOnGPU fitter(bfield, m_params.fit5as4_);
+  fitter.allocateOnGPU(&(soa->hitIndices), kernels.tupleMultiplicity(), soa);
+  if (m_params.useRiemannFit_) {
+    fitter.launchRiemannKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
+  } else {
+    fitter.launchBrokenLineKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
+  }
+
+  std::cout << "..end of n-tuplets fit.\n";
+  std::cout << "------------------------\n";
+
+  kernels.classifyTuples(hits_d, soa, stream);
+  stream.wait();
   
-  // if (m_params.doStats_) {
-  //   kernels.printCounters(m_counters.get(), stream);
-  // }
-  // stream.wait();
+  if (m_params.doStats_) {
+    kernels.printCounters(m_counters.get(), stream);
+  }
+  stream.wait();
 
   return tracks;
 }

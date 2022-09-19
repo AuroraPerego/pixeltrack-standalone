@@ -2,7 +2,7 @@
 // Author: Felice Pantaleo, CERN
 //
 
-// #define BROKENLINE_DEBUG
+//#define BROKENLINE_DEBUG
 
 #include <cstdint>
 
@@ -10,6 +10,7 @@
 
 #include "CondFormats/pixelCPEforGPU.h"
 #include "SYCLDataFormats/TrackingRecHit2DSYCL.h"
+#include "SYCLCore/printf.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/AtomicPairCounter.h"
 
@@ -70,7 +71,7 @@ void kernelBLFastFit(Tuples const * foundNtuplets,
 #ifdef BL_DUMP_HITS
     done = 0;
     item.barrier();
-    bool dump = (foundNtuplets->size(tkid) == 5 && 0 == cms::sycltools::atomicAdd(&done, 1));
+    bool dump = (foundNtuplets->size(tkid) == 5 && 0 == cms::sycltools::atomic_fetch_add<int>(&done, 1));
 #endif
 
     // Prepare data structure
@@ -160,8 +161,8 @@ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMultipl
 
     results->stateAtBS.copyFromCircle(circle.par, circle.cov, line.par, line.cov, 1.f / float(B), tkid);
     results->pt(tkid) = float(B) / float(sycl::abs(circle.par(2)));
-    results->eta(tkid) = sycl::asinh(line.par(0)); //FIXME_ asinhf!!
-    //results->eta(tkid) = asinhf(line.par(0));
+    //results->eta(tkid) = sycl::asinh(line.par(0)); //FIXME_ asinhf!!
+    results->eta(tkid) = asinhf(line.par(0));
     results->chi2(tkid) = (circle.chi2 + line.chi2) / (2 * N - 5);
 
 #ifdef BROKENLINE_DEBUG

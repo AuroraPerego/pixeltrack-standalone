@@ -1,8 +1,10 @@
 #ifndef RecoPixelVertexing_PixelTrackFitting_interface_FitUtils_h
 #define RecoPixelVertexing_PixelTrackFitting_interface_FitUtils_h
 
-#include "SYCLCore/sycl_assert.h"
 #include <CL/sycl.hpp>
+
+#include "SYCLCore/printf.h"
+#include "SYCLCore/sycl_assert.h"
 
 #include "choleskyInversion.h"
 #include "FitResult.h"

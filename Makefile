@@ -136,7 +136,8 @@ export EIGEN_DEPS := $(EIGEN_BASE)
 export EIGEN_CXXFLAGS := -isystem $(EIGEN_BASE) -DEIGEN_DONT_PARALLELIZE
 export EIGEN_LDFLAGS :=
 export EIGEN_NVCC_CXXFLAGS := --diag-suppress 20014
-export EIGEN_SYCL_CXXFLAGS := -DEIGEN_USE_SYCL -fsycl-enable-function-pointers
+export EIGEN_SYCL_CXXFLAGS := -DEIGEN_USE_SYCL
+# -fsycl-enable-function-pointers
 
 BOOST_BASE := /usr
 # Minimum required version of Boost, e.g. 1.78.0
@@ -267,13 +268,12 @@ ONEAPI_BASE := /cvmfs/projects.cern.ch/intelsw/oneAPI/linux/x86_64/2022
 # /opt/intel/oneapi
 ifneq ($(wildcard $(ONEAPI_BASE)),)
 # OneAPI platform found
-#-fsycl-targets=spir64_gen -Xsycl-target-backend=spir64_gen "-device xe_hp_sdv"
 SYCL_VERSION  := 2022.1.0
 ONEAPI_ENV    := $(ONEAPI_BASE)/setvars.sh
 DPCT_BASE     := $(ONEAPI_BASE)/dpcpp-ct/$(SYCL_VERSION)
 SYCL_BASE     := $(ONEAPI_BASE)/compiler/$(SYCL_VERSION)/linux
-DPCT_CXXFLAGS := -Wsycl-strict -fno-sycl-id-queries-fit-in-int  -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device xe_hp_sdv" -fp-model=precise -fimf-arch-consistency=true -no-fma -isystem $(DPCT_BASE)/include
-# -fsycl-targets=spir64_gen -Xsycl-target-backend=spir64_gen "-device xe_hp_sdv" 
+DPCT_CXXFLAGS := -Wsycl-strict -fno-sycl-id-queries-fit-in-int -fp-model=precise -fimf-arch-consistency=true -no-fma -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device xe_hp_sdv" -isystem $(DPCT_BASE)/include
+# -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device xe_hp_sdv"
 endif
 SYCL_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Wno-non-template-friend -Werror=format-contains-nul -Werror=return-local-addr -Werror=unused-but-set-variable
 

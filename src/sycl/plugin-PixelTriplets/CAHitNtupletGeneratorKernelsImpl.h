@@ -2,7 +2,7 @@
 // Original Author: Felice Pantaleo, CERN
 //
 
-// #define NTUPLE_DEBUG
+#define NTUPLE_DEBUG
 
 #include <CL/sycl.hpp>
 #include <cmath>
@@ -384,7 +384,7 @@ void kernel_classifyTracks(HitContainer const *__restrict__ tuples,
     // if the fit has any invalid parameters, mark it as bad
     bool isNaN = false;
     for (int i = 0; i < 5; ++i) {
-     // isNaN |= std::isnan(tracks->stateAtBS.state(it)(i));
+      isNaN |= std::isnan(tracks->stateAtBS.state(it)(i));
     }
     if (isNaN) {
 #ifdef NTUPLE_DEBUG
@@ -512,10 +512,10 @@ void kernel_doStatsForHitInTracks(CAHitNtupletGeneratorKernelsGPU::HitToTuple co
 }
 
 void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
-                           HitContainer const *__restrict__ ptuples,
+                           HitContainer const *__restrict__ ptuples, //using HitContainer = cms::sycltools::OneToManyAssoc<hindex_type, S, 5 * S>; S=32 * 1024
                            TkSoA const *__restrict__ ptracks,
                            Quality *__restrict__ quality,
-                           CAHitNtupletGeneratorKernelsGPU::HitToTuple const *__restrict__ phitToTuple,
+                           CAHitNtupletGeneratorKernelsGPU::HitToTuple const *__restrict__ phitToTuple, //HistoContainer<uint32_t, MAXONES, MAXMANYS, sizeof(uint32_t) * 8, I, 1>; I = uint16_t, 48 * 1024, 24 * 1024 *4
                            sycl::nd_item<1> item) {
   constexpr auto bad = trackQuality::bad;
   constexpr auto dup = trackQuality::dup;
@@ -529,6 +529,9 @@ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
   // auto l1end = hh.hitsLayerStart_d[1];
 
   int first = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
+  
+  //printf("%d ", hitToTuple.nbins()); //49152
+  
   for (int idx = first, ntot = hitToTuple.nbins(); idx < ntot;
        idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     if (hitToTuple.size(idx) < 2)
@@ -538,17 +541,18 @@ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
     uint16_t im = 60000;
     uint32_t maxNh = 0;
 
-    // find maxNh
-    for (auto it = hitToTuple.begin(idx); it != hitToTuple.end(idx); ++it) {
-      uint32_t nh = foundNtuplets.size(*it);
-      maxNh = sycl::max(nh, maxNh);
-    }
-    // kill all tracks shorter than maxHn (only triplets???)
-    for (auto it = hitToTuple.begin(idx); it != hitToTuple.end(idx); ++it) {
-      uint32_t nh = foundNtuplets.size(*it);
-      if (maxNh != nh)
-        quality[*it] = dup;
-    }
+    // // find maxNh
+    // for (auto it = hitToTuple.begin(idx); it != hitToTuple.end(idx); ++it) {
+    //   uint32_t nh = foundNtuplets.size(*it);
+    //   maxNh = sycl::max(nh, maxNh);
+    // }
+    
+    // // kill all tracks shorter than maxHn (only triplets???)
+    // for (auto it = hitToTuple.begin(idx); it != hitToTuple.end(idx); ++it) {
+    //   uint32_t nh = foundNtuplets.size(*it);
+    //   if (maxNh != nh)
+    //     quality[*it] = dup;
+    // }
 
     if (maxNh > 3)
       continue;
@@ -559,14 +563,15 @@ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
       if (quality[it] != bad && abs(tracks.tip(it)) < mc) {
         mc = abs(tracks.tip(it));
         im = it;
+        // printf("%.2f %.2f\n", tracks.tip(it), abs(tracks.tip(it)));
       }
     }
-    // mark duplicates
-    for (auto ip = hitToTuple.begin(idx); ip != hitToTuple.end(idx); ++ip) {
-      auto const it = *ip;
-      if (quality[it] != bad && it != im)
-        quality[it] = dup;  //no race:  simple assignment of the same constant
-    }
+    // // mark duplicates
+    // for (auto ip = hitToTuple.begin(idx); ip != hitToTuple.end(idx); ++ip) {
+    //   auto const it = *ip;
+    //   if (quality[it] != bad && it != im)
+    //     quality[it] = dup;  //no race:  simple assignment of the same constant
+    // }
   }  // loop over hits
 }
 
@@ -608,14 +613,14 @@ void kernel_print_found_ntuplets(TrackingRecHit2DSOAView const *__restrict__ hhp
 
 void kernel_printCounters(cAHitNtupletGenerator::Counters const *counters) {
   auto const &c = *counters;
-  printf("|| Counters      | nEvents | nHits | nCells | nTuples | nFitTacks  |  nGoodTracks | nUsedHits | nDupHits | nKilledCells | nEmptyCells | nZeroTrackCells ||\n");
-  printf("|| Counters Raw  | %lld |  %lld|  %lld|  %lld|  %lld|  %lld|  %lld|  %lld|  %lld|  %lld|  %lld||\n",
+  printf("|| Counters      | nEvents | nHits | nCells | nTuples | nFitTacks | nGoodTracks | nUsedHits | nDupHits | nKilledCells | nEmptyCells | nZeroTrackCells ||\n");
+  printf("|| Counters Raw  | %lld |    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|  %lld|  %lld||\n",
          c.nEvents,
          c.nHits,
          c.nCells,
          c.nTuples,
-         c.nGoodTracks,
          c.nFitTracks,
+         c.nGoodTracks,
          c.nUsedHits,
          c.nDupHits,
          c.nKilledCells,

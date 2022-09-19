@@ -10,7 +10,7 @@
 
 #include "CAHitNtupletGeneratorKernels.h"
 #include "GPUCACell.h"
-//#include "HelixFitOnGPU.h"
+#include "HelixFitOnGPU.h"
 
 namespace edm {
   class Event;

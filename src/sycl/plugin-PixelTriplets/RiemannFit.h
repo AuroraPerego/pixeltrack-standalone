@@ -1,7 +1,11 @@
 #ifndef RecoPixelVertexing_PixelTrackFitting_interface_RiemannFit_h
 #define RecoPixelVertexing_PixelTrackFitting_interface_RiemannFit_h
 
+#include "SYCLCore/printf.h"
+
 #include "FitUtils.h"
+
+//#define RFIT_DEBUG
 
 namespace Rfit {
 
@@ -75,7 +79,7 @@ namespace Rfit {
     Rfit::printIt(&s_arcs, "Scatter_cov_line - s_arcs: ");
 #endif
     constexpr u_int n = N;
-    double p_t = std::min(20., fast_fit(2) * B);  // limit pt to avoid too small error!!!
+    double p_t = sycl::min(20., fast_fit(2) * B);  // limit pt to avoid too small error!!!
     double p_2 = p_t * p_t * (1. + 1. / (fast_fit(3) * fast_fit(3)));
     VectorNd<N> rad_lengths_S;
     // See documentation at http://eigen.tuxfamily.org/dox/group__TutorialArrayClass.html
@@ -97,7 +101,7 @@ namespace Rfit {
     }
     for (u_int k = 0; k < n; ++k) {
       for (u_int l = k; l < n; ++l) {
-        for (u_int i = 0; i < std::min(k, l); ++i) {
+        for (u_int i = 0; i < sycl::min(k, l); ++i) {
           tmp(k + n, l + n) += abs(S_values(k) - S_values(i)) * abs(S_values(l) - S_values(i)) * sig2_S(i);
         }
         tmp(l + n, k + n) = tmp(k + n, l + n);
@@ -130,7 +134,7 @@ namespace Rfit {
                                                          VectorNd<N> const& rad,
                                                          double B) {
     constexpr u_int n = N;
-    double p_t = std::min(20., fast_fit(2) * B);  // limit pt to avoid too small error!!!
+    double p_t = sycl::min(20., fast_fit(2) * B);  // limit pt to avoid too small error!!!
     double p_2 = p_t * p_t * (1. + 1. / (fast_fit(3) * fast_fit(3)));
     double theta = atan(fast_fit(3));
     theta = theta < 0. ? theta + M_PI : theta;
@@ -152,7 +156,7 @@ namespace Rfit {
     sig2 *= 0.000225 / (p_2 * sqr(sin(theta)));
     for (u_int k = 0; k < n; ++k) {
       for (u_int l = k; l < n; ++l) {
-        for (u_int i = 0; i < std::min(k, l); ++i) {
+        for (u_int i = 0; i < sycl::min(k, l); ++i) {
           scatter_cov_rad(k, l) += (rad(k) - rad(i)) * (rad(l) - rad(i)) * sig2(i);
         }
         scatter_cov_rad(l, k) = scatter_cov_rad(k, l);
@@ -317,7 +321,7 @@ namespace Rfit {
     printf("min_eigen3D - enter\n");
 #endif
     Eigen::SelfAdjointEigenSolver<Matrix3d> solver(3);
-    //solver.computeDirect(A); //FIXME_ this is the line that causes the error, in kernel_test/kernel_comput.cpp it works
+    solver.computeDirect(A); 
     int min_index; 
     chi2 = solver.eigenvalues().minCoeff(&min_index);
 #ifdef RFIT_DEBUG
@@ -547,13 +551,13 @@ namespace Rfit {
     Vector3d v = min_eigen3D(A, chi2);
 #ifdef RFIT_DEBUG
     printf("circle_fit - AFTER MIN_EIGEN\n");
-#endif
     printIt(&v, "v BEFORE INVERSION");
+#endif
     v *= (v(2) > 0) ? 1 : -1;  // TO FIX dovrebbe essere N(3)>0
+#ifdef RFIT_DEBUG
     printIt(&v, "v AFTER INVERSION");
     // This hack to be able to run on GPU where the automatic assignment to a
     // double from the vector multiplication is not working.
-#ifdef RFIT_DEBUG
     printf("circle_fit - AFTER MIN_EIGEN 1\n");
 #endif
     Eigen::Matrix<double, 1, 1> cm;
@@ -984,29 +988,29 @@ namespace Rfit {
                              const Eigen::Matrix<float, 6, N>& hits_ge,
                              const double B,
                              const bool error) {
-  //  constexpr u_int n = N;
-  //  VectorNd<4> rad = (hits.block(0, 0, 2, n).colwise().norm());
-//
-  //  // Fast_fit gives back (X0, Y0, R, theta) w/o errors, using only 3 points.
-  //  Vector4d fast_fit;
-  //  Fast_fit(hits, fast_fit);
-  //  Rfit::Matrix2Nd<N> hits_cov = MatrixXd::Zero(2 * n, 2 * n);
-  //  Rfit::loadCovariance2D(hits_ge, hits_cov);
-  //  circle_fit circle = Circle_fit(hits.block(0, 0, 2, n), hits_cov, fast_fit, rad, B, error);
-  //  line_fit line = Line_fit(hits, hits_ge, circle, fast_fit, B, error);
-//
-  //  par_uvrtopak(circle, B, error);
-//
+   constexpr u_int n = N;
+   VectorNd<4> rad = (hits.block(0, 0, 2, n).colwise().norm());
+
+   // Fast_fit gives back (X0, Y0, R, theta) w/o errors, using only 3 points.
+   Vector4d fast_fit;
+   Fast_fit(hits, fast_fit);
+   Rfit::Matrix2Nd<N> hits_cov = MatrixXd::Zero(2 * n, 2 * n);
+   Rfit::loadCovariance2D(hits_ge, hits_cov);
+   circle_fit circle = Circle_fit(hits.block(0, 0, 2, n), hits_cov, fast_fit, rad, B, error);
+   line_fit line = Line_fit(hits, hits_ge, circle, fast_fit, B, error);
+
+   par_uvrtopak(circle, B, error);
+
     helix_fit helix;
-  //  helix.par << circle.par, line.par;
-  //  if (error) {
-  //    helix.cov = MatrixXd::Zero(5, 5);
-  //    helix.cov.block(0, 0, 3, 3) = circle.cov;
-  //    helix.cov.block(3, 3, 2, 2) = line.cov;
-  //  }
-  //  helix.q = circle.q;
-  //  helix.chi2_circle = circle.chi2;
-  //  helix.chi2_line = line.chi2;
+   helix.par << circle.par, line.par;
+   if (error) {
+     helix.cov = MatrixXd::Zero(5, 5);
+     helix.cov.block(0, 0, 3, 3) = circle.cov;
+     helix.cov.block(3, 3, 2, 2) = line.cov;
+   }
+   helix.q = circle.q;
+   helix.chi2_circle = circle.chi2;
+   helix.chi2_line = line.chi2;
 
     return helix;
   }
