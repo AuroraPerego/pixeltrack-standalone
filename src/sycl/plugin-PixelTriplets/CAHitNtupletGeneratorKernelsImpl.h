@@ -525,14 +525,14 @@ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
   auto const &foundNtuplets = *ptuples;
   auto const &tracks = *ptracks;
 
-  //  auto const & hh = *hhp;
+  auto const & hh = *hhp;
   // auto l1end = hh.hitsLayerStart_d[1];
 
   int first = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
   
   //printf("%d ", hitToTuple.nbins()); //49152
   
-  for (int idx = first, ntot = hitToTuple.nbins(); idx < ntot;
+  for (int idx = first, ntot = hh.nHits(); idx < ntot;
        idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     if (hitToTuple.size(idx) < 2)
       continue;
@@ -541,18 +541,18 @@ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
     uint16_t im = 60000;
     uint32_t maxNh = 0;
 
-    // // find maxNh
-    // for (auto it = hitToTuple.begin(idx); it != hitToTuple.end(idx); ++it) {
-    //   uint32_t nh = foundNtuplets.size(*it);
-    //   maxNh = sycl::max(nh, maxNh);
-    // }
+    // find maxNh
+    for (auto it = hitToTuple.begin(idx); it != hitToTuple.end(idx); ++it) {
+      uint32_t nh = foundNtuplets.size(*it);
+      maxNh = sycl::max(nh, maxNh);
+    }
     
-    // // kill all tracks shorter than maxHn (only triplets???)
-    // for (auto it = hitToTuple.begin(idx); it != hitToTuple.end(idx); ++it) {
-    //   uint32_t nh = foundNtuplets.size(*it);
-    //   if (maxNh != nh)
-    //     quality[*it] = dup;
-    // }
+    // kill all tracks shorter than maxHn (only triplets???)
+    for (auto it = hitToTuple.begin(idx); it != hitToTuple.end(idx); ++it) {
+      uint32_t nh = foundNtuplets.size(*it);
+      if (maxNh != nh)
+        quality[*it] = dup;
+    }
 
     if (maxNh > 3)
       continue;
@@ -563,15 +563,14 @@ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
       if (quality[it] != bad && abs(tracks.tip(it)) < mc) {
         mc = abs(tracks.tip(it));
         im = it;
-        // printf("%.2f %.2f\n", tracks.tip(it), abs(tracks.tip(it)));
       }
     }
-    // // mark duplicates
-    // for (auto ip = hitToTuple.begin(idx); ip != hitToTuple.end(idx); ++ip) {
-    //   auto const it = *ip;
-    //   if (quality[it] != bad && it != im)
-    //     quality[it] = dup;  //no race:  simple assignment of the same constant
-    // }
+    // mark duplicates
+    for (auto ip = hitToTuple.begin(idx); ip != hitToTuple.end(idx); ++ip) {
+       auto const it = *ip;
+      if (quality[it] != bad && it != im)
+        quality[it] = dup;  //no race:  simple assignment of the same constant
+    }
   }  // loop over hits
 }
 
