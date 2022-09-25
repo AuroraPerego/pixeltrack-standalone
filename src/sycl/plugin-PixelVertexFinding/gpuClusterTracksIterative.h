@@ -8,7 +8,7 @@
 #include "SYCLCore/HistoContainer.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
-
+#include "SYCLCore/printf.h"
 
 #include "gpuVertexFinder.h"
 
@@ -29,13 +29,13 @@ namespace gpuVertexFinder {
                               Hist *hist,
                               Hist::Counter* hws,
                               unsigned int* foundClusters,
-                              int* nloops,  
-                              const sycl::stream out
+                              int* nloops
   ) {
-    constexpr bool verbose = false;  // in principle the compiler should optmize out if false
 
-    if (verbose && 0 == item.get_local_id(0))
-      out << "params" << minT << " " << eps << " " << errmax << " " << chi2max << "\n";
+#ifdef VERTEX_DEBUG
+    if (0 == item.get_local_id(0))
+      printf("params %d %f %f %f\n", minT, eps, errmax, chi2max);
+#endif
 
     auto er2mx = errmax * errmax;
 
@@ -60,8 +60,10 @@ namespace gpuVertexFinder {
     }
     item.barrier();
 
-    if (verbose && 0 == item.get_local_id(0))
-      out << "booked hist with " << hist->nbins() << " bins, size " << hist->capacity() << " for " << nt << " tracks\n";
+#ifdef VERTEX_DEBUG
+    if (0 == item.get_local_id(0))
+      printf("booked hist with %d bins, size %d for %d tracks\n", hist->nbins(), hist->capacity(), nt);
+#endif
 
     assert(nt <= hist->capacity());
 
@@ -139,12 +141,12 @@ namespace gpuVertexFinder {
               return;
             if (dist * dist > chi2max * (ezt2[i] + ezt2[j]))
               return;
-            auto old = cms::sycltools::AtomicMin(&iv[j], iv[i]);
+            auto old = cms::sycltools::atomic_fetch_min<int32_t>(&iv[j], iv[i]);
             if (old != iv[i]) {
               // end the loop only if no changes were applied
               more = true;
             }
-            cms::sycltools::AtomicMin(&iv[i], old);
+            cms::sycltools::atomic_fetch_min<int32_t>(&iv[i], (int32_t)old);
           };
           ++p;
           for (; p < hist->end(be); ++p)
@@ -183,7 +185,9 @@ namespace gpuVertexFinder {
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] == int(i)) {
         if (nn[i] >= minT) {
-          auto old = cms::sycltools::AtomicInc(foundClusters, 0xffffffff);
+          auto old = cms::sycltools::atomic_fetch_compare_inc<unsigned int, 
+                                                              cl::sycl::access::address_space::local_space>
+                                                              (foundClusters, (unsigned int)0xffffffff);
           iv[i] = -(old + 1);
         } else {  // noise
           iv[i] = -9998;
@@ -210,8 +214,10 @@ namespace gpuVertexFinder {
 
     nvIntermediate = nvFinal = *foundClusters;
 
-    if (verbose && 0 == item.get_local_id(0))
-      out << "found " << *foundClusters << " proto vertices\n";
+#ifdef VERTEX_DEBUG
+    if (0 == item.get_local_id(0))
+      printf("found %d proto vertices\n", *foundClusters);
+#endif
   }
 
 }  // namespace gpuVertexFinder

@@ -8,9 +8,11 @@
 #include "SYCLCore/HistoContainer.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
-
+#include "SYCLCore/printf.h"
 
 #include "gpuVertexFinder.h"
+
+// #define VERTEX_DEBUG
 
 namespace gpuVertexFinder {
 
@@ -30,16 +32,16 @@ namespace gpuVertexFinder {
                                             float errmax,  // max error to be "seed"
                                             float chi2max,  // max normalized distance to cluster
                                             sycl::nd_item<1> item,
-                                            Hist *hist,
-                                            Hist::Counter* hws,
-                                            unsigned int* foundClusters,
-                                            const sycl::stream out
+                                            Hist *histt,
+                                            Hist::Counter* hwss,
+                                            unsigned int* foundClusters
   ) {
     using namespace gpuVertexFinder;
-    constexpr bool verbose = false;  // in principle the compiler should optmize out if false
 
-    if (verbose && 0 == item.get_local_id(0))
-      out << "params" << minT << " " << eps << " " << errmax << " " << chi2max << "\n";
+#ifdef VERTEX_DEBUG
+    if (item.get_local_id(0) == 0)
+      printf("params %d %f %f %f\n", minT, eps, errmax, chi2max);
+#endif
 
     auto er2mx = errmax * errmax;
 
@@ -59,14 +61,21 @@ namespace gpuVertexFinder {
     assert(pdata);
     assert(zt);
 
+    auto hwsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<Hist::Counter[32]>(item.get_group());
+    Hist::Counter* hws = (Hist::Counter*)hwsbuff.get();
+    auto histbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<Hist>(item.get_group());
+    Hist* hist = (Hist*)histbuff.get();
+    
     //__shared__ typename Hist::Counter hws[32];
     for (auto j = item.get_local_id(0); j < Hist::totbins(); j += item.get_local_range(0)) {
       hist->off[j] = 0;
     }
     item.barrier();
 
-    if (verbose && 0 == item.get_local_id(0))
-      out << "booked hist with " << hist->nbins() << " bins, size " << hist->capacity() << " for " << nt << " tracks\n";
+#ifdef VERTEX_DEBUG
+    if (item.get_local_id(0) == 0)
+      printf("booked hist with %d bins, size %d for %d tracks\n", hist->nbins(), hist->capacity(), nt);
+#endif
 
     assert(nt <= hist->capacity());
 
@@ -84,6 +93,10 @@ namespace gpuVertexFinder {
       nn[i] = 0;
     }
     item.barrier();
+    
+    // for (int i = 0; i < (int)nt; i++)
+    //   printf("%d %d %d\n", i, iv[i], izt[i]);
+
     if (item.get_local_id(0) < 32)
       hws[item.get_local_id(0)] = 0;  // used by prefix scan...
     item.barrier();
@@ -94,6 +107,10 @@ namespace gpuVertexFinder {
       hist->fill(izt[i], uint16_t(i));
     }
     item.barrier();
+
+    // for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
+    //   cms::sycltools::printIndexes(*hist, izt[i]);
+    // }
 
     // count neighbours
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
@@ -196,7 +213,9 @@ namespace gpuVertexFinder {
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] == int(i)) {
         if (nn[i] >= minT) {
-          auto old = cms::sycltools::AtomicInc(foundClusters, 0xffffffff);
+          auto old = cms::sycltools::atomic_fetch_compare_inc<unsigned int, 
+                                                              cl::sycl::access::address_space::local_space>
+                                                              (foundClusters, (unsigned int)0xffffffff);
           iv[i] = -(old + 1);
         } else {  // noise
           iv[i] = -9998;
@@ -223,8 +242,10 @@ namespace gpuVertexFinder {
 
     nvIntermediate = nvFinal = *foundClusters;
 
-    if (verbose && 0 == item.get_local_id(0))
-      out << "found " << *foundClusters << " proto vertices\n";
+  #ifdef VERTEX_DEBUG
+    if (item.get_local_id(0) == 0)
+      printf("found %d proto vertices\n", *foundClusters);
+  #endif
   }
 
   void clusterTracksByDensityKernel(gpuVertexFinder::ZVertices* pdata,
@@ -236,10 +257,9 @@ namespace gpuVertexFinder {
                                     sycl::nd_item<1> item,
                                     cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t> *hist,
                                     Hist::Counter* hws,
-                                    unsigned int *foundClusters,
-                                    const sycl::stream out
+                                    unsigned int *foundClusters
   ) {
-    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item, hist, hws, foundClusters, out);
+    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item, hist, hws, foundClusters);
   }
 
 }  // namespace gpuVertexFinder

@@ -8,9 +8,11 @@
 #include "SYCLCore/HistoContainer.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
-
+#include "SYCLCore/printf.h"
 
 #include "gpuVertexFinder.h"
+
+// #define VERTEX_DEBUG
 
 namespace gpuVertexFinder {
 
@@ -18,10 +20,8 @@ namespace gpuVertexFinder {
                                  WorkSpace* pws,
                                  float chi2Max,  // for outlier rejection
                                  sycl::nd_item<1> item,
-                                 int* noise,
-                                 sycl::stream out
+                                 int* noise
   ) {
-    constexpr bool verbose = false;  // in principle the compiler should optmize out if false
 
     auto& __restrict__ data = *pdata;
     auto& __restrict__ ws = *pws;
@@ -52,23 +52,25 @@ namespace gpuVertexFinder {
     }
 
     // only for test
-    if (verbose && 0 == item.get_local_id(0))
+#ifdef VERTEX_DEBUG
+    if (0 == item.get_local_id(0))
       *noise = 0;
-
+#endif
     item.barrier();
 
     // compute cluster location
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] > 9990) {
-        if (verbose)
-          cms::sycltools::AtomicAdd(noise, 1);
+#ifdef VERTEX_DEBUG
+          cms::sycltools::atomic_fetch_add<int, cl::sycl::access::address_space::local_space>(noise, 1);
+#endif
         continue;
       }
       assert(iv[i] >= 0);
       assert(iv[i] < int(foundClusters));
       auto w = 1.f / ezt2[i];
-      cms::sycltools::AtomicAdd(&zv[iv[i]], zt[i] * w);
-      cms::sycltools::AtomicAdd(&wv[iv[i]], w);
+      cms::sycltools::atomic_fetch_add<float>(&zv[iv[i]], (float)(zt[i] * w));
+      cms::sycltools::atomic_fetch_add<float>(&wv[iv[i]], (float)w);
     }
 
     item.barrier();
@@ -91,28 +93,27 @@ namespace gpuVertexFinder {
         iv[i] = 9999;
         continue;
       }
-      cms::sycltools::AtomicAdd(&chi2[iv[i]], c2);
-      cms::sycltools::AtomicAdd(&nn[iv[i]], 1);
+      cms::sycltools::atomic_fetch_add<float>(&chi2[iv[i]], (float)c2);
+      cms::sycltools::atomic_fetch_add<int32_t>(&nn[iv[i]], (int32_t)1);
     }
     item.barrier();
     for (auto i = item.get_local_id(0); i < foundClusters; i += item.get_local_range(0))
       if (nn[i] > 0)
         wv[i] *= float(nn[i]) / chi2[i];
 
-    if (verbose && 0 == item.get_local_id(0))
-      out << "found " << foundClusters << " proto clusters ";
-    if (verbose && 0 == item.get_local_id(0))
-      out << "and " << *noise << " noise\n";
+#ifdef VERTEX_DEBUG
+    if (0 == item.get_local_id(0))
+      printf("found %d proto clusters and %d noise\n", foundClusters, *noise);
+#endif
   }
 
   void fitVerticesKernel(ZVertices* pdata,
                          WorkSpace* pws,
                          float chi2Max,  // for outlier rejection
                          sycl::nd_item<1> item,
-                         int* noise,
-                         sycl::stream out
+                         int* noise
   ) {
-    fitVertices(pdata, pws, chi2Max, item, noise, out);
+    fitVertices(pdata, pws, chi2Max, item, noise);
   }
 
 }  // namespace gpuVertexFinder

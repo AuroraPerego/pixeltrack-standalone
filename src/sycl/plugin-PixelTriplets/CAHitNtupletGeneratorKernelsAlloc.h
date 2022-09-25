@@ -6,7 +6,6 @@ void CAHitNtupletGeneratorKernelsGPU::allocateOnGPU(sycl::queue stream) {
   // ALLOCATIONS FOR THE INTERMEDIATE RESULTS (STAYS ON WORKER)
   //////////////////////////////////////////////////////////
 
-  //counters_ = Traits::template make_unique<Counters>(stream);
   device_theCellNeighbors_ = Traits::template make_unique<CAConstants::CellNeighborsVector>(stream);
   device_theCellTracks_ = Traits::template make_unique<CAConstants::CellTracksVector>(stream);
 
@@ -20,10 +19,8 @@ void CAHitNtupletGeneratorKernelsGPU::allocateOnGPU(sycl::queue stream) {
   device_hitToTuple_apc_ = (cms::sycltools::AtomicPairCounter*)device_storage_.get() + 1;
   device_nCells_ = (uint32_t*)(device_storage_.get() + 2);
 
-  //auto counters = (int*)counters_.get();
-  //stream.memset(counters, 0, sizeof(Counters));
   stream.memset(device_nCells_, 0x00, sizeof(uint32_t)).wait(); 
-  std::cout << *device_nCells_ << " device_nCells_\n";
+
   cms::sycltools::launchZero(device_tupleMultiplicity_.get(), stream);
   cms::sycltools::launchZero(device_hitToTuple_.get(), stream);  // we may wish to keep it in the edm...
 }

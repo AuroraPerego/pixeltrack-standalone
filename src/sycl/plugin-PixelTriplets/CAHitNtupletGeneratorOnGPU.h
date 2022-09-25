@@ -4,6 +4,7 @@
 #include <CL/sycl.hpp>
 
 #include "SYCLCore/SimpleVector.h"
+#include "SYCLCore/device_unique_ptr.h"
 #include "SYCLDataFormats/PixelTrackHeterogeneous.h"
 #include "SYCLDataFormats/TrackingRecHit2DSYCL.h"
 
@@ -37,17 +38,22 @@ public:
 
   ~CAHitNtupletGeneratorOnGPU() = default;
 
-  PixelTrackHeterogeneous makeTuplesAsync(TrackingRecHit2DSYCL const& hits_d, float bfield, sycl::queue stream) const;
+  PixelTrackHeterogeneous makeTuplesAsync(TrackingRecHit2DSYCL const& hits_d, float bfield, sycl::queue stream);
 
 private:
   void buildDoublets(HitsOnCPU const& hh, sycl::queue stream) const;
 
-  void hitNtuplets(HitsOnCPU const& hh, const edm::EventSetup& es, bool useRiemannFit, sycl::queue cudaStream);
+  void hitNtuplets(HitsOnCPU const& hh, const edm::EventSetup& es, bool useRiemannFit, sycl::queue stream);
 
-  void launchKernels(HitsOnCPU const& hh, bool useRiemannFit, sycl::queue cudaStream) const;
+  void launchKernels(HitsOnCPU const& hh, bool useRiemannFit, sycl::queue stream) const;
 
   Params m_params;
-  
+
+  cms::sycltools::device::unique_ptr<Counters> m_counters; 
+  // In CUDA it is initialized as a raw pointer and then assigned in the constructor
+  // In SYCL we need the queue, so we have to:
+  // 1) declare it as a unique_ptr to be able to do make_device_unique and to use the DeviceDeleter in cms::sycltools::device::impl
+  // 2) initialize it in the scope of makeTupleAsync (for this reason makeTupleAsync cannot be marked const as it was in CUDA)
 };
 
 #endif  // RecoPixelVertexing_PixelTriplets_plugins_CAHitNtupletGeneratorOnGPU_h

@@ -102,8 +102,6 @@ __forceinline void radixSortImpl(
     j[i] = i;
   item.barrier();
 
-//  out << *p << " < " << w / d << "\n";
-
   while ((item.barrier(), sycl::all_of_group(item.get_group(), *p < w / d))) {
     if (item.get_local_id(0) < sb)
       c[item.get_local_id(0)] = 0;
@@ -112,7 +110,10 @@ __forceinline void radixSortImpl(
     // fill bins
     for (auto i = first; i < size; i += item.get_local_range(0)) {
       auto bin = (a[j[i]] >> d * *p) & (sb - 1);
-      cms::sycltools::AtomicAdd(&c[bin], 1);
+      cms::sycltools::atomic_fetch_add<int32_t,
+	                               sycl::access::address_space::global_space,
+				                         sycl::memory_scope::device>
+				                         (&c[bin], static_cast<int32_t>(1));
     }
     item.barrier();
 
@@ -122,11 +123,7 @@ __forceinline void radixSortImpl(
       int laneId = item.get_local_id(0) & 0x1f;
 #pragma unroll
       for (int offset = 1; offset < 32; offset <<= 1) {
-        //
-        //DPCT1023:17: The DPC++ sub-group does not support mask options for sycl::shift_group_right. FIXME_
-        //
-        //auto y = sycl::shift_group_right(0xffffffff, x, offset); 
-        auto y = cms::sycltools::shift_sub_group_right(item.get_sub_group(), x, offset); 
+        auto y = sycl::shift_group_right(item.get_sub_group(), x, offset); 
         if (laneId >= offset)
           x += y;
       }
@@ -160,7 +157,10 @@ __forceinline void radixSortImpl(
         if (i >= 0) {
           bin = (a[j[i]] >> d * *p) & (sb - 1);
           ct[item.get_local_id(0)] = bin;
-          cms::sycltools::AtomicMax(&cu[bin], int(i));
+          cms::sycltools::atomic_fetch_max<int32_t,
+                                          sycl::access::address_space::global_space,
+                                          sycl::memory_scope::device>
+                                          (&cu[bin], static_cast<int32_t>(i));
        }
       }
       item.barrier();

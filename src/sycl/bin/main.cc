@@ -20,12 +20,13 @@ namespace {
   void print_help(std::string const& name) {
     std::cout
         << name
-        << ": [--numberOfThreads NT] [--numberOfStreams NS] [--maxEvents ME] [--data PATH] [--transfer] [--validation] "
+        << ": [--numberOfThreads NT] [--numberOfStreams NS] [--maxEvents ME] [--device DV] [--data PATH] [--transfer] [--validation] "
            "[--histogram] [--empty]\n\n"
         << "Options\n"
         << " --numberOfThreads   Number of threads to use (default 1, use 0 to use all CPU cores)\n"
         << " --numberOfStreams   Number of concurrent events (default 0 = numberOfThreads)\n"
         << " --maxEvents         Number of events to process (default -1 for all events in the input file)\n"
+        << " --device            Specifies the device which should run the code (default all, options: host, cpu, gpu, acc)\n"
         << " --runForMinutes     Continue processing the set of 1000 events until this many minutes have passed "
            "(default -1 for disabled; conflicts with --maxEvents)\n"
         << " --data              Path to the 'data' directory (default 'data' in the directory of the executable)\n"
@@ -39,6 +40,7 @@ namespace {
 
 int main(int argc, char** argv) try {
   // Parse command line arguments
+  setenv("SYCL_DEVICE_FILTER", "host,cpu,gpu,acc", true);
   std::vector<std::string> args(argv, argv + argc);
   int numberOfThreads = 1;
   int numberOfStreams = 0;
@@ -65,6 +67,10 @@ int main(int argc, char** argv) try {
     } else if (*i == "--runForMinutes") {
       ++i;
       runForMinutes = std::stoi(*i);
+    } else if (*i == "--device") {
+      ++i;
+      std::string device = *i;
+      setenv("SYCL_DEVICE_FILTER", device.c_str(), true);
     } else if (*i == "--data") {
       ++i;
       datadir = *i;
@@ -109,7 +115,7 @@ int main(int argc, char** argv) try {
   std::vector<std::string> edmodules;
   std::vector<std::string> esmodules;
   if (not empty) {
-    edmodules = {"BeamSpotToSYCL", "SiPixelRawToClusterSYCL", "SiPixelRecHitSYCL", "CAHitNtupletSYCL"};//, "PixelVertexProducerSYCL"};
+    edmodules = {"BeamSpotToSYCL", "SiPixelRawToClusterSYCL", "SiPixelRecHitSYCL", "CAHitNtupletSYCL", "PixelVertexProducerSYCL"};
     esmodules = {"BeamSpotESProducer", "SiPixelFedCablingMapGPUWrapperESProducer", 
                  "SiPixelGainCalibrationForHLTGPUESProducer", "PixelCPEFastESProducer"};
     //for (int i = 0; i < (int)(edmodules.size()); i++){
@@ -191,6 +197,7 @@ int main(int argc, char** argv) try {
   std::cout << "Processed " << maxEvents << " events in " << std::scientific << time << " seconds, throughput "
             << std::defaultfloat << (maxEvents / time) << " events/s, CPU usage per thread: " << std::fixed
             << std::setprecision(1) << (cpu / time / numberOfThreads * 100) << "%" << std::endl;
+  unsetenv("SYCL_DEVICE_FILTER");
   return EXIT_SUCCESS;
 } catch (sycl::exception const& exc) {
   std::cerr << exc.what() << "Exception caught at file:" << __FILE__ << ", line:" << __LINE__ << std::endl;

@@ -8,8 +8,11 @@
 #include "SYCLCore/HistoContainer.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
+#include "SYCLCore/printf.h"
 
 #include "gpuVertexFinder.h"
+
+// #define VERTEX_DEBUG
 
 namespace gpuVertexFinder {
   using sycl::fabs;
@@ -25,9 +28,8 @@ namespace gpuVertexFinder {
                                    uint32_t *nq,
                                    float *znew,
                                    float *wnew,
-                                   uint32_t *igv,
-                                   sycl::stream out) {
-    constexpr bool verbose = false;  // in principle the compiler should optmize out if false
+                                   uint32_t *igv
+    ) {
 
     auto& __restrict__ data = *pdata;
     auto& __restrict__ ws = *pws;
@@ -61,14 +63,15 @@ namespace gpuVertexFinder {
       //uint8_t newV[MAXTK];  // 0 or 1
       //float ww[MAXTK];      // z weight
 
-      //uint32_t nq;  // number of track for this vertex
-      *nq = 0;
+      *nq = 0; // number of track for this vertex
       item.barrier();
 
       // copy to local
       for (auto k = item.get_local_id(0); k < nt; k += item.get_local_range(0)) {
         if (iv[k] == int(kv)) {
-          int old = cms::sycltools::AtomicInc(nq, MAXTK);
+          int old = cms::sycltools::atomic_fetch_compare_inc<uint32_t, 
+                                                             cl::sycl::access::address_space::local_space>
+                                                             (nq, (uint32_t)MAXTK);
           zz[old] = zt[k] - zv[kv];
           newV[old] = zz[old] < 0 ? 0 : 1;
           ww[old] = 1.f / ezt2[k];
@@ -95,8 +98,8 @@ namespace gpuVertexFinder {
         item.barrier();
         for (auto k = item.get_local_id(0); k < (unsigned long)*nq; k += item.get_local_range(0)) {
           auto i = newV[k];
-          cms::sycltools::AtomicAdd(&znew[i], zz[k] * ww[k]);
-          cms::sycltools::AtomicAdd(&wnew[i], ww[k]);
+          cms::sycltools::atomic_fetch_add<float, cl::sycl::access::address_space::local_space>(&znew[i], zz[k] * ww[k]);
+          cms::sycltools::atomic_fetch_add<float, cl::sycl::access::address_space::local_space>(&wnew[i], ww[k]);
         }
         item.barrier();
         if (0 == item.get_local_id(0)) {
@@ -125,8 +128,10 @@ namespace gpuVertexFinder {
 
       auto chi2Dist = dist2 / (1.f / wnew[0] + 1.f / wnew[1]);
 
-      if (verbose && 0 == item.get_local_id(0))
-        out << "inter " << 20 - maxiter << " " << chi2Dist << " " << dist2 * wv[kv] << " " << "\n";
+#ifdef VERTEX_DEBUG
+      if (0 == item.get_local_id(0))
+        printf("inter %d %f %f\n", 20 - maxiter, chi2Dist, dist2 * wv[kv]);
+#endif
 
       if (chi2Dist < 4)
         continue;
@@ -134,7 +139,7 @@ namespace gpuVertexFinder {
       // get a new global vertex
       //__shared__ uint32_t igv;
       if (0 == item.get_local_id(0))
-        *igv = cms::sycltools::AtomicAdd(&ws.nvIntermediate, 1);
+        *igv = cms::sycltools::atomic_fetch_add<uint32_t>(&ws.nvIntermediate, (uint32_t)1);
       item.barrier();
       for (auto k = item.get_local_id(0); k < (unsigned long)*nq; k += item.get_local_range(0)) {
         if (1 == newV[k])
@@ -155,10 +160,9 @@ namespace gpuVertexFinder {
                            uint32_t *nq,
                            float *znew,
                            float *wnew,
-                           uint32_t *igv,
-                           const sycl::stream out
+                           uint32_t *igv
   ) {
-    splitVertices(pdata, pws, maxChi2, item, it, zz, newV, ww, nq, znew, wnew, igv, out);
+    splitVertices(pdata, pws, maxChi2, item, it, zz, newV, ww, nq, znew, wnew, igv);
   }
 }  // namespace gpuVertexFinder
 

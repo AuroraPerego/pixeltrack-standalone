@@ -47,7 +47,7 @@ namespace gpuVertexFinder {
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] > 9990)
         continue;
-      cms::sycltools::AtomicAdd(&ptv2[iv[i]], ptt2[i]);
+      cms::sycltools::atomic_fetch_add<float>(&ptv2[iv[i]], ptt2[i]);
     }
     item.barrier();
 

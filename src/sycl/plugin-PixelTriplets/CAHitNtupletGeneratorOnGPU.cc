@@ -5,11 +5,15 @@
 #include <array>
 #include <cassert>
 #include <functional>
+#include <iomanip>
 #include <vector>
 
 #include "Framework/Event.h"
+#include "SYCLCore/printf.h"
 
 #include "CAHitNtupletGeneratorOnGPU.h"
+
+// #define NTUPLE_DEBUG
 
 namespace {
 
@@ -45,13 +49,13 @@ using namespace std;
 CAHitNtupletGeneratorOnGPU::CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg)
     : m_params(3,                 // minHitsPerNtuplet,
                458752,            // maxNumberOfDoublets
-               false,             //useRiemannFit
+               false,             // useRiemannFit
                true,              // fit5as4,
-               true,              //includeJumpingForwardDoublets
+               true,              // includeJumpingForwardDoublets
                true,              // earlyFishbone
                false,             // lateFishbone
                true,              // idealConditions
-               false,             //fillStatistics
+               false,             // fillStatistics
                true,              // doClusterCut
                true,              // doZ0Cut
                true,              // doPtCut
@@ -61,50 +65,51 @@ CAHitNtupletGeneratorOnGPU::CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg
                0.0328407224959,   // hardCurvCut
                0.15000000596,     // dcaCutInnerTriplet
                0.25,              // dcaCutOuterTriplet
-               makeQualityCuts()) {
-#ifdef DUMP_GPU_TK_TUPLES
-  printf("TK: %s %s % %s %s %s %s %s %s %s %s %s %s %s %s %s\n",
-         "tid",
-         "qual",
-         "nh",
-         "charge",
-         "pt",
-         "eta",
-         "phi",
-         "tip",
-         "zip",
-         "chi2",
-         "h1",
-         "h2",
-         "h3",
-         "h4",
-         "h5");
-#endif
-}
+               makeQualityCuts()) {}
 
 PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecHit2DSYCL const& hits_d,
                                                                     float bfield,
-                                                                    sycl::queue stream) const {
-  PixelTrackHeterogeneous tracks(cms::sycltools::make_device_unique<pixelTrack::TrackSoA>(stream));
+                                                                    sycl::queue stream) {
 
+  PixelTrackHeterogeneous tracks(cms::sycltools::make_device_unique<pixelTrack::TrackSoA>(stream));
+  m_counters = cms::sycltools::make_device_unique<Counters>(stream);
+  stream.memset(m_counters.get(), 0x00, sizeof(Counters)).wait(); 
+  
   auto* soa = tracks.get();
 
   CAHitNtupletGeneratorKernelsGPU kernels(m_params);
-
-  //kernels.counters_ = m_counters; 
+  
+  kernels.counters_ = m_counters.get(); 
   kernels.allocateOnGPU(stream);
   kernels.buildDoublets(hits_d, stream);
   kernels.launchKernels(hits_d, soa, stream);
-  //kernels.fillHitDetIndices(hits_d.view(), soa, stream);  // in principle needed only if Hits not "available"
+  kernels.fillHitDetIndices(hits_d.view(), soa, stream);  // in principle needed only if Hits not "available"
 
-  //HelixFitOnGPU fitter(bfield, m_params.fit5as4_);
-  //fitter.allocateOnGPU(&(soa->hitIndices), kernels.tupleMultiplicity(), soa);
-  //if (m_params.useRiemannFit_) {
-  //  fitter.launchRiemannKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
-  //} else {
-  //  fitter.launchBrokenLineKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
-  //}
-  //kernels.classifyTuples(hits_d, soa, stream);
+#ifdef NTUPLE_DEBUG
+  std::cout << "------------------------\n";
+  std::cout << "Starting n-tuplets fit..\n";
+#endif 
+
+  HelixFitOnGPU fitter(bfield, m_params.fit5as4_);
+  fitter.allocateOnGPU(&(soa->hitIndices), kernels.tupleMultiplicity(), soa);
+  if (m_params.useRiemannFit_) {
+    fitter.launchRiemannKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
+  } else {
+    fitter.launchBrokenLineKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
+  }
+
+#ifdef NTUPLE_DEBUG
+  std::cout << "..end of n-tuplets fit.\n";
+  std::cout << "------------------------\n";
+#endif
+
+  kernels.classifyTuples(hits_d, soa, stream);
   stream.wait();
+  
+  if (m_params.doStats_) {
+    kernels.printCounters(m_counters.get(), stream);
+  }
+  stream.wait();
+
   return tracks;
 }

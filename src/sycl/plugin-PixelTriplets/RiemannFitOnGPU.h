@@ -7,6 +7,7 @@
 #include <CL/sycl.hpp>
 
 #include "SYCLDataFormats/TrackingRecHit2DSYCL.h"
+#include "SYCLCore/printf.h"
 #include "SYCLCore/sycl_assert.h"
 #include "CondFormats/pixelCPEforGPU.h"
 
@@ -118,9 +119,9 @@ void kernelCircleFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMul
     circle_fit[local_idx] = Rfit::Circle_fit(hits.block(0, 0, 2, N), hits_cov, fast_fit, rad, B, true);
 
 #ifdef RIEMANN_DEBUG
-//    auto tkid = *(tupleMultiplicity->begin(nHits) + tuple_idx);
-//  printf("kernelCircleFit circle.par(0,1,2): %d %f,%f,%f\n", tkid,
-//         circle_fit[local_idx].par(0), circle_fit[local_idx].par(1), circle_fit[local_idx].par(2));
+    auto tkid = *(tupleMultiplicity->begin(nHits) + tuple_idx);
+    printf("kernelCircleFit circle.par(0,1,2): %d %f,%f,%f\n", tkid,
+         circle_fit[local_idx].par(0), circle_fit[local_idx].par(1), circle_fit[local_idx].par(2));
 #endif
   }
 }
@@ -164,8 +165,8 @@ void kernelLineFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMulti
     results->stateAtBS.copyFromCircle(
         circle_fit[local_idx].par, circle_fit[local_idx].cov, line_fit.par, line_fit.cov, 1.f / float(B), tkid);
     results->pt(tkid) = B / sycl::abs(circle_fit[local_idx].par(2));
-    results->eta(tkid) = sycl::asinh(line_fit.par(0)); //FIXME_ should be asinhf!!
-    //results->eta(tkid) = asinhf(line_fit.par(0));
+    //results->eta(tkid) = sycl::asinh(line_fit.par(0)); 
+    results->eta(tkid) = asinhf(line_fit.par(0)); 
     results->chi2(tkid) = (circle_fit[local_idx].chi2 + line_fit.chi2) / (2 * N - 5);
 
 #ifdef RIEMANN_DEBUG

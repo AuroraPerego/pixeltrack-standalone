@@ -47,8 +47,7 @@ namespace gpuPixelDoublets {
                                        uint32_t maxNumOfDoublets,
                                        sycl::nd_item<3> item,
                                        uint32_t* innerLayerCumulativeSize,
-                                       uint32_t* ntot,
-                                       sycl::stream out) {
+                                       uint32_t* ntot) {
     // ysize cuts (z in the barrel)  times 8
     // these are used if doClusterCut is true
     constexpr int minYsizeB1 = 36;
@@ -109,7 +108,6 @@ namespace gpuPixelDoublets {
       i += offsets[inner];
 
       // printf("Hit in Layer %d %d %d %d\n", i, inner, pairLayerId, j);
-      // out << "Hit in Layer " <<  i << " " << inner << " " << pairLayerId << " " << j << "\n";
 
       assert(i >= offsets[inner]);
       assert(i < offsets[inner + 1]);
@@ -142,7 +140,7 @@ namespace gpuPixelDoublets {
 
         if (inner == 0 && outer > 3)  // B1 and F1
           if (mes > 0 && mes < minYsizeB1)
-            continue;                 // only long cluster  (5*8)
+            continue;    // only long cluster  (5*8)
         if (inner == 1 && outer > 3)  // B2 and F1
           if (mes > 0 && mes < minYsizeB2)
             continue;
@@ -206,20 +204,17 @@ namespace gpuPixelDoublets {
 #endif
         auto const* __restrict__ p = hist.begin(kk + hoff);
         auto const* __restrict__ e = hist.end(kk + hoff);
-        //out << j << " " << *p << " " << *e << "\n";
         p += first;
         for (; p < e; p += stride) {
-          auto oi = *(p);
-          //SAME oi in sycl and serial
+          auto oi = *(p); 
           assert(oi >= offsets[outer]);
           assert(oi < offsets[outer + 1]);
           auto mo = hh.detectorIndex(oi);
           if (mo > 2000)
-            continue;  //    invalid
+            continue;   //    invalid
 
           if (doZ0Cut && z0cutoff(oi))
             continue;
-
           auto mop = hh.iphi(oi);
           uint16_t idphi = sycl::min(abs(int16_t(mop - mep)), abs(int16_t(mep - mop)));
           if (idphi > iphicut)
@@ -237,11 +232,7 @@ namespace gpuPixelDoublets {
           }  // move to SimpleVector??
           // int layerPairId, int doubletId, int innerHitId, int outerHitId)
           cells[ind].init(*cellNeighbors, *cellTracks, hh, pairLayerId, ind, i, oi);
-          //out << pairLayerId << " " << i << " " << oi << "\n";
-          //SAME ind sycl and serial
           isOuterHitOfCell[oi].push_back(ind);
-          //out << oi << " " << isOuterHitOfCell[oi][pos] << "\n";
-          //out << j << " " << oi << " " << ind << "\n"; //-> sycl2
 #ifdef GPU_DEBUG
           if (isOuterHitOfCell[oi].full())
             ++tooMany;
@@ -252,7 +243,7 @@ namespace gpuPixelDoublets {
 
 #ifdef GPU_DEBUG
       if (tooMany > 0)
-        out << "OuterHitOfCell full for " << i << " in layer " << inner << "/" << outer << ", " << nmin << ", " << tot << " " << tooMany << "\n";
+        printf("OuterHitOfCell full for %d in layer %d/%d, %d,%d %d\n", i, inner, outer, nmin, tot, tooMany);
 #endif
     }  // loop in block...
   }

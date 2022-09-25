@@ -193,31 +193,22 @@ namespace cms {
 
       __forceinline void add(CountersOnly const &co) {
         for (uint32_t i = 0; i < totbins(); ++i) {
-
-          cms::sycltools::atomic_fetch_add<uint32_t>(off +i, static_cast<uint32_t>(co.off[i]));
-          //cms::sycltools::AtomicAdd<uint32_t>(off +i, co.off[i]);
-          //__CUDA_ARCH__
-          //auto &a = (std::atomic<Counter> &)(off[i]);
-          //a += co.off[i];
+          cms::sycltools::atomic_fetch_add<uint32_t,
+                                           sycl::access::address_space::local_space,
+                                           sycl::memory_scope::device>(off +i, static_cast<uint32_t>(co.off[i]));
         }
       }
 
       static __forceinline uint32_t atomicIncrement(Counter &x) {
-
-        return cms::sycltools::atomic_fetch_add<Counter>(&x, 1);
-        //return cms::sycltools::AtomicAdd(&x, 1);
-        //__CUDA_ARCH__
-        //auto &a = (std::atomic<Counter> &)(x);
-        //return a++;
-
+        return cms::sycltools::atomic_fetch_add<Counter,
+                                                sycl::access::address_space::local_space,
+                                                sycl::memory_scope::device>(&x, 1);
       }
 
       static __forceinline uint32_t atomicDecrement(Counter &x) {
-        return cms::sycltools::atomic_fetch_sub<Counter>(&x, 1);
-        //return cms::sycltools::AtomicSub(&x, 1);
-        //__CUDA_ARCH__
-        //auto &a = (std::atomic<Counter> &)(x);
-        //return a--;
+        return cms::sycltools::atomic_fetch_sub<Counter,
+                                                sycl::access::address_space::local_space,
+                                                sycl::memory_scope::device>(&x, 1);
       }
 
       __forceinline void countDirect(T b) {

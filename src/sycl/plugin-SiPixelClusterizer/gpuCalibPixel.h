@@ -7,6 +7,7 @@
 
 #include "CondFormats/SiPixelGainForHLTonGPU.h"
 #include "SYCLCore/sycl_assert.h"
+#include "SYCLCore/printf.h"
 
 #include "gpuClusteringConstants.h"
 
@@ -30,8 +31,7 @@ namespace gpuCalibPixel {
                   uint32_t* __restrict__ moduleStart,        // just to zero first
                   uint32_t* __restrict__ nClustersInModule,  // just to zero them
                   uint32_t* __restrict__ clusModuleStart,    // just to zero first
-                  sycl::nd_item<1> item,
-                  const sycl::stream out
+                  sycl::nd_item<1> item
   ) {
     int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
     // zero for next kernels...
@@ -63,7 +63,7 @@ namespace gpuCalibPixel {
       if (isDeadColumn | isNoisyColumn) {
         id[i] = InvId;
         adc[i] = 0;
-        out << "bad pixel at " << i << " in " << id[i] << "\n";
+        printf("bad pixel at %d in %d\n", i, id[i]);
       } else {
         float vcal = adc[i] * gain - pedestal * gain;
         adc[i] = sycl::max(100, int(vcal * conversionFactor + offset));

@@ -10,9 +10,10 @@
 #include <CL/sycl.hpp>
 #include <stdatomic.h>
 
+#include "SYCLCore/printf.h"
 #include "SYCLCore/SimpleVector.h"
-#include "SYCLCore/VecArray.h"
 #include "SYCLCore/sycl_assert.h"
+#include "SYCLCore/VecArray.h"
 #include "SYCLDataFormats/PixelTrackHeterogeneous.h"
 #include "SYCLDataFormats/TrackingRecHit2DSYCL.h"
 
@@ -24,7 +25,6 @@ using sycl::abs;
 class GPUCACell {
 public:
   using ptrAsInt = unsigned long long;
-
 
   static constexpr int maxCellsPerHit = CAConstants::maxCellsPerHit();
   using OuterHitOfCell = CAConstants::OuterHitOfCell;
@@ -68,41 +68,23 @@ public:
     assert(tracks().empty());
   }
 
-  __forceinline int addOuterNeighbor(CellNeighbors::value_t t, CellNeighborsVector& cellNeighbors, sycl::stream out) {
+  __forceinline int addOuterNeighbor(CellNeighbors::value_t t, CellNeighborsVector& cellNeighbors) {
 
     // use smart cache
-    //out << "oN: " << outerNeighbors().empty() << " ";
     if (outerNeighbors().empty()) {
       auto i = cellNeighbors.extend();  // maybe waisted....
-      //out << "previous size: " << i << " ";
       if (i > 0) {
         cellNeighbors[i].reset();
-        /*
-        DPCT1078:1: Consider replacing memory_order::acq_rel with memory_order::seq_cst for correctness if strong memory order restrictions are needed.
-        */
         sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
 	
-	auto zero = (ptrAsInt)(&cellNeighbors[0]);
-	cms::sycltools::atomic_compare_exchange_strong<ptrAsInt>((ptrAsInt*)(&theOuterNeighbors),
-			  					zero,
-			  					(ptrAsInt)(&cellNeighbors[i]));
-     /* auto zero = (ptrAsInt)(&cellNeighbors[0]);
-      out << "zero = " << cellNeighbors[0] << " and " << *zero << "\n";
-	    ptrAsInt* zero_pointer = zero;
-	    auto val = (ptrAsInt)(cellNeighbors[i]);
-	    ptrAsInt* val_pointer = val;
-	    auto obj_arg = (ptrAsInt*)(&theOuterNeighbors); 
-	    sycl::atomic_ref<ptrAsInt*, sycl::memory_order::relaxed, sycl::memory_scope::device> obj_atomic(obj_arg);
-	    obj_atomic.compare_exchange_strong(zero_pointer, val_pointer, sycl::memory_order::relaxed, sycl::memory_scope::device);
-*/	     // if fails we cannot give "i" back...
-	//for (int i = 0; i < 36; i++)
-     	//	out << (*theOuterNeighbors)[i] << ", ";
-	//out  << "\n";
+	      auto zero = (ptrAsInt)(&cellNeighbors[0]);
+	      cms::sycltools::atomic_compare_exchange_strong<ptrAsInt>((ptrAsInt*)(&theOuterNeighbors),
+			  					                                                zero,
+			  					                                                (ptrAsInt)(&cellNeighbors[i]));
       } else
         return -1;
     }
     sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
-    //out << "t " << t << "\n";
     return outerNeighbors().push_back(t);
   }
 
@@ -114,13 +96,10 @@ public:
         sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
 
       auto zero = (ptrAsInt)(&cellTracks[0]);
-	    ptrAsInt* zero_pointer = &zero;
-	    auto val = (ptrAsInt)(&cellTracks[i]);
-	    ptrAsInt* val_pointer = &val;
-	    auto obj_arg = (ptrAsInt*)(&theTracks); 
-	    sycl::atomic_ref<ptrAsInt*, sycl::memory_order::relaxed, sycl::memory_scope::device> obj_atomic(obj_arg);
-	    obj_atomic.compare_exchange_strong(zero_pointer, val_pointer, sycl::memory_order::relaxed, sycl::memory_scope::device);
-	     // if fails we cannot give "i" back...
+	    cms::sycltools::atomic_compare_exchange_strong<ptrAsInt>((ptrAsInt*)(&theTracks),
+								                                                zero,
+								                                                (ptrAsInt)(&cellTracks[i]));
+	    // if fails we cannot give "i" back...
       } else
         return -1;
     }
@@ -153,12 +132,12 @@ public:
   constexpr unsigned int get_outer_hit_id() const { return theOuterHitId; }
 
   void print_cell() const {
-    printf("printing cell: %d, on layerPair: %d, innerHitId: %d, outerHitId: %d \n",
-           theDoubletId,
+      printf("printing cell: %d, on layerPair: %d, innerHitId: %d, outerHitId: %d \n",
+           theDoubletId, //In SYCL this value is random and cannot be use to compare results
            theLayerPairId,
            theInnerHitId,
            theOuterHitId);
-  }
+  } 
 
   bool check_alignment(Hits const& hh,
                        GPUCACell const& otherCell,
@@ -209,19 +188,6 @@ public:
     return tan_12_13_half_mul_distance_13_squared * pMin <= thetaCut * distance_13_squared * radius_diff;
   }
 
-  __forceinline static bool areAlignedRZ(
-      float r1, float z1, float ri, float zi, float ro, float zo, const float ptmin, const float thetaCut, sycl::stream out) {
-    float radius_diff = abs(r1 - ro);
-    out << sycl::stream_manipulator::fixed << sycl::setprecision(4) << r1 << " - " << ro << " = " << radius_diff << "\n"; //<< r1 << ri << zi << ro << zo << ptmin << 
-    float distance_13_squared = radius_diff * radius_diff + (z1 - zo) * (z1 - zo);
-
-    float pMin = ptmin * sycl::sqrt(distance_13_squared);  // this needs to be divided by
-                                                          // radius_diff later
-
-    float tan_12_13_half_mul_distance_13_squared = fabs(z1 * (ri - ro) + zi * (ro - r1) + zo * (r1 - ri));
-    return tan_12_13_half_mul_distance_13_squared * pMin <= thetaCut * distance_13_squared * radius_diff;
-  }
-
   inline bool dcaCut(Hits const& hh,
                      GPUCACell const& otherCell,
                      const float region_origin_radius_plus_tolerance,
@@ -239,32 +205,8 @@ public:
 
     if (eq.curvature() > maxCurv)
       return false;
-
+  
     return abs(eq.dca0()) < region_origin_radius_plus_tolerance * abs(eq.curvature());
-  }
-
-  inline bool dcaCut(Hits const& hh,
-                     GPUCACell const& otherCell,
-                     const float region_origin_radius_plus_tolerance,
-                     const float maxCurv,
-                     sycl::stream out) const {
-    auto x1 = otherCell.get_inner_x(hh);
-    auto y1 = otherCell.get_inner_y(hh);
-
-    auto x2 = get_inner_x(hh);
-    auto y2 = get_inner_y(hh);
-
-    auto x3 = get_outer_x(hh);
-    auto y3 = get_outer_y(hh);
-    
-    CircleEq<float> eq(x1, y1, x2, y2, x3, y3);
-
-    //out << sycl::stream_manipulator::fixed << sycl::setprecision(10) << (region_origin_radius_plus_tolerance * abs(eq.curvature())) << " ";
-    if (eq.curvature() > maxCurv){
-      //out << "False ";
-      return false;}
-
-    return abs(eq.dca0()) < (region_origin_radius_plus_tolerance * abs(eq.curvature()));
   }
 
   __forceinline static bool dcaCutH(float x1,
@@ -346,8 +288,7 @@ public:
                             Quality* __restrict__ quality,
                             TmpTuple& tmpNtuplet,
                             const unsigned int minHitsPerNtuplet,
-                            bool startAt0,
-			    sycl::stream out) const {
+                            bool startAt0) const {
     // the building process for a track ends if:
     // it has no right neighbor
     // it has no compatible neighbor
@@ -359,15 +300,13 @@ public:
     bool last = true;
     for (int j = 0; j < outerNeighbors().size(); ++j) {
       auto otherCell = outerNeighbors()[j];
-      if (cells[otherCell].theDoubletId < 0 || DEPTH == 1)
+      if (cells[otherCell].theDoubletId < 0 || DEPTH == 1) // || DEPTH == 1 added to make it compile on GPU
         continue;  // killed by earlyFishbone
       last = false;
-      //FIXME_ Now it works with the add of if DEPTH == 1, check if the results are still the same or not
-      //cells[otherCell].find_ntuplets<DEPTH - 1>(
-      //    hh, cells, cellTracks, foundNtuplets, apc, quality, tmpNtuplet, minHitsPerNtuplet, startAt0, out);
+      cells[otherCell].find_ntuplets<DEPTH - 1>(
+          hh, cells, cellTracks, foundNtuplets, apc, quality, tmpNtuplet, minHitsPerNtuplet, startAt0);
     }
     if (last) {  // if long enough save...
-      //out << "last\n";
       if ((unsigned int)(tmpNtuplet.size()) >= minHitsPerNtuplet - 1) {
 #ifdef ONLY_TRIPLETS_IN_HOLE
         // triplets accepted only pointing to the hole
@@ -419,9 +358,8 @@ inline void GPUCACell::find_ntuplets<0>(Hits const& hh,
                                                    Quality* __restrict__ quality,
                                                    TmpTuple& tmpNtuplet,
                                                    const unsigned int minHitsPerNtuplet,
-                                                   bool startAt0,
-						   sycl::stream out) const {
-    out << "ERROR: GPUCACell::find_ntuplets reached full depth!\n";
+                                                   bool startAt0) const {
+    printf("ERROR: GPUCACell::find_ntuplets reached full depth!\n");
 
     abort(); // was __trap() in CUDA with #ifdef __CUDA_ARCH__
 

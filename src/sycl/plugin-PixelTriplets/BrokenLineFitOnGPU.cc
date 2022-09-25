@@ -1,6 +1,5 @@
 #include "BrokenLineFitOnGPU.h"
 #include "SYCLCore/device_unique_ptr.h"
-#define CPU_DEBUG 1
 
 void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                             uint32_t hitsInFit,
@@ -31,7 +30,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
-                kernelBLFastFit<1>(tuples_d_kernel, 
+                kernelBLFastFit<3>(tuples_d_kernel, 
                                    tupleMultiplicity_d_kernel, 
                                    hv_kernel, 
                                    hitsGPU_kernel, 
@@ -44,9 +43,8 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       });
     });
 
-    #ifdef CPU_DEBUG
+    if ((stream.get_device()).is_cpu())
       stream.wait();
-    #endif
     
     stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
@@ -59,7 +57,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
-                kernelBLFit<1>(tupleMultiplicity_d_kernel,
+                kernelBLFit<3>(tupleMultiplicity_d_kernel,
                                bField_kernel,
                                outputSoa_d_kernel,
                                hitsGPU_kernel,
@@ -71,9 +69,8 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       });
     });
     
-    #ifdef CPU_DEBUG
+    if ((stream.get_device()).is_cpu())
       stream.wait();
-    #endif
 
     // fit quads
     stream.submit([&](sycl::handler &cgh) {
@@ -100,9 +97,8 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                    (int *)done_acc.get_pointer());
       });
     });
-    #ifdef CPU_DEBUG
+    if ((stream.get_device()).is_cpu())
       stream.wait();
-    #endif
 
     stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
@@ -126,9 +122,8 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                item);
       });
     });
-    #ifdef CPU_DEBUG
+    if ((stream.get_device()).is_cpu())
       stream.wait();
-    #endif
 
     if (fit5as4_) {
       // fit penta (only first 4)
@@ -156,9 +151,8 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                    (int *)done_acc.get_pointer());
           });
         });
-    #ifdef CPU_DEBUG
+    if ((stream.get_device()).is_cpu())
       stream.wait();
-    #endif
     
     stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
@@ -182,9 +176,8 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                item);
         });
       });
-    #ifdef CPU_DEBUG
+    if ((stream.get_device()).is_cpu())
       stream.wait();
-    #endif
 
     } else {
       // fit penta (all 5)
@@ -212,9 +205,8 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                    (int *)done_acc.get_pointer());
           });
         });
-    #ifdef CPU_DEBUG
-      stream.wait();
-    #endif
+      if ((stream.get_device()).is_cpu())
+        stream.wait();
 
       stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
@@ -238,9 +230,8 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                item);
         });
       });
-    #ifdef CPU_DEBUG
+    if ((stream.get_device()).is_cpu())
       stream.wait();
-    #endif
     }
   }  // loop on concurrent fits
 }

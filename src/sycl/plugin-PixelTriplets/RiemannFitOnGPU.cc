@@ -1,7 +1,4 @@
 #include "RiemannFitOnGPU.h"
-//#include "SYCLCore/device_unique_ptr.h"
-
-#define CPU_DEBUG 1
 
 void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                          uint32_t nhits,
@@ -48,14 +45,13 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       });
     });
 
-    #ifdef CPU_DEBUG
+    if ((stream.get_device()).is_cpu())
       stream.wait();
-    #endif
     
     stream.submit([&](sycl::handler &cgh) {
-        auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
-	auto bField_kernel = bField_;
-        auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
+      auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+	    auto bField_kernel = bField_;
+      auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
       auto hitsGPU_kernel = hitsGPU_.get(); 
       auto hits_geGPU_kernel = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
@@ -73,15 +69,15 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                    item);
       });
     });
-    #ifdef CPU_DEBUG
+    
+    if ((stream.get_device()).is_cpu())
       stream.wait();
-    #endif
 
     stream.submit([&](sycl::handler &cgh) {
-        auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
-	auto bField_kernel = bField_;
-	auto outputSoa_d_kernel = outputSoa_d;
-        auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
+      auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+	    auto bField_kernel = bField_;
+	    auto outputSoa_d_kernel = outputSoa_d;
+      auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
       auto hitsGPU_kernel = hitsGPU_.get(); 
       auto hits_geGPU_kernel = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
@@ -100,9 +96,9 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
       });
     });
-    #ifdef CPU_DEBUG
+    
+    if ((stream.get_device()).is_cpu())
       stream.wait();
-    #endif
 
     // quads
     stream.submit([&](sycl::handler &cgh) {
@@ -126,14 +122,14 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
       });
     });
-    #ifdef CPU_DEBUG
+    
+    if ((stream.get_device()).is_cpu())
       stream.wait();
-    #endif
 
     stream.submit([&](sycl::handler &cgh) {
-        auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
-	auto bField_kernel = bField_;
-        auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
+      auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+	    auto bField_kernel = bField_;
+      auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
       auto hitsGPU_kernel = hitsGPU_.get(); 
       auto hits_geGPU_kernel = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
@@ -151,15 +147,15 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                    item);
       });
     });
-    #ifdef CPU_DEBUG
+    
+    if ((stream.get_device()).is_cpu())
       stream.wait();
-    #endif
 
     stream.submit([&](sycl::handler &cgh) {
-        auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
-	auto bField_kernel = bField_;
-	auto outputSoa_d_kernel = outputSoa_d;
-        auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
+      auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
+	    auto bField_kernel = bField_;
+	    auto outputSoa_d_kernel = outputSoa_d;
+      auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
       auto hitsGPU_kernel = hitsGPU_.get(); 
       auto hits_geGPU_kernel = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
@@ -178,9 +174,9 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
       });
     });
-    #ifdef CPU_DEBUG
+    
+    if ((stream.get_device()).is_cpu())
       stream.wait();
-    #endif
 
     if (fit5as4_) {
       // penta
@@ -205,9 +201,9 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                  item);
         });
       });
-     #ifdef CPU_DEBUG
-      stream.wait();
-    #endif
+    
+      if ((stream.get_device()).is_cpu())
+        stream.wait();
 
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
@@ -230,14 +226,14 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                      item);
         });
       });
-     #ifdef CPU_DEBUG
-      stream.wait();
-    #endif
+      
+      if ((stream.get_device()).is_cpu())
+        stream.wait();
 
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
-	auto bField_kernel = bField_;
-	auto outputSoa_d_kernel = outputSoa_d;
+	      auto bField_kernel = bField_;
+	      auto outputSoa_d_kernel = outputSoa_d;
         auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
         auto hitsGPU_kernel = hitsGPU_.get(); 
         auto hits_geGPU_kernel = hits_geGPU_.get(); 
@@ -257,9 +253,9 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                    item);
         });
       });
-    #ifdef CPU_DEBUG
-      stream.wait();
-    #endif    
+    
+      if ((stream.get_device()).is_cpu())
+        stream.wait();   
 
     } else {
       // penta all 5
@@ -284,18 +280,18 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                    item);
           });
       });
-    #ifdef CPU_DEBUG
-      stream.wait();
-    #endif 
-
+      
+      if ((stream.get_device()).is_cpu())
+        stream.wait();
+      
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
-	auto bField_kernel = bField_;
+	      auto bField_kernel = bField_;
         auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
         auto hitsGPU_kernel = hitsGPU_.get(); 
-      auto hits_geGPU_kernel = hits_geGPU_.get(); 
-      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
-      cgh.parallel_for(
+        auto hits_geGPU_kernel = hits_geGPU_.get(); 
+        auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
+        cgh.parallel_for(
             sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
             [=](sycl::nd_item<1> item){ 
                   kernelCircleFit<5>(tupleMultiplicity_d_kernel, //<5>
@@ -309,19 +305,19 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
                                      item);
         });
       });
-    #ifdef CPU_DEBUG
-      stream.wait();
-    #endif
+    
+      if ((stream.get_device()).is_cpu())
+        stream.wait();
 
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
-	auto bField_kernel = bField_;
-	auto outputSoa_d_kernel = outputSoa_d;
+	      auto bField_kernel = bField_;
+	      auto outputSoa_d_kernel = outputSoa_d;
         auto circle_fit_resultsGPU_kernel = circle_fit_resultsGPU_;
         auto hitsGPU_kernel = hitsGPU_.get(); 
-      auto hits_geGPU_kernel = hits_geGPU_.get(); 
-      auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
-      cgh.parallel_for(
+        auto hits_geGPU_kernel = hits_geGPU_.get(); 
+        auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
+        cgh.parallel_for(
             sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
             [=](sycl::nd_item<1> item){ 
                   kernelLineFit<5>(tupleMultiplicity_d_kernel,
@@ -337,9 +333,8 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
         });
       });
 
-    #ifdef CPU_DEBUG
-      stream.wait();
-    #endif
+      if ((stream.get_device()).is_cpu())
+        stream.wait();
     }
   }
 }

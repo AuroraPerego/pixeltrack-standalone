@@ -5,6 +5,7 @@
 /obj/
 /lib/
 /test/
+/plot/
 /.original_env
 /env.sh
 # data

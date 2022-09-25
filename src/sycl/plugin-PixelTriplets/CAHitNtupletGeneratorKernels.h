@@ -176,7 +176,6 @@ public:
  
 private:
   // workspace
-  //unique_ptr<Counters> counters_;
 
   unique_ptr<unsigned char[]> cellStorage_;
   unique_ptr<CAConstants::CellNeighborsVector> device_theCellNeighbors_;

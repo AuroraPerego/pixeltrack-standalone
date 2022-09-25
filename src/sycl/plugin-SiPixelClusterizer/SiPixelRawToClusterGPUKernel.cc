@@ -17,12 +17,11 @@
 #include <iostream>
 #include <string>
 
-// CUDA includes
+// SYCL includes
 #include <CL/sycl.hpp>
 
 // CMSSW includes
 #include "SYCLDataFormats/gpuClusteringConstants.h"
-//#include "SYCLCore/syclCheck.h"
 #include "SYCLCore/device_unique_ptr.h"
 #include "SYCLCore/host_unique_ptr.h"
 #include "SYCLCore/timing.h"
@@ -34,8 +33,6 @@
 #include "gpuClusterChargeCut.h"
 #include "gpuClustering.h"
 
-//#define GPU_DEBUG TRUE
-
 namespace pixelgpudetails {
 
   // number of words for all the FEDs
@@ -43,10 +40,6 @@ namespace pixelgpudetails {
 
   SiPixelRawToClusterGPUKernel::WordFedAppender::WordFedAppender()
       : word_(new unsigned int[MAX_FED_WORDS]), fedId_(new unsigned char[MAX_FED_WORDS]) {
-    //word_ = std::make_unique<unsigned int[]>(MAX_FED_WORDS);
-    //fedId_ = std::make_unique<unsigned char[]>(MAX_FED_WORDS);
-    //word_ = cms::sycltools::make_host_unique<unsigned int[]>(MAX_FED_WORDS, stream);
-    //fedId_ = cms::sycltools::make_host_unique<unsigned char[]>(MAX_FED_WORDS, stream);
   }
 
   void SiPixelRawToClusterGPUKernel::WordFedAppender::initializeWordFed(int fedId,
@@ -145,47 +138,41 @@ namespace pixelgpudetails {
 
     uint32_t gRow = rowOffset + slopeRow * local.row;
     uint32_t gCol = colOffset + slopeCol * local.col;
-    //printf("Inside frameConversion row: %u, column: %u\n", gRow, gCol);
     pixelgpudetails::Pixel global = {gRow, gCol};
     return global;
   }
 
-  uint8_t conversionError(uint8_t fedId, uint8_t status, const sycl::stream out, bool debug = false) {
+  uint8_t conversionError(uint8_t fedId, uint8_t status, bool debug = false) {
     uint8_t errorType = 0;
-
-    // debug = true;
 
     switch (status) {
       case (1): {
         if (debug)
-          /*
-          DPCT1015:23: Output needs adjustment.
-          */
-          out << "Error in Fed: " << fedId << ", invalid channel Id (errorType = 35\n)";
+          printf("Error in Fed: %i, invalid channel Id (errorType = 35\n)", fedId);
         errorType = 35;
         break;
       }
       case (2): {
         if (debug)
-          out << "Error in Fed: " << fedId << ", invalid ROC Id (errorType = 36)\n";
+          printf("Error in Fed: %i, invalid ROC Id (errorType = 36)\n", fedId);
         errorType = 36;
         break;
       }
       case (3): {
         if (debug)
-          out << "Error in Fed: " << fedId << ", invalid dcol/pixel value (errorType = 37)\n";
+          printf("Error in Fed: %i, invalid dcol/pixel value (errorType = 37)\n", fedId);
         errorType = 37;
         break;
       }
       case (4): {
         if (debug)
-          out << "Error in Fed: " << fedId << ", dcol/pixel read out of order (errorType = 38)\n";
+          printf("Error in Fed: %i, dcol/pixel read out of order (errorType = 38)\n", fedId);
         errorType = 38;
         break;
       }
       default:
         if (debug)
-          out << "Cabling check returned unexpected result, status = " << status << "\n";
+          printf("Cabling check returned unexpected result, status = %i\n", status);
     };
 
     return errorType;
@@ -203,12 +190,12 @@ namespace pixelgpudetails {
 
   uint8_t checkROC(
       uint32_t errorWord, uint8_t fedId, uint32_t link, const SiPixelFedCablingMapGPU *cablingMap,
-      sycl::stream out, bool debug = false) {
+      bool debug = false) {
       uint8_t errorType = (errorWord >> pixelgpudetails::ROC_shift) & pixelgpudetails::ERROR_mask;
       if (errorType >= 25)
-      out << "errortype is : " << errorType << "\n";
+        printf("errortype is : %d\n", errorType);
       if (errorType < 25)
-          return 0;
+        return 0;
       bool errorFound = false;
     
       switch (errorType) {
@@ -220,47 +207,47 @@ namespace pixelgpudetails {
              errorFound = false;
          }
          if (debug and errorFound)
-           out << "Invalid ROC = 25 found (errorType = 25)\n";
+          printf("Invalid ROC = 25 found (errorType = 25)\n");
          break;
        }
          case (26): {
            if (debug)
-             out << "Gap word found (errorType = 26)\n";
+             printf("Gap word found (errorType = 26)\n");
            errorFound = true;
            break;
          }
        case (27): {
          if (debug)
-           out << "Dummy word found (errorType = 27)\n";
+           printf("Dummy word found (errorType = 27)\n");
          errorFound = true;
          break;
        }
        case (28): {
          if (debug)
-           out << "Error fifo nearly full (errorType = 28)\n";
+           printf("Error fifo nearly full (errorType = 28)\n");
          errorFound = true;
          break;
        }
        case (29): {
          if (debug)
-           out << "Timeout on a channel (errorType = 29)\n";
+           printf("Timeout on a channel (errorType = 29)\n");
          if ((errorWord >> pixelgpudetails::OMIT_ERR_shift) & pixelgpudetails::OMIT_ERR_mask) {
            if (debug)
-             out << "...first errorType=29 error, this gets masked out\n";
+             printf("...first errorType=29 error, this gets masked out\n");
          }
          errorFound = true;
          break;
        }
        case (30): {
          if (debug)
-           out << "TBM error trailer (errorType = 30)\n";
+           printf("TBM error trailer (errorType = 30)\n");
          int StateMatch_bits = 4;
          int StateMatch_shift = 8;
          uint32_t StateMatch_mask = ~(~uint32_t(0) << StateMatch_bits);
          int StateMatch = (errorWord >> StateMatch_shift) & StateMatch_mask;
          if (StateMatch != 1 && StateMatch != 8) {
            if (debug)
-             out << "FED error 30 with unexpected State Bits (errorType = 30)\n";
+             printf("FED error 30 with unexpected State Bits (errorType = 30)\n");
          }
          if (StateMatch == 1)
            errorType = 40;  // 1=Overflow -> 40, 8=number of ROCs -> 30
@@ -269,7 +256,7 @@ namespace pixelgpudetails {
        }
        case (31): {
          if (debug)
-           out << "Event number error (errorType = 31)\n";
+          printf("Event number error (errorType = 31)\n");
          errorFound = true;
          break;
        }
@@ -373,11 +360,8 @@ namespace pixelgpudetails {
                                    bool useQualityInfo,
                                    bool includeErrors,
                                    bool debug,
-                                   sycl::nd_item<1> item,
-                                   sycl::stream out
+                                   sycl::nd_item<1> item
                                    ) {
-    //if (threadIdx.x==0) printf("Event: %u blockIdx.x: %u start: %u end: %u\n", eventno, blockIdx.x, begin, end);
-     debug = true;
      int32_t first = item.get_local_id(0) + item.get_group(0) * item.get_local_range(0);
      for (int32_t iloop = first, nend = wordCounter; iloop < nend;
           iloop += item.get_local_range(0) * item.get_group_range(0)) {
@@ -403,10 +387,8 @@ namespace pixelgpudetails {
           uint32_t link = getLink(ww);  // Extract link
           uint32_t roc = getRoc(ww);    // Extract Roc in link
           pixelgpudetails::DetIdGPU detId = getRawId(cablingMap, fedId, link, roc);
-          // if (iloop>48000)
-          // out << detId.moduleId << "\n";
    
-          uint8_t errorType = checkROC(ww, fedId, link, cablingMap, out, debug);
+          uint8_t errorType = checkROC(ww, fedId, link, cablingMap, debug);
 
           skipROC = (roc < pixelgpudetails::maxROCIndex) ? false : (errorType != 0);
           if (includeErrors and skipROC) {
@@ -437,7 +419,6 @@ namespace pixelgpudetails {
           } else {
             // endcap ids
             layer = 0;
-            //out << __LINE__ ;
             panel = (rawId >> pixelgpudetails::panelStartBit) & pixelgpudetails::panelMask;
             //disk  = (rawId >> diskStartBit_) & diskMask_;
             side = (panel == 1) ? -1 : 1;
@@ -453,10 +434,10 @@ namespace pixelgpudetails {
             localPix.col = col;
             if (includeErrors) {
               if (not rocRowColIsValid(row, col)) {
-                uint8_t error = conversionError(fedId, 3, out, debug);  //use the device function and fill the arrays
+                uint8_t error = conversionError(fedId, 3, debug);  //use the device function and fill the arrays
                 err->push_back(PixelErrorCompact{rawId, ww, error, fedId});
-                // if (debug)
-                //   out << "BPIX1  Error status: " << error << "\n";
+                 if (debug)
+                   printf("BPIX1  Error status: %i\n", error);
                 continue;
               }
             }
@@ -469,29 +450,26 @@ namespace pixelgpudetails {
             localPix.row = row;
             localPix.col = col;
             if (includeErrors and not dcolIsValid(dcol, pxid)) {
-              uint8_t error = conversionError(fedId, 3, out, debug);
+              uint8_t error = conversionError(fedId, 3, debug);
               err->push_back(PixelErrorCompact{rawId, ww, error, fedId});
-              // if (debug)
-              //   out << "Error status: " << error << dcol << pxid << fedId << roc << "\n";
+               if (debug)
+                 printf("Error status: %i %d %d %d %d\n", error, dcol, pxid, fedId, roc);
               continue;
             }
           }
 
-          //out << "never got here 222222" ;
           pixelgpudetails::Pixel globalPix = frameConversion(barrel, side, layer, rocIdInDetUnit, localPix);
           xx[gIndex] = globalPix.row;  // origin shifting by 1 0-159
           yy[gIndex] = globalPix.col;  // origin shifting by 1 0-415
           adc[gIndex] = getADC(ww);
           pdigi[gIndex] = pixelgpudetails::pack(globalPix.row, globalPix.col, adc[gIndex]);
           moduleId[gIndex] = detId.moduleId;
-          // if  (moduleId[gIndex] >= 5000)
-          // out << moduleId[gIndex] << "\n";
           rawIdArr[gIndex] = rawId;
       }  // end of loop (gIndex < end)
   }  // end of Raw to Digi kernel
 
   void fillHitsModuleStart(uint32_t const *__restrict__ cluStart, uint32_t *__restrict__ moduleStart,
-                           sycl::nd_item<1> item, uint32_t *ws, sycl::stream out) {
+                           sycl::nd_item<1> item, uint32_t *ws) {
     assert(gpuClustering::MaxNumModules < 2048);  // easy to extend at least till 32*1024
     assert(1 == item.get_group_range(0));
     assert(0 == item.get_group(0));
@@ -510,9 +488,7 @@ namespace pixelgpudetails {
          i += item.get_local_range(0)) {
       moduleStart[i] += moduleStart[1024];
     }
-    /*
-    DPCT1065:30: Consider replacing sycl::nd_item::barrier() with sycl::nd_item::barrier(sycl::access::fence_space::local_space) for better performance if there is no access to global memory.
-    */
+    
     item.barrier();
 
 #ifdef GPU_DEBUG
@@ -529,7 +505,7 @@ namespace pixelgpudetails {
       // [BPX1, BPX2, BPX3, BPX4,  FP1,  FP2,  FP3,  FN1,  FN2,  FN3, LAST_VALID]
       // [   0,   96,  320,  672, 1184, 1296, 1408, 1520, 1632, 1744,       1856]
       if (i == 96 || i == 1184 || i == 1744 || i == gpuClustering::MaxNumModules)
-        out << "moduleStart [" << i << "] = " << moduleStart[i] << "\n" ;
+        printf("moduleStart [%d] = %d\n", i, moduleStart[i]);
     }
 #endif
 
@@ -555,7 +531,6 @@ namespace pixelgpudetails {
                                                        bool debug,
                                                        sycl::queue stream) {
        nDigis = wordCounter;
-   //std::cout << "decoding " << wordCounter << " digis. Max is " << pixelgpudetails::MAX_FED_WORDS << std::endl;
    #ifdef GPU_DEBUG
        std::cout << "decoding " << wordCounter << " digis. Max is " << pixelgpudetails::MAX_FED_WORDS << std::endl;
    #endif
@@ -572,29 +547,21 @@ namespace pixelgpudetails {
          const int blocks = (wordCounter + threadsPerBlock - 1) / threadsPerBlock;  // fill it all
          sycl::range<1> numthreadsPerBlock(threadsPerBlock);
          sycl::range<1> globalSize(blocks*threadsPerBlock);
-         //std::cout << "blocks = " << blocks << "\n" << std::endl  
          assert(0 == wordCounter % 2);
-         // wordCounter is the total no of words in each event to be trasfered on device
-         // auto word_d = cms::sycltools::make_device_unique<uint32_t[]>(wordCounter, stream);
-         // auto fedId_d = cms::sycltools::make_device_unique<uint8_t[]>(wordCounter, stream);
 
          auto word_d = sycl::malloc_device<uint32_t>(wordCounter, stream);
          auto fedId_d = sycl::malloc_device<uint8_t>(wordCounter, stream);
 
          stream.memcpy(word_d, wordFed.word(), sizeof(uint32_t)*wordCounter);         
-        //  for (uint32_t i=0; i<wordCounter; i++)
-        //  {
-        //  std::cout << wordFed.word()[i] << std::endl;
-        //  }
          stream.memcpy(fedId_d, wordFed.fedId(), sizeof(uint8_t)*wordCounter/2);
-        //    for (uint8_t i=0; i<wordCounter/2; i++)
-        //  {
-        //  std::cout << wordFed.fedId()[i] << std::endl;
-        //  }
+        
+        // #FIXME_ if debug=false on CPU all results are zero
+        bool cpu_debug = true;
+        if((stream.get_device()).is_cpu()){
+          cpu_debug = debug;
+          debug = true;
+        }
 
-         //std::cout << __LINE__ << std::endl;
-         Clock clock;
-         clock.start();
          stream.submit([&](sycl::handler &cgh) {
                  auto cablingMap_kernel   = cablingMap;
                  auto modToUnp_kernel     = modToUnp;
@@ -607,7 +574,6 @@ namespace pixelgpudetails {
                  auto digis_raw_kernel    = digis_d.rawIdArr();
                  auto digis_mod_kernel    = digis_d.moduleInd();
                  auto digiErrors_d_kernel = digiErrors_d.error();
-           sycl::stream out(50000, 768, cgh);
            cgh.parallel_for(sycl::nd_range<1>(globalSize, numthreadsPerBlock),
                              [=](sycl::nd_item<1> item) {
                                    RawToDigi_kernel(cablingMap_kernel,
@@ -625,67 +591,21 @@ namespace pixelgpudetails {
                                                     useQualityInfo,
                                                     includeErrors,
                                                     debug,
-                                                    item,
-   						                                      out
-                                                     );
+                                                    item);
                              });
-   	}).wait();
-    std::cout << "Execution time: " << clock.stop() << " seconds" << std::endl;
-
-          // auto adcout = digis_d.adcToHostAsyncTest(stream);
-          // for (auto i=0; i<48316; i++)
-          // {
-          //   std::cout << "adc["<< i <<"] is : " << adcout[i] << std::endl;
-          // }
-      //  auto iwant = digis_d.moduleIndToHostAsync(stream);
-
-      //          for (auto i=0; i<99; i++)
-      //          {
-      //            std::cout << "moduleInd["<< i <<"] is : " << iwant[i] << std::endl;
-      //          }
-          /*
-          DPCT1010:31: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
-          */
-          //cudaCheck(0);
-      #ifdef GPU_DEBUG
-            //stream.wait();
-            //cudaCheck(cudaGetLastError());
-      #endif
-
-            // auto adcout = digis_d.adcToHostAsyncTest(stream);
-            //  auto iwant = digis_d.moduleIndToHostAsync(stream);
-            //  auto xx = digis_d.xxToHostAsyncTest(stream);
-            //  auto yy = digis_d.yyToHostAsyncTest(stream);
-            // for (auto i=0; i<48316; i++)
-            // {
-            //   std::cout << "moduleInd["<< i <<"] is : " << iwant[i] << std::endl;
-            // }
-            // for (auto i=0; i<48316; i++)
-            // {
-            // std::cout << "xx["<< i <<"] is : " << digis_d.xx()[i] << std::endl;
-            // }   
+   	});
     
-            //  for (auto i=0; i<48316; i++)
-            // {
-            // std::cout << "yy["<< i <<"] is : " << digis_d.yy()[i] << std::endl;
-            // }  
-
-            // for (auto i=0; i<48316; i++)
-            // {
-            //   std::cout << "adc["<< i <<"] is : " << adcout[i] << std::endl;
-            // }
-            // if (includeErrors) {
-            //   digiErrors_d.copyErrorToHostAsync(stream);
-            // }
-          // bool isDeadColumn = false, isNoisyColumn = false;
-          // for (auto i=0; i<48316; i++)
-          // {
-          //   auto ret = gains->getPedAndGain(iwant[i], digis_d.yy()[i], digis_d.xx()[i], isDeadColumn, isNoisyColumn);
-          //   float pedestal = ret.first;
-          //   float gain = ret.second;
-          //   std::cout << "pedestal = " << pedestal << " gain = "<< gain << std::endl;
-
-          // }
+      #ifdef GPU_DEBUG
+          stream.wait();
+      #else
+          if((stream.get_device()).is_cpu()){
+            debug = cpu_debug;
+            stream.wait();
+          }
+      #endif
+        
+          sycl::free(word_d,stream);
+          sycl::free(fedId_d,stream);
        }
           // End of Raw2Digi and passing data for clusterin  
           {
@@ -694,10 +614,7 @@ namespace pixelgpudetails {
             int threadsPerBlock = 256;
             int blocks =
                 (std::max(int(wordCounter), int(gpuClustering::MaxNumModules)) + threadsPerBlock - 1) / threadsPerBlock;
-         Clock clock;
-         clock.start();      
             stream.submit([&](sycl::handler &cgh) {
-      	sycl::stream out(50000, 768, cgh);
               auto digis_x_kernel     = digis_d.c_xx();
               auto digis_y_kernel     = digis_d.c_yy();
               auto digis_adc_kernel   = digis_d.adc();
@@ -718,32 +635,13 @@ namespace pixelgpudetails {
                                                                 clusters_d_kernel,
                                                                 clusters_in_kernel,
                                                                 clusters_cs_kernel,
-                                                                item,
-      							  out);
+                                                                item);
                                 });
       		});
-            /*
-            DPCT1010:32: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
-            */
-            //cudaCheck(0);
       #ifdef GPU_DEBUG
             stream.wait();
-            std::cout << "Execution time of calibDigis is changed : " << clock.stop() << " seconds" << std::endl;
-
-            //cudaCheck(cudaGetLastError());
       #endif
 
-          // auto adcout = digis_d.adcToHostAsyncTest(stream);
-          // for (auto i=0; i<48316; i++)
-          // {
-          //   std::cout << "adc["<< i <<"] is : " << adcout[i] << std::endl;
-          // }
-
-          //  auto moduleStart = clusters_d.clusModuleStartToHostAsyncTest(stream);
-          //  for (auto i=0; i<1791; i++)
-          //      {
-          //        std::cout << "moduleStart["<< i <<"] is : " << clusters_d.moduleStart()[i] << std::endl;
-          //      }
       #ifdef GPU_DEBUG
             std::cout << "SYCL countModules kernel launch with " << blocks << " blocks of " << threadsPerBlock
                       << " threads\n";
@@ -752,41 +650,18 @@ namespace pixelgpudetails {
       	        auto digis_ind_kernel  = digis_d.c_moduleInd();
                 auto clusters_d_kernel = clusters_d.moduleStart();
                 auto digis_d_kernel    = digis_d.clus();
-                sycl::stream out(1024, 768, cgh);
       	     cgh.parallel_for(sycl::nd_range<1>(sycl::range<1>(blocks) * sycl::range<1>(threadsPerBlock), sycl::range<1>(threadsPerBlock)),
                                 [=](sycl::nd_item<1> item) {
                                                             countModules(digis_ind_kernel, 
                                                                          clusters_d_kernel, 
                                                                          digis_d_kernel, 
                                                                          wordCounter, 
-      					                                                         item, 
-                                                                         out);
+      					                                                         item);
                                                             });
       	      }).wait();
-      //        /*
-      //       DPCT1010:33: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
-      //       */
-      //       //cudaCheck(0)  
-      //       // read the number of modules into a data member, used by getProduct())
+                   
+             // read the number of modules into a data member, used by getProduct())
              stream.memcpy(&(nModules_Clusters_h[0]), clusters_d.moduleStart(), sizeof(uint32_t)).wait();  
-             
-
-               //auto moduleStart = clusters_d.clusModuleStartToHostAsyncTest(stream);
-              //    for (auto i=0; i<1791; i++)
-              //  {
-              //    std::cout << "moduleStart["<< i <<"] is " << clusters_d.moduleStart()[i] << std::endl;
-              //  }
-      //     //auto moduleInd = digis_d.moduleIndToHostAsync(stream);
-      //     //auto clus = digis_d.clusToHostAsyncTest(stream);
-
-          // for (auto i=0; i<48316; i++)
-          // {
-          //   std::cout << "clus["<< i <<"] is : " << digis_d.clus()[i] << std::endl;
-          // }
-      //     // for (auto i=0; i<48316; i++)
-      //     // {
-      //     //   std::cout << "moduleInd["<< i <<"] is : " << moduleInd[i] << std::endl;
-      //     // }
 
             threadsPerBlock = 32;
             blocks = MaxNumModules;
@@ -804,10 +679,6 @@ namespace pixelgpudetails {
                     local_gMaxHit_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
                 sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
                     local_mSize_acc(sycl::range<1>(sizeof(int)), cgh);
-                sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    hist_acc(sycl::range<1>(sizeof(Hist)), cgh); //FIXME_ why 32?
-                sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    local_ws_acc(sycl::range<1>(sizeof(Hist::Counter) * 32), cgh);
                 sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
                     local_totGood_acc(sycl::range<1>(sizeof(int32_t)), cgh);
                 sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
@@ -818,7 +689,6 @@ namespace pixelgpudetails {
                     local_n0_acc(sycl::range<1>(sizeof(int)), cgh);
                 sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
                     foundClusters_acc(sycl::range<1>(sizeof(unsigned int)), cgh); 
-      	        sycl::stream out(1024, 1024, cgh);
                     auto digis_x_kernel     = digis_d.c_xx();
                     auto digis_y_kernel     = digis_d.c_yy();
                     auto digis_ind_kernel   = digis_d.c_moduleInd();
@@ -840,44 +710,17 @@ namespace pixelgpudetails {
                                                item,
                                                (uint32_t *)local_gMaxHit_acc.get_pointer(),
                                                (int *)local_mSize_acc.get_pointer(),
-                                               (Hist *)hist_acc.get_pointer(),
-                                               (uint32_t *)local_ws_acc.get_pointer(),
                                                (uint32_t *)local_totGood_acc.get_pointer(),
                                                (uint32_t *)local_n40_acc.get_pointer(),
                                                (uint32_t *)local_n60_acc.get_pointer(),
                                                (int *)local_n0_acc.get_pointer(),
-                                               (unsigned int *)foundClusters_acc.get_pointer(),
-      					                                out);
+                                               (unsigned int *)foundClusters_acc.get_pointer());
                     });
-                        });
+            });
 
-      // //       /*
-      // //       DPCT1010:34: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
-      // //       */
-      // //       //cudaCheck(0);
       #ifdef GPU_DEBUG
             stream.wait();
-            //cudaCheck(cudaGetLastError());
        #endif  
-
-           // here we need to print digis_d.moduleInd();
-           //                       clusters_d.c_moduleStart()          
-           //                       clusters_d.clusInModule();
-           //                       clusters_d.c_moduleId();
-           //                       digis_d.clus();
-
-          // auto moduleInd = digis_d.moduleIndToHostAsync(stream);
-          // auto clus = digis_d.clusToHostAsyncTest(stream);
-
-          // for (auto i=0; i<48316; i++)
-          // {
-          //   std::cout << "clus["<< i <<"] is : " << clus[i] << std::endl;
-          // }
-          // for (auto i=0; i<48316; i++)
-          // {
-          //   std::cout << "moduleInd["<< i <<"] is : " << moduleInd[i] << std::endl;
-          // }
-
             threadsPerBlock = 256;
             blocks = MaxNumModules;
             sycl::range<1> numthreadsPerBlock2(threadsPerBlock);
@@ -892,7 +735,6 @@ namespace pixelgpudetails {
                     newclusId_acc(sycl::range<1>(sizeof(int32_t) * 1024), cgh); //FIXME_ why 32?
                 sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
                     local_ws_acc(sycl::range<1>(sizeof(int32_t) * 32), cgh);
-                sycl::stream out(50000, 768, cgh);
             // apply charge cut
                     auto digis_ind_kernel   = digis_d.moduleInd();  
                     auto digis_adc_kernel   = digis_d.c_adc();
@@ -914,15 +756,10 @@ namespace pixelgpudetails {
                                                        (int32_t *)charge_acc.get_pointer(),
                                                        (uint8_t *)ok_acc.get_pointer(),
                                                        (uint16_t *)newclusId_acc.get_pointer(),
-                                                       (uint16_t *)local_ws_acc.get_pointer(),
-                                                       out);
+                                                       (uint16_t *)local_ws_acc.get_pointer());
                     });
                         }).wait();
-   
-            /*
-            DPCT1010:35: SYCL uses exceptions to report errors and does not use the error codes. The call was replaced with 0. You need to rewrite this code.
-            */
-            //cudaCheck(0)  
+
             // count the module start indices already here (instead of
             // rechits) so that the number of clusters/hits can be made
             // available in the rechit producer without additional points of
@@ -933,15 +770,13 @@ namespace pixelgpudetails {
             // apply charge cut
                     auto clusters_in_kernel  = clusters_d.c_clusInModule();
                     auto clusters_s_kernel  = clusters_d.clusModuleStart();
-                    sycl::stream out(1024, 768, cgh);
                cgh.parallel_for(
                     sycl::nd_range<1>(sycl::range<1>(1024), sycl::range<1>(1024)),
                     [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
                                    fillHitsModuleStart(clusters_in_kernel, 
                                                        clusters_s_kernel,
                                                        item,
-                                                       (uint32_t *)local_ws_acc.get_pointer(),
-                                                       out);
+                                                       (uint32_t *)local_ws_acc.get_pointer());
                     });
                         });  
             // MUST be ONE block
@@ -953,10 +788,8 @@ namespace pixelgpudetails {
 
     #ifdef GPU_DEBUG
           stream.wait();
-          //cudaCheck(cudaGetLastError());
+	        std::cout << "Number of modules (nModules_Clusters_h[0]): " << nModules_Clusters_h[0] << " and number of clusters (nModules_Clusters_h[1]): " << nModules_Clusters_h[1] << std::endl;
     #endif
-          std::cout << "nModules_Clusters_h[0] : " << nModules_Clusters_h[0] << " and nModules_Clusters_h[1] : " << nModules_Clusters_h[1] << std::endl;
-       //std::cout << __LINE__ << std::endl;
 
     }  // end clusterizer scope
   }
