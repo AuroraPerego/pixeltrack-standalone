@@ -788,10 +788,8 @@ namespace pixelgpudetails {
 
     #ifdef GPU_DEBUG
           stream.wait();
+	        std::cout << "Number of modules (nModules_Clusters_h[0]): " << nModules_Clusters_h[0] << " and number of clusters (nModules_Clusters_h[1]): " << nModules_Clusters_h[1] << std::endl;
     #endif
-          //TODO_ move this in GPU_DEBUG at the end, now keep it here to check clusterizer results
-          stream.wait();
-	  std::cout << "nModules_Clusters_h[0] : " << nModules_Clusters_h[0] << " and nModules_Clusters_h[1] : " << nModules_Clusters_h[1] << std::endl;
 
     }  // end clusterizer scope
   }

@@ -12,7 +12,7 @@
 
 #include "gpuVertexFinder.h"
 
-#define VERTEX_DEBUG
+// #define VERTEX_DEBUG
 
 namespace gpuVertexFinder {
 

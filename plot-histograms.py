@@ -168,7 +168,7 @@ def makePlot(histos, output=None, *args, **kwargs):
     fillAxes(histos, ax, *args, **kwargs)
     #fig.show()
     if output is not None:
-        fig.savefig(output+".png")
+        fig.savefig("plot/"+output+".png")
         #fig.savefig(output+".pdf")
     plt.close(fig)
 
@@ -224,8 +224,8 @@ def readHistograms(files):
     return histos
 
 histoData = readHistograms(glob.glob("histograms_*.txt"))
-makePlots(histoData, ["cuda", "kokkos_cuda"], log=True)
-makeRatioPlots(histoData, "cuda", ["kokkos_cuda"], ylim=dict())
+makePlots(histoData, ["sycl", "serial"], log=True)
+makeRatioPlots(histoData, "sycl", ["serial"], ylim=dict())
 
 #makeManyRatioPlots(histoData, "cuda", dict(
 #    cuda = ["cuda_{}".format(i) for i in range(0,100)],

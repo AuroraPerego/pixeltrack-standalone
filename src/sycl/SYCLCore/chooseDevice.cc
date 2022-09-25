@@ -27,7 +27,7 @@ namespace cms::sycltools {
   sycl::device chooseDevice(edm::StreamID id) {
       auto const devices = *(enumerateDevices());
       sycl::device device;
-      device = devices[id % devices.size()];
+      device = devices[0];
     
       std::cout << "Device selected: " << device.get_info<cl::sycl::info::device::name>() 
                 << " with backend "    << device.get_backend() << std::endl;

@@ -62,9 +62,9 @@ namespace gpuVertexFinder {
 #ifdef VERTEX_DEBUG
     if (0 == item.get_local_id(0))
       printf("booked hist with %d bins, size %d for %d tracks\n", hist->nbins(), hist->capacity(), nt);
+#endif
 
     assert(nt <= hist->capacity());
-#endif
     // fill hist  (bin shall be wider than "eps")
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       assert(i < ZVertices::MAXTRACKS);
@@ -245,8 +245,8 @@ namespace gpuVertexFinder {
 #ifdef VERTEX_DEBUG
     if (0 == item.get_local_id(0))
       printf("found %d proto vertices\n", *foundClusters);
-  }
 #endif
+  }
 
 }  // namespace gpuVertexFinder
 

@@ -12,7 +12,7 @@
 
 #include "gpuVertexFinder.h"
 
-#define VERTEX_DEBUG
+// #define VERTEX_DEBUG
 
 namespace gpuVertexFinder {
 
@@ -88,7 +88,6 @@ namespace gpuVertexFinder {
       izt[i] = iz - INT8_MIN;
       assert(iz - INT8_MIN >= 0);
       assert(iz - INT8_MIN < 256);
-      printf("count %d %f\n", izt[i], ezt2[i]);
       hist->count(izt[i]);
       iv[i] = i;
       nn[i] = 0;
@@ -148,7 +147,6 @@ namespace gpuVertexFinder {
           return;  // (break natural order???)
         mdist = dist;
         iv[i] = j;  // assign to cluster (better be unique??)
-        // printf("1 %d\n", (int)i==(int)iv[i]);
       };
       cms::sycltools::forEachInBins(*hist, izt[i], 1, loop);
     }
@@ -170,7 +168,6 @@ namespace gpuVertexFinder {
       while (m != iv[m])
         m = iv[m];
       iv[i] = m;
-      // printf("2 %d\n", (int)i==(int)iv[i]);
     }
 
 #ifdef GPU_DEBUG
@@ -214,20 +211,14 @@ namespace gpuVertexFinder {
     // find the number of different clusters, identified by a tracks with clus[i] == i and density larger than threshold;
     // mark these tracks with a negative id.
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
-      // printf("%d %d\n", iv[i], int(i));
       if (iv[i] == int(i)) {
-        // printf("iv\n");
         if (nn[i] >= minT) {
           auto old = cms::sycltools::atomic_fetch_compare_inc<unsigned int, 
                                                               cl::sycl::access::address_space::local_space>
                                                               (foundClusters, (unsigned int)0xffffffff);
-          // auto old = cms::sycltools::atomic_fetch_add<unsigned int, 
-          //                                                     cl::sycl::access::address_space::local_space>
-          //                                                     (foundClusters, (unsigned int)1);
           iv[i] = -(old + 1);
         } else {  // noise
           iv[i] = -9998;
-          // printf("noise\n");
         }
       }
     }
