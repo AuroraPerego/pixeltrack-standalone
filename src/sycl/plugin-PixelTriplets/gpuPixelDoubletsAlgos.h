@@ -14,6 +14,7 @@
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/AtomicPairCounter.h"
 #include "SYCLCore/syclAtomic.h"
+#include "SYCLCore/printf.h"
 
 #include "CAConstants.h"
 #include "GPUCACell.h"
@@ -45,9 +46,7 @@ namespace gpuPixelDoublets {
                                        bool doZ0Cut,
                                        bool doPtCut,
                                        uint32_t maxNumOfDoublets,
-                                       sycl::nd_item<3> item,
-                                       uint32_t* innerLayerCumulativeSize,
-                                       uint32_t* ntot) {
+                                       sycl::nd_item<3> item) {
     // ysize cuts (z in the barrel)  times 8
     // these are used if doClusterCut is true
     constexpr int minYsizeB1 = 36;
@@ -71,25 +70,46 @@ namespace gpuPixelDoublets {
     // If it should be much bigger, consider using a block-wide parallel prefix scan,
     // e.g. see  https://nvlabs.github.io/cub/classcub_1_1_warp_scan.html
     const int nPairsMax = CAConstants::maxNumberOfLayerPairs();
+
+    // auto innerLayerCumulativeSizebuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t[nPairsMax]>(item.get_group());
+    // uint32_t* innerLayerCumulativeSize = (uint32_t*)innerLayerCumulativeSizebuff.get();
+    //auto ntotbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t>(item.get_group());
+    //uint32_t* ntot = (uint32_t*)ntotbuff.get();
+
+    uint32_t innerLayerCumulativeSize[nPairsMax];
+    // const uint32_t* const ntot = innerLayerCumulativeSize + nPairs - 1; //reproducer THIS DOESN'T WORK
+    
     assert(nPairs <= nPairsMax);
 
-    if (item.get_local_id(1) == 0 && item.get_local_id(2) == 0) {
-      innerLayerCumulativeSize[0] = layerSize(layerPairs[0]);
-      for (uint32_t i = 1; i < nPairs; ++i) {
-        innerLayerCumulativeSize[i] = innerLayerCumulativeSize[i - 1] + layerSize(layerPairs[2 * i]);
-      }
-      *ntot = innerLayerCumulativeSize[nPairs - 1];
+    innerLayerCumulativeSize[0] = layerSize(layerPairs[0]);
+    for (uint32_t i = 1; i < nPairs; ++i) {
+      innerLayerCumulativeSize[i] = innerLayerCumulativeSize[i - 1] + layerSize(layerPairs[2 * i]);
     }
+    const uint32_t ntot = innerLayerCumulativeSize[nPairs - 1]; //THIS WORKS
 
-    item.barrier();
-
+    // if (item.get_local_id(1) == 0 && item.get_local_id(2) == 0 && item.get_group(1) == 0) {
+    //   for (uint32_t i = 1; i < 2*nPairs; ++i) {
+    //     // printf(" %d %d %d %d %d\n", nPairs, innerLayerCumulativeSize[nPairs - 1], innerLayerCumulativeSize[nPairs - 1 - 1], layerSize(layerPairs[2 * (nPairs - 1)]), layerPairs[2 * (nPairs - 1)]);
+    //   }
+    // }
+  
     // x runs faster
     auto idy = item.get_group(1) * item.get_local_range().get(1) + item.get_local_id(1);
     auto first = item.get_local_id(2);
     auto stride = item.get_local_range().get(2);
 
     uint32_t pairLayerId = 0;  // cannot go backward
-    for (auto j = idy; j < *ntot; j += item.get_local_range().get(1) * item.get_group_range(1)) {
+
+    //2238 gpu vs 30996 cpu
+    // if (item.get_local_id(1) == 0 && item.get_local_id(2) == 0 && item.get_group(1) == 0){
+    //   printf(" %d %d %d %d %d\n", nPairs, innerLayerCumulativeSize[nPairs - 1], innerLayerCumulativeSize[nPairs - 1 - 1], layerSize(layerPairs[2 * (nPairs - 1)]), layerPairs[2 * (nPairs - 1)]);
+    //   printf("dovrebbero essere uguali %d %d \n", innerLayerCumulativeSize[nPairs - 1], ntot);
+    // }
+
+    // if (item.get_local_id(1) == 0 && item.get_local_id(2) == 0 && item.get_group(1) == 0)
+    //   printf("ntot: %d \n", ntot); //, innerLayerCumulativeSize + nPairs - 1, *(innerLayerCumulativeSize + nPairs - 1), &(innerLayerCumulativeSize[nPairs - 1]), innerLayerCumulativeSize[nPairs - 1]);
+
+     for (auto j = idy; j < ntot; j += item.get_local_range().get(1) * item.get_group_range(1)) {
       while (j >= innerLayerCumulativeSize[pairLayerId++])
         ;
       --pairLayerId;  // move to lower_bound ??
@@ -103,6 +123,7 @@ namespace gpuPixelDoublets {
       assert(outer > inner);
 
       auto hoff = Hist::histOff(outer);
+      // SAME printf("%d %d %d\n", inner, outer, hoff);
 
       auto i = (0 == pairLayerId) ? j : j - innerLayerCumulativeSize[pairLayerId - 1];
       i += offsets[inner];
@@ -114,6 +135,7 @@ namespace gpuPixelDoublets {
 
       // found hit corresponding to our cuda thread, now do the job
       auto mi = hh.detectorIndex(i);
+      // SAME printf("%d %d\n", i, mi);
       if (mi > 2000)
         continue;  // invalid
 
@@ -124,9 +146,10 @@ namespace gpuPixelDoublets {
       */
 
       auto mez = hh.zGlobal(i);
-
-      if (mez < minz[pairLayerId] || mez > maxz[pairLayerId])
-        continue;
+      // NOT SAME printf("%f\n", mez);
+      if (mez < minz[pairLayerId] || mez > maxz[pairLayerId]){
+        //printf("a %f %f %f\n", mez, minz[pairLayerId], maxz[pairLayerId]);
+        continue;}
 
       int16_t mes = -1;  // make compiler happy
       if (doClusterCut) {
@@ -188,6 +211,8 @@ namespace gpuPixelDoublets {
       auto kh = Hist::bin(int16_t(mep + iphicut));
       auto incr = [](auto& k) { return k = (k + 1) % Hist::nbins(); };
       // bool piWrap = abs(kh-kl) > Hist::nbins()/2;
+      // if (item.get_local_id(1)==0)
+      //   printf("%d %d %d %d\n", kl, kh, mep, iphicut);
 
 #ifdef GPU_DEBUG
       int tot = 0;
@@ -196,7 +221,10 @@ namespace gpuPixelDoublets {
 #endif
 
       auto khh = kh;
+      // printf("%d %d \n", kl, khh);
       incr(khh);
+      // if (item.get_local_id(1)==0)
+      //   printf("%d\n", khh);
       for (auto kk = kl; kk != khh; incr(kk)) {
 #ifdef GPU_DEBUG
         if (kk != kl && kk != kh)
@@ -207,6 +235,7 @@ namespace gpuPixelDoublets {
         p += first;
         for (; p < e; p += stride) {
           auto oi = *(p); 
+          //printf("%p, %p\n", p, e);
           assert(oi >= offsets[outer]);
           assert(oi < offsets[outer + 1]);
           auto mo = hh.detectorIndex(oi);
@@ -233,19 +262,20 @@ namespace gpuPixelDoublets {
           // int layerPairId, int doubletId, int innerHitId, int outerHitId)
           cells[ind].init(*cellNeighbors, *cellTracks, hh, pairLayerId, ind, i, oi);
           isOuterHitOfCell[oi].push_back(ind);
+          //printf("%d %d %d %d\n", pairLayerId, ind, i, oi);
 #ifdef GPU_DEBUG
           if (isOuterHitOfCell[oi].full())
             ++tooMany;
           ++tot;
 #endif
         }
-      }
+     }
 
 #ifdef GPU_DEBUG
       if (tooMany > 0)
         printf("OuterHitOfCell full for %d in layer %d/%d, %d,%d %d\n", i, inner, outer, nmin, tot, tooMany);
 #endif
-    }  // loop in block...
+     }  // loop in block...
   }
 }  // namespace gpuPixelDoublets
 

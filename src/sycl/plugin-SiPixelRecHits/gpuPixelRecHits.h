@@ -23,8 +23,7 @@ namespace gpuPixelRecHits {
                           int numElements,
                           SiPixelClustersSYCL::DeviceConstView const* __restrict__ pclusters,
                           TrackingRecHit2DSOAView* phits,
-                          sycl::nd_item<1> item,
-                          pixelCPEforGPU::ClusParams *clusParams) {
+                          sycl::nd_item<1> item) {
     // FIXME
     // the compiler seems NOT to optimize loads from views (even in a simple test case)
     // The whole gimnastic here of copying or not is a pure heuristic exercise that seems to produce the fastest code with the above signature
@@ -64,6 +63,8 @@ namespace gpuPixelRecHits {
     constexpr int32_t MaxHitsInIter = pixelCPEforGPU::MaxHitsInIter;
 
     using ClusParams = pixelCPEforGPU::ClusParams;
+    auto clusParamsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<ClusParams>(item.get_group());
+    ClusParams* clusParams = (ClusParams*)clusParamsbuff.get();
 
     // as usual one block per module
 
@@ -178,6 +179,8 @@ namespace gpuPixelRecHits {
           cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(&clusParams->Q_f_Y[cl], (int)ch);
         if (clusParams->maxCol[cl] == y)
           cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(&clusParams->Q_l_Y[cl], (int)ch);
+        // item.barrier();
+        // printf("maxRow[%d]= %d\n", cl, clusParams->maxRow[cl]);
       }
 
       item.barrier();
@@ -194,7 +197,8 @@ namespace gpuPixelRecHits {
           break;  // overflow...
         assert(h < hits.nHits());
         assert(h < clusters.clusModuleStart(me + 1));
-
+        
+        // printf("maxRow[%d]= %d\n", ic, clusParams->maxRow[ic]);
         pixelCPEforGPU::position(cpeParams->commonParams(), cpeParams->detParams(me), *clusParams, ic);
         pixelCPEforGPU::errorFromDB(cpeParams->commonParams(), cpeParams->detParams(me), *clusParams, ic);
 
@@ -220,10 +224,15 @@ namespace gpuPixelRecHits {
         cpeParams->detParams(me).frame.toGlobal(xl, yl, xg, yg, zg);
         // here correct for the beamspot...
 
+        // if (item.get_local_id(0) == 0) 
+        // printf("%f %f %f %f %f\n", xl, yl, xg, yg, zg);
         xg -= bs->x;
         yg -= bs->y;
         zg -= bs->z;
-
+  
+        // if (item.get_local_id(0) == 0) 
+        //   printf("%f %f \n", bs->z, zg);
+  
         hits.xGlobal(h) = xg;
         hits.yGlobal(h) = yg;
         hits.zGlobal(h) = zg;
