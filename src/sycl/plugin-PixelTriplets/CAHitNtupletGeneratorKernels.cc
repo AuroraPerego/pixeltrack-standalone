@@ -1,8 +1,9 @@
 #include <atomic>
 #include "CAHitNtupletGeneratorKernelsImpl.h"
 
-#define NTUPLE_DEBUG
+// #define NTUPLE_DEBUG
 #define GPU_DEBUG
+// #define DUMP_GPU_TK_TUPLES 
 
 template <>
 void CAHitNtupletGeneratorKernelsGPU::fillHitDetIndices(HitsView const *hv, TkSoA *tracks_d, sycl::queue stream) {
@@ -330,6 +331,10 @@ void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, sycl::q
       (GPUCACell::CellTracks *)(cellStorage_.get() +
                                 CAConstants::maxNumOfActiveDoublets() * sizeof(GPUCACell::CellNeighbors));
 
+#ifdef GPU_DEBUG
+  stream.wait();
+#endif
+
   {
     int threadsPerBlock = 128;
     // at least one block!
@@ -380,7 +385,7 @@ void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, sycl::q
   sycl::range<3> blks(1, blocks, 1);
   sycl::range<3> thrs(1, threadsPerBlock, stride);
 #ifdef NTUPLE_DEBUG
-  std::cout << "getDoubletsFromHisto kernel launched with " << blocks << " of "  << threadsPerBlock << " threads.\n";
+  std::cout << "getDoubletsFromHisto kernel launched with " << blocks << " blocks of "  << threadsPerBlock << " threads.\n";
 #endif
   stream.submit([&](sycl::handler &cgh) {
       auto nActualPairs_kernel             = nActualPairs;
@@ -411,9 +416,7 @@ void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, sycl::q
                                                      m_params_kernel.doZ0Cut_,
                                                      m_params_kernel.doPtCut_,
                                                      m_params_kernel.maxNumberOfDoublets_,
-                                                     item,
-                                                     (uint32_t *)innerLayerCumulativeSize_acc.get_pointer(),
-                                                     (uint32_t *)ntot_acc.get_pointer());   
+                                                     item);   
       });
     });
 
@@ -616,7 +619,7 @@ void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA 
 #ifdef GPU_DEBUG
   stream.wait();
 #endif
- 
+
 #ifdef DUMP_GPU_TK_TUPLES
   static std::atomic<int> ev(0);
   int iev = ++ev;

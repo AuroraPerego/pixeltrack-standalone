@@ -13,6 +13,8 @@
 
 #include "CAHitNtupletGeneratorOnGPU.h"
 
+// #define NTUPLE_DEBUG
+
 namespace {
 
   template <typename T>
@@ -83,8 +85,10 @@ PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecH
   kernels.launchKernels(hits_d, soa, stream);
   kernels.fillHitDetIndices(hits_d.view(), soa, stream);  // in principle needed only if Hits not "available"
 
+#ifdef NTUPLE_DEBUG
   std::cout << "------------------------\n";
   std::cout << "Starting n-tuplets fit..\n";
+#endif 
 
   HelixFitOnGPU fitter(bfield, m_params.fit5as4_);
   fitter.allocateOnGPU(&(soa->hitIndices), kernels.tupleMultiplicity(), soa);
@@ -94,8 +98,10 @@ PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecH
     fitter.launchBrokenLineKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), stream);
   }
 
+#ifdef NTUPLE_DEBUG
   std::cout << "..end of n-tuplets fit.\n";
   std::cout << "------------------------\n";
+#endif
 
   kernels.classifyTuples(hits_d, soa, stream);
   stream.wait();

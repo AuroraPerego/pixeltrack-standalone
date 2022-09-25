@@ -26,14 +26,15 @@ namespace cms::sycltools {
 
   sycl::device chooseDevice(edm::StreamID id) {
       auto const devices = *(enumerateDevices());
-      auto device = devices[4];
-    //#ifdef DEVICE_IS_GPU
-    //  auto device = devices[DEVICE_IS_GPU + 3];
-    //#else
-    //  auto device = devices[1];
-    //#endif
+      sycl::device device;
+      if (devices.size() > 1)
+        device = devices[1];
+      else
+        device = devices[0];
     
-      std::cout << "Device selected: " << device.get_info<cl::sycl::info::device::name>() << std::endl;
+      std::cout << "Device selected: " << device.get_info<cl::sycl::info::device::name>() 
+                << " with backend "    << device.get_info<cl::sycl::info::device::backend_version>() << std::endl;
+
     //
     //// For startes we "statically" assign the device based on
     //// edm::Stream number. This is suboptimal if the number of
