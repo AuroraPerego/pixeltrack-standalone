@@ -27,13 +27,10 @@ namespace cms::sycltools {
   sycl::device chooseDevice(edm::StreamID id) {
       auto const devices = *(enumerateDevices());
       sycl::device device;
-      if (devices.size() > 1)
-        device = devices[1];
-      else
-        device = devices[0];
+      device = devices[id % devices.size()];
     
       std::cout << "Device selected: " << device.get_info<cl::sycl::info::device::name>() 
-                << " with backend "    << device.get_info<cl::sycl::info::device::backend_version>() << std::endl;
+                << " with backend "    << device.get_backend() << std::endl;
 
     //
     //// For startes we "statically" assign the device based on

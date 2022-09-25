@@ -20,7 +20,7 @@ namespace {
   void print_help(std::string const& name) {
     std::cout
         << name
-        << ": [--numberOfThreads NT] [--numberOfStreams NS] [--maxEvents ME] [--data PATH] [--transfer] [--validation] "
+        << ": [--numberOfThreads NT] [--numberOfStreams NS] [--maxEvents ME] [--device DV] [--data PATH] [--transfer] [--validation] "
            "[--histogram] [--empty]\n\n"
         << "Options\n"
         << " --numberOfThreads   Number of threads to use (default 1, use 0 to use all CPU cores)\n"
@@ -67,6 +67,10 @@ int main(int argc, char** argv) try {
     } else if (*i == "--runForMinutes") {
       ++i;
       runForMinutes = std::stoi(*i);
+    } else if (*i == "--device") {
+      ++i;
+      std::string device = *i;
+      setenv("SYCL_DEVICE_FILTER", device.c_str(), true);
     } else if (*i == "--data") {
       ++i;
       datadir = *i;
