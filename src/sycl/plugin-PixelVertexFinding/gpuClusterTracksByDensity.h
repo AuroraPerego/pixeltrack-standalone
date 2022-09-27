@@ -66,7 +66,6 @@ namespace gpuVertexFinder {
     auto histbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<Hist>(item.get_group());
     Hist* hist = (Hist*)histbuff.get();
     
-    //__shared__ typename Hist::Counter hws[32];
     for (auto j = item.get_local_id(0); j < Hist::totbins(); j += item.get_local_range(0)) {
       hist->off[j] = 0;
     }
@@ -107,10 +106,6 @@ namespace gpuVertexFinder {
       hist->fill(izt[i], uint16_t(i));
     }
     item.barrier();
-
-    // for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
-    //   cms::sycltools::printIndexes(*hist, izt[i]);
-    // }
 
     // count neighbours
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {

@@ -469,7 +469,7 @@ namespace pixelgpudetails {
   }  // end of Raw to Digi kernel
 
   void fillHitsModuleStart(uint32_t const *__restrict__ cluStart, uint32_t *__restrict__ moduleStart,
-                           sycl::nd_item<1> item, uint32_t *ws) {
+                           sycl::nd_item<1> item) {
     assert(gpuClustering::MaxNumModules < 2048);  // easy to extend at least till 32*1024
     assert(1 == item.get_group_range(0));
     assert(0 == item.get_group(0));
@@ -480,6 +480,9 @@ namespace pixelgpudetails {
     for (int i = first, iend = gpuClustering::MaxNumModules; i < iend; i += item.get_local_range(0)) {
       moduleStart[i + 1] = std::min(gpuClustering::maxHitsInModule(), cluStart[i]);
     }
+    
+    auto wsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint16_t[32]>(item.get_group());
+    uint16_t* ws = (uint16_t*)wsbuff.get();
 
     cms::sycltools::blockPrefixScan(moduleStart + 1, moduleStart + 1, 1024, item, ws);
     cms::sycltools::blockPrefixScan(moduleStart + 1025, moduleStart + 1025, gpuClustering::MaxNumModules - 1024, item, ws);
@@ -675,20 +678,6 @@ namespace pixelgpudetails {
             using Hist = cms::sycltools::HistoContainer<uint16_t, nbins, maxPixInModule, 9, uint16_t>;
             
              stream.submit([&](sycl::handler &cgh) {
-                sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    local_gMaxHit_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
-                sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    local_mSize_acc(sycl::range<1>(sizeof(int)), cgh);
-                sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    local_totGood_acc(sycl::range<1>(sizeof(int32_t)), cgh);
-                sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    local_n40_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
-                sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    local_n60_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
-                sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    local_n0_acc(sycl::range<1>(sizeof(int)), cgh);
-                sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    foundClusters_acc(sycl::range<1>(sizeof(unsigned int)), cgh); 
                     auto digis_x_kernel     = digis_d.c_xx();
                     auto digis_y_kernel     = digis_d.c_yy();
                     auto digis_ind_kernel   = digis_d.c_moduleInd();
@@ -707,14 +696,7 @@ namespace pixelgpudetails {
                                                clusters_id_kernel,
                                                digis_clus_kernel,
                                                wordCounter,
-                                               item,
-                                               (uint32_t *)local_gMaxHit_acc.get_pointer(),
-                                               (int *)local_mSize_acc.get_pointer(),
-                                               (uint32_t *)local_totGood_acc.get_pointer(),
-                                               (uint32_t *)local_n40_acc.get_pointer(),
-                                               (uint32_t *)local_n60_acc.get_pointer(),
-                                               (int *)local_n0_acc.get_pointer(),
-                                               (unsigned int *)foundClusters_acc.get_pointer());
+                                               item);
                     });
             });
 
@@ -727,14 +709,6 @@ namespace pixelgpudetails {
             sycl::range<1> globalSize2(blocks*threadsPerBlock);
 
             stream.submit([&](sycl::handler &cgh) {
-                sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    charge_acc(sycl::range<1>(sizeof(int32_t) * 1024), cgh);
-                sycl::accessor<uint8_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    ok_acc(sycl::range<1>(sizeof(int32_t) * 1024), cgh);
-                sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    newclusId_acc(sycl::range<1>(sizeof(int32_t) * 1024), cgh); //FIXME_ why 32?
-                sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    local_ws_acc(sycl::range<1>(sizeof(int32_t) * 32), cgh);
             // apply charge cut
                     auto digis_ind_kernel   = digis_d.moduleInd();  
                     auto digis_adc_kernel   = digis_d.c_adc();
@@ -752,11 +726,7 @@ namespace pixelgpudetails {
                                                        clusters_cs_kernel,
                                                        digis_clus_kernel,
                                                        wordCounter,
-                                                       item,
-                                                       (int32_t *)charge_acc.get_pointer(),
-                                                       (uint8_t *)ok_acc.get_pointer(),
-                                                       (uint16_t *)newclusId_acc.get_pointer(),
-                                                       (uint16_t *)local_ws_acc.get_pointer());
+                                                       item);
                     });
                         }).wait();
 
@@ -764,9 +734,7 @@ namespace pixelgpudetails {
             // rechits) so that the number of clusters/hits can be made
             // available in the rechit producer without additional points of
             // synchronization/ExternalWor  
-            stream.submit([&](sycl::handler &cgh) {
-                sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                    local_ws_acc(sycl::range<1>(sizeof(uint32_t) * 32), cgh);  
+            stream.submit([&](sycl::handler &cgh) { 
             // apply charge cut
                     auto clusters_in_kernel  = clusters_d.c_clusInModule();
                     auto clusters_s_kernel  = clusters_d.clusModuleStart();
@@ -775,8 +743,7 @@ namespace pixelgpudetails {
                     [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
                                    fillHitsModuleStart(clusters_in_kernel, 
                                                        clusters_s_kernel,
-                                                       item,
-                                                       (uint32_t *)local_ws_acc.get_pointer());
+                                                       item);
                     });
                         });  
             // MUST be ONE block

@@ -32,8 +32,7 @@ void kernelBLFastFit(Tuples const * foundNtuplets,
                      double * pfast_fit,
                      uint32_t nHits,
                      uint32_t offset,
-                     sycl::nd_item<1> item,
-                     int* done) { 
+                     sycl::nd_item<1> item) { 
   constexpr uint32_t hitsInFit = N;
   assert(hitsInFit <= nHits);
 
@@ -69,6 +68,8 @@ void kernelBLFastFit(Tuples const * foundNtuplets,
     Rfit::Map6xNf<N> hits_ge(phits_ge + local_idx);
 
 #ifdef BL_DUMP_HITS
+    auto donebuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int>(item.get_group());
+    int* done = (int*)donebuff.get();
     done = 0;
     item.barrier();
     bool dump = (foundNtuplets->size(tkid) == 5 && 0 == cms::sycltools::atomic_fetch_add<int>(&done, 1));

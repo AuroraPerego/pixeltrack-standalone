@@ -223,8 +223,6 @@ namespace gpuPixelDoublets {
       auto khh = kh;
       // printf("%d %d \n", kl, khh);
       incr(khh);
-      // if (item.get_local_id(1)==0)
-      //   printf("%d\n", khh);
       for (auto kk = kl; kk != khh; incr(kk)) {
 #ifdef GPU_DEBUG
         if (kk != kl && kk != kh)
@@ -269,13 +267,13 @@ namespace gpuPixelDoublets {
           ++tot;
 #endif
         }
-     }
+      }
 
 #ifdef GPU_DEBUG
       if (tooMany > 0)
         printf("OuterHitOfCell full for %d in layer %d/%d, %d,%d %d\n", i, inner, outer, nmin, tot, tooMany);
 #endif
-     }  // loop in block...
+    }  // loop in block...
   }
 }  // namespace gpuPixelDoublets
 

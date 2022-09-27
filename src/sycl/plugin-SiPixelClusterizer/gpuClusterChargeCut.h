@@ -21,11 +21,7 @@ namespace gpuClustering {
                         uint32_t const* __restrict__ moduleId,     // module id of each module
                         int32_t* __restrict__ clusterId,           // modified: cluster id of each pixel
                         uint32_t numElements,
-                        sycl::nd_item<1> item,
-                        int32_t* charge,
-                        uint8_t* ok,
-                        uint16_t* newclusId,
-                        uint16_t* ws) {
+                        sycl::nd_item<1> item) {
     if (item.get_group(0) >= moduleStart[0])
       return;
 
@@ -65,6 +61,13 @@ namespace gpuClustering {
         printf("start clusterizer for module %d in block %d\n", thisModuleId, item.get_group(0));
 #endif
 
+    auto chargebuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int32_t[MaxNumClustersPerModules]>(item.get_group());
+    int32_t* charge = (int32_t*)chargebuff.get();
+    auto okbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint8_t[MaxNumClustersPerModules]>(item.get_group());
+    uint8_t* ok = (uint8_t*)okbuff.get();
+    auto newclusIdbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint16_t[MaxNumClustersPerModules]>(item.get_group());
+    uint16_t* newclusId = (uint16_t*)newclusIdbuff.get();
+
     assert(nclus <= MaxNumClustersPerModules);
     for (auto i = item.get_local_id(0); i < nclus; i += item.get_local_range(0)) {
       charge[i] = 0;
@@ -91,7 +94,8 @@ namespace gpuClustering {
     item.barrier();
 
     // renumber
-
+    auto wsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint16_t[32]>(item.get_group());
+    uint16_t* ws = (uint16_t*)wsbuff.get();
     cms::sycltools::blockPrefixScan(newclusId, nclus, item, ws);
 
     assert(nclus >= newclusId[nclus - 1]);

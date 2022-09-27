@@ -211,7 +211,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               firstNeg_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item){ 
+          [=](sycl::nd_item<1> item)[[intel::reqd_sub_group_size(32)]]{ 
               vertexFinderOneKernel(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item,
                              (Hist *)hist_acc.get_pointer(),
                              (Hist::Counter *)hws_acc.get_pointer(),
@@ -361,7 +361,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               foundClusters_acc(sycl::range<1>(sizeof(unsigned int)), cgh);
         cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item){ 
+          [=](sycl::nd_item<1> item)[[intel::reqd_sub_group_size(32)]]{ 
               clusterTracksByDensityKernel(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item,
                                     (Hist *)hist_acc.get_pointer(), (Hist::Counter *)hws_acc.get_pointer(),
                                     (unsigned int *)foundClusters_acc.get_pointer());               
@@ -389,7 +389,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               foundClusters_acc(sycl::range<1>(sizeof(unsigned int)), cgh);
         cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item){ 
+          [=](sycl::nd_item<1> item)[[intel::reqd_sub_group_size(32)]]{ 
               clusterTracksDBSCAN(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item,
                                   (Hist *)hist_acc.get_pointer(),
                                   (Hist::Counter*) hws_acc.get_pointer(),
@@ -420,7 +420,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               nloops_acc(sycl::range<1>(sizeof(int)), cgh);
         cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item){ 
+          [=](sycl::nd_item<1> item)[[intel::reqd_sub_group_size(32)]]{ 
               clusterTracksIterative(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item, 
                                      (Hist *)hist_acc.get_pointer(), (Hist::Counter *)hws_acc.get_pointer(), 
                                      (unsigned int *)foundClusters_acc.get_pointer(), (int *)nloops_acc.get_pointer());

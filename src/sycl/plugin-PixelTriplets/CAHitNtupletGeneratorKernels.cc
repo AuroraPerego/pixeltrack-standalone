@@ -396,11 +396,6 @@ void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, sycl::q
       auto device_theCellTracks_kernel     = device_theCellTracks_.get();
       auto device_isOuterHitOfCell_kernel  = device_isOuterHitOfCell_.get();
       auto m_params_kernel                 = m_params;
-      const int nPairsMax = CAConstants::maxNumberOfLayerPairs();
-      sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              innerLayerCumulativeSize_acc(sycl::range<1>(sizeof(uint32_t)) * nPairsMax, cgh); 
-      sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              ntot_acc(sycl::range<1>(sizeof(uint32_t)), cgh);  
       cgh.parallel_for(
           sycl::nd_range<3>(blks * thrs, thrs),
           [=](sycl::nd_item<3> item){ 

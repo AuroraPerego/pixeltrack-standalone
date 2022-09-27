@@ -59,14 +59,9 @@ namespace gpuClustering {
                 uint32_t* __restrict__ moduleId,           // output: module id of each module
                 int32_t* __restrict__ clusterId,           // output: cluster id of each pixel
                 int numElements,
-                sycl::nd_item<1> item,
-                uint32_t* gMaxHit,
-                int* msize,
-                uint32_t* totGood,
-                uint32_t* n40,
-                uint32_t* n60,
-                int* n0,
-                unsigned int* foundClusters) {
+                sycl::nd_item<1> item) {
+
+
     if (item.get_group(0) >= moduleStart[0])
       return;
     auto firstPixel = moduleStart[1 + item.get_group(0)];
@@ -81,6 +76,8 @@ namespace gpuClustering {
     auto first = firstPixel + item.get_local_id(0);
 
     // find the index of the first pixel not belonging to this module (or invalid)
+    auto msizebuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int>(item.get_group());
+    int* msize = (int*)msizebuff.get();
     *msize = numElements;
     item.barrier();
 
@@ -120,6 +117,8 @@ namespace gpuClustering {
     item.barrier();
     
 #ifdef GPU_DEBUG
+    auto totGoodbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t>(item.get_group());
+    uint32_t* totGood = (uint32_t*)totGoodbuff.get();
     *totGood = 0;
     item.barrier();
 #endif
@@ -171,6 +170,10 @@ namespace gpuClustering {
     
 #ifdef GPU_DEBUG
   // look for anomalous high occupancy
+    auto n40buff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t>(item.get_group());
+    uint32_t* n40 = (uint32_t*)n40buff.get();
+    auto n60buff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t>(item.get_group());
+    uint32_t* n60 = (uint32_t*)n60buff.get();
   *n40 = *n60 = 0;
   item.barrier();
     for (auto j = item.get_local_id(0); j < Hist::nbins(); j += item.get_local_range(0)) {
@@ -266,7 +269,23 @@ namespace gpuClustering {
       }
       ++nloops;
     }  // end while
+
+#ifdef GPU_DEBUG
+    {
+      auto n0buff = sycl::ext::oneapi::group_local_memory_for_overwrite<int>(item.get_group());
+      int* n0 = (int*)n0buff.get();
+      if (item.get_local_id(0) == 0)
+        n0 = nloops;
+      item.barrier();
+      auto ok = n0 == nloops;
+      if (thisModuleId % 100 == 1)
+        if (item.get_local_id(0) == 0)
+          printf("# loops %d\n", nloops);
+    }
+#endif
    
+    auto foundClustersbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<unsigned int>(item.get_group());
+    unsigned int* foundClusters = (unsigned int*)foundClustersbuff.get();
     *foundClusters = 0;
        
         item.barrier();
