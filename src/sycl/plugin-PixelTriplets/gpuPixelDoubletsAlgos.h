@@ -14,6 +14,7 @@
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/AtomicPairCounter.h"
 #include "SYCLCore/syclAtomic.h"
+#include "SYCLCore/printf.h"
 
 #include "CAConstants.h"
 #include "GPUCACell.h"
@@ -45,9 +46,8 @@ namespace gpuPixelDoublets {
                                        bool doZ0Cut,
                                        bool doPtCut,
                                        uint32_t maxNumOfDoublets,
-                                       sycl::nd_item<3> item,
-                                       uint32_t* innerLayerCumulativeSize,
-                                       uint32_t* ntot) {
+                                       sycl::nd_item<3> item) {
+
     // ysize cuts (z in the barrel)  times 8
     // these are used if doClusterCut is true
     constexpr int minYsizeB1 = 36;
@@ -71,17 +71,22 @@ namespace gpuPixelDoublets {
     // If it should be much bigger, consider using a block-wide parallel prefix scan,
     // e.g. see  https://nvlabs.github.io/cub/classcub_1_1_warp_scan.html
     const int nPairsMax = CAConstants::maxNumberOfLayerPairs();
+
+    // auto innerLayerCumulativeSizebuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t[nPairsMax]>(item.get_group());
+    // uint32_t* innerLayerCumulativeSize = (uint32_t*)innerLayerCumulativeSizebuff.get();
+    //auto ntotbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t>(item.get_group());
+    //uint32_t* ntot = (uint32_t*)ntotbuff.get();
+
+    uint32_t innerLayerCumulativeSize[nPairsMax];
+    // const uint32_t* const ntot = innerLayerCumulativeSize + nPairs - 1; //reproducer THIS DOESN'T WORK
+    
     assert(nPairs <= nPairsMax);
 
-    if (item.get_local_id(1) == 0 && item.get_local_id(2) == 0) {
-      innerLayerCumulativeSize[0] = layerSize(layerPairs[0]);
-      for (uint32_t i = 1; i < nPairs; ++i) {
-        innerLayerCumulativeSize[i] = innerLayerCumulativeSize[i - 1] + layerSize(layerPairs[2 * i]);
-      }
-      *ntot = innerLayerCumulativeSize[nPairs - 1];
+    innerLayerCumulativeSize[0] = layerSize(layerPairs[0]);
+    for (uint32_t i = 1; i < nPairs; ++i) {
+      innerLayerCumulativeSize[i] = innerLayerCumulativeSize[i - 1] + layerSize(layerPairs[2 * i]);
     }
-
-    item.barrier();
+    const uint32_t ntot = innerLayerCumulativeSize[nPairs - 1]; //THIS WORKS
 
     // x runs faster
     auto idy = item.get_group(1) * item.get_local_range().get(1) + item.get_local_id(1);
@@ -89,7 +94,16 @@ namespace gpuPixelDoublets {
     auto stride = item.get_local_range().get(2);
 
     uint32_t pairLayerId = 0;  // cannot go backward
-    for (auto j = idy; j < *ntot; j += item.get_local_range().get(1) * item.get_group_range(1)) {
+
+    // if (item.get_local_id(1) == 0 && item.get_local_id(2) == 0 && item.get_group(1) == 0){
+    //   printf(" %d %d %d %d %d\n", nPairs, innerLayerCumulativeSize[nPairs - 1], innerLayerCumulativeSize[nPairs - 1 - 1], layerSize(layerPairs[2 * (nPairs - 1)]), layerPairs[2 * (nPairs - 1)]);
+    //   printf("should be the same %d %d \n", innerLayerCumulativeSize[nPairs - 1], *ntot);
+    // }
+
+    if (item.get_local_id(1) == 0 && item.get_local_id(2) == 0 && item.get_group(1) == 0)
+      printf("ntot: %d \n", ntot); 
+    
+    for (auto j = idy; j < ntot; j += item.get_local_range().get(1) * item.get_group_range(1)) {
       while (j >= innerLayerCumulativeSize[pairLayerId++])
         ;
       --pairLayerId;  // move to lower_bound ??

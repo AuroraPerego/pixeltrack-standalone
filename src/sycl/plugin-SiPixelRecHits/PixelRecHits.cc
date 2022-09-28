@@ -54,9 +54,7 @@ namespace pixelgpudetails {
         auto digis_view_kernel = digis_d.view(); 
         auto digis_n_kernel = digis_d.nDigis(); 
         auto clusters_d_kernel = clusters_d.view(); 
-        auto hits_d_kernel= hits_d.view();
-        sycl::accessor<pixelCPEforGPU::ClusParams, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                   clusParams_acc(sycl::range<1>(sizeof(pixelCPEforGPU::ClusParams)), cgh);         
+        auto hits_d_kernel= hits_d.view();     
         cgh.parallel_for(sycl::nd_range<1>(blocks * threadsPerBlock, threadsPerBlock),
           [=](sycl::nd_item<1> item){ 
               gpuPixelRecHits::getHits(cpeParams_kernel, 
@@ -65,8 +63,7 @@ namespace pixelgpudetails {
                                        digis_n_kernel, 
                                        clusters_d_kernel, 
                                        hits_d_kernel,
-                                       item,
-                                       (pixelCPEforGPU::ClusParams *)clusParams_acc.get_pointer());  
+                                       item);  
       });
     });
 

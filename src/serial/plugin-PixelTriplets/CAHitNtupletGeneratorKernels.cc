@@ -1,8 +1,8 @@
+#include "CAHitNtupletGeneratorKernelsImpl.h"
+
 #ifdef NTUPLE_DEBUG
 #include <iostream>
 #endif
-
-#include "CAHitNtupletGeneratorKernelsImpl.h"
 
 template <>
 void CAHitNtupletGeneratorKernelsCPU::printCounters(Counters const *counters) {
