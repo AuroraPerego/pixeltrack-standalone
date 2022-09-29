@@ -302,15 +302,15 @@ else
 SYCL_BASE :=
 endif
 endif
-USER_SYCLFLAGS :=
-ifdef SYCL_BASE
-export SYCL_CXX      := $(SYCL_BASE)/bin/dpcpp
-export SYCL_CXXFLAGS := -fsycl $(DPCT_CXXFLAGS) $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
+# USER_SYCLFLAGS :=
+# ifdef SYCL_BASE
+# export SYCL_CXX      := $(SYCL_BASE)/bin/dpcpp
+# export SYCL_CXXFLAGS := -fsycl $(DPCT_CXXFLAGS) $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
 ifdef CUDA_BASE
 export SYCL_CUDA_PLUGIN := $(wildcard $(SYCL_LIBDIR)/libpi_cuda.so)
 export SYCL_CUDA_FLAGS  := --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version
 endif
-endif
+# endif
 
 # force the recreation of the environment file any time the Makefile is updated, before building any other target
 -include environment

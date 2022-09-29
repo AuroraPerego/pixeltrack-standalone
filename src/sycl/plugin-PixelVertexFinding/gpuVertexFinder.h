@@ -5,6 +5,7 @@
 #include <cstdint>
 
 #include "SYCLDataFormats/ZVertexHeterogeneous.h"
+#include "SYCLDataFormats/PixelTrackHeterogeneous.h"
 
 namespace gpuVertexFinder {
 

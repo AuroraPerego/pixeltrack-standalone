@@ -79,7 +79,6 @@ namespace gpuPixelDoublets {
             // alligned:  kill farthest  (prefer consecutive layers)
             if (n[ic] > n[jc]) {
               ci.theDoubletId = -1;
-              break; // DEBUG_ comment this to compare sycl and serial
             } else {
               cj.theDoubletId = -1;
             }

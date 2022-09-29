@@ -1,19 +1,18 @@
 #include "CAHitNtupletGeneratorKernels.h"
 
-template <>
-void CAHitNtupletGeneratorKernelsGPU::allocateOnGPU(sycl::queue stream) {
+void CAHitNtupletGeneratorKernels::allocateOnGPU(sycl::queue stream) {
   //////////////////////////////////////////////////////////
   // ALLOCATIONS FOR THE INTERMEDIATE RESULTS (STAYS ON WORKER)
   //////////////////////////////////////////////////////////
 
-  device_theCellNeighbors_ = Traits::template make_unique<CAConstants::CellNeighborsVector>(stream);
-  device_theCellTracks_ = Traits::template make_unique<CAConstants::CellTracksVector>(stream);
+  device_theCellNeighbors_ = cms::sycltools::make_device_unique<CAConstants::CellNeighborsVector>(stream);
+  device_theCellTracks_ = cms::sycltools::make_device_unique<CAConstants::CellTracksVector>(stream);
 
-  device_hitToTuple_ = Traits::template make_unique<HitToTuple>(stream);
+  device_hitToTuple_ = cms::sycltools::make_device_unique<HitToTuple>(stream);
 
-  device_tupleMultiplicity_ = Traits::template make_unique<TupleMultiplicity>(stream);
+  device_tupleMultiplicity_ = cms::sycltools::make_device_unique<TupleMultiplicity>(stream);
 
-  device_storage_ = Traits::template make_unique<cms::sycltools::AtomicPairCounter::c_type[]>(3, stream);
+  device_storage_ = cms::sycltools::make_device_unique<cms::sycltools::AtomicPairCounter::c_type[]>(3, stream);
 
   device_hitTuple_apc_ = (cms::sycltools::AtomicPairCounter*)device_storage_.get();
   device_hitToTuple_apc_ = (cms::sycltools::AtomicPairCounter*)device_storage_.get() + 1;

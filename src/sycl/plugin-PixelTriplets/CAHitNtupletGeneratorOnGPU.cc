@@ -77,7 +77,7 @@ PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecH
   
   auto* soa = tracks.get();
 
-  CAHitNtupletGeneratorKernelsGPU kernels(m_params);
+  CAHitNtupletGeneratorKernels kernels(m_params);
   
   kernels.counters_ = m_counters.get(); 
   kernels.allocateOnGPU(stream);

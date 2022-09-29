@@ -6,7 +6,6 @@
 #include <limits>
 
 #include "SYCLDataFormats/BeamSpotSYCL.h"
-#include "SYCLDataFormats/TrackingRecHit2DSYCL.h"
 #include "DataFormats/approx_atan2.h"
 #include "SYCLCore/sycl_assert.h"
 #include "CondFormats/pixelCPEforGPU.h"

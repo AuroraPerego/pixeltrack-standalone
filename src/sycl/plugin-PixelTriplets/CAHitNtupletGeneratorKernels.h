@@ -133,21 +133,19 @@ namespace cAHitNtupletGenerator {
 
 }  // namespace cAHitNtupletGenerator
 
-template <typename TTraits>
 class CAHitNtupletGeneratorKernels {
 public:
-  using Traits = TTraits;
 
   using QualityCuts = cAHitNtupletGenerator::QualityCuts;
   using Params = cAHitNtupletGenerator::Params;
   using Counters = cAHitNtupletGenerator::Counters;
 
   template <typename T>
-  using unique_ptr = typename Traits::template unique_ptr<T>;
+  using unique_ptr = cms::sycltools::device::unique_ptr<T>;
 
   using HitsView = TrackingRecHit2DSOAView;
   using HitsOnGPU = TrackingRecHit2DSOAView;
-  using HitsOnCPU = TrackingRecHit2DHeterogeneous<Traits>; //when TODO_ the other one remove also this and its template
+  using HitsOnCPU = TrackingRecHit2DSYCL; 
 
   using HitToTuple = CAConstants::HitToTuple;
   using TupleMultiplicity = CAConstants::TupleMultiplicity;
@@ -198,7 +196,5 @@ private:
   // params
   Params const& m_params;
 };
-
-using CAHitNtupletGeneratorKernelsGPU = CAHitNtupletGeneratorKernels<cms::syclcompat::GPUTraits>;
 
 #endif  // RecoPixelVertexing_PixelTriplets_plugins_CAHitNtupletGeneratorKernels_h

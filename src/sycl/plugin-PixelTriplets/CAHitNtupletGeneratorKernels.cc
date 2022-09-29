@@ -5,8 +5,7 @@
 // #define GPU_DEBUG
 // #define DUMP_GPU_TK_TUPLES 
 
-template <>
-void CAHitNtupletGeneratorKernelsGPU::fillHitDetIndices(HitsView const *hv, TkSoA *tracks_d, sycl::queue stream) {
+void CAHitNtupletGeneratorKernels::fillHitDetIndices(HitsView const *hv, TkSoA *tracks_d, sycl::queue stream) {
   auto blockSize = 128;
   auto numberOfBlocks = (HitContainer::capacity() + blockSize - 1) / blockSize;
   
@@ -26,8 +25,7 @@ void CAHitNtupletGeneratorKernelsGPU::fillHitDetIndices(HitsView const *hv, TkSo
 #endif
 }
 
-template <>
-void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *tracks_d, sycl::queue stream) {
+void CAHitNtupletGeneratorKernels::launchKernels(HitsOnCPU const &hh, TkSoA *tracks_d, sycl::queue stream) {
   // these are pointer on GPU!
   auto *tuples_d = &tracks_d->hitIndices;
   auto *quality_d = (Quality *)(&tracks_d->m_quality);
@@ -307,8 +305,7 @@ void CAHitNtupletGeneratorKernelsGPU::launchKernels(HitsOnCPU const &hh, TkSoA *
   // device_isOuterHitOfCell_.reset();
 }
 
-template <>
-void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, sycl::queue stream) {
+void CAHitNtupletGeneratorKernels::buildDoublets(HitsOnCPU const &hh, sycl::queue stream) {
   uint nhits = hh.nHits();
 #ifdef NTUPLE_DEBUG
   std::cout << "building Doublets out of " << nhits << " Hits" << std::endl;
@@ -420,8 +417,7 @@ void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, sycl::q
 #endif
 }
 
-template <>
-void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA *tracks_d, sycl::queue stream) {
+void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tracks_d, sycl::queue stream) {
   // these are pointer on GPU!
   auto const *tuples_d = &tracks_d->hitIndices;
   auto *quality_d = (Quality *)(&tracks_d->m_quality);
@@ -659,8 +655,7 @@ void CAHitNtupletGeneratorKernelsGPU::classifyTuples(HitsOnCPU const &hh, TkSoA 
 #endif
 }
 
-template <>
-void CAHitNtupletGeneratorKernelsGPU::printCounters(Counters const *counters, sycl::queue stream) {
+void CAHitNtupletGeneratorKernels::printCounters(Counters const *counters, sycl::queue stream) {
   stream.submit([&](sycl::handler &cgh) {
       auto counters_kernel = counters;
       cgh.single_task([=](){ 

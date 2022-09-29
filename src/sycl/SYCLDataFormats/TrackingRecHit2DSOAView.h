@@ -21,8 +21,7 @@ public:
 
   using AverageGeometry = phase1PixelTopology::AverageGeometry;
 
-  template <typename>
-  friend class TrackingRecHit2DHeterogeneous;
+  friend class TrackingRecHit2DSYCL;
 
   __attribute__((always_inline)) uint32_t nHits() const { return m_nHits; }
 

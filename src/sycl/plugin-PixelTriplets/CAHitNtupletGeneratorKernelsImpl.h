@@ -42,7 +42,7 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
                            GPUCACell::OuterHitOfCell const *__restrict__ isOuterHitOfCell,
                            uint32_t nHits,
                            uint32_t maxNumberOfDoublets,
-                           CAHitNtupletGeneratorKernelsGPU::Counters *counters,
+                           CAHitNtupletGeneratorKernels::Counters *counters,
                            sycl::nd_item<1> item) {
   auto first = item.get_local_id(0) + item.get_group(0) * item.get_local_range().get(0);
 
@@ -361,7 +361,7 @@ void kernel_fillMultiplicity(HitContainer const *__restrict__ foundNtuplets,
 
 void kernel_classifyTracks(HitContainer const *__restrict__ tuples,
                            TkSoA const *__restrict__ tracks,
-                           CAHitNtupletGeneratorKernelsGPU::QualityCuts cuts,
+                           CAHitNtupletGeneratorKernels::QualityCuts cuts,
                            Quality *__restrict__ quality,
                            sycl::nd_item<1> item) {
   int first = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
@@ -431,7 +431,7 @@ void kernel_classifyTracks(HitContainer const *__restrict__ tuples,
 
 void kernel_doStatsForTracks(HitContainer const *__restrict__ tuples,
                              Quality const *__restrict__ quality,
-                             CAHitNtupletGeneratorKernelsGPU::Counters *counters,
+                             CAHitNtupletGeneratorKernels::Counters *counters,
                              sycl::nd_item<1> item) {
   int first = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
   for (int idx = first, ntot = tuples->nbins(); idx < ntot;
@@ -446,7 +446,7 @@ void kernel_doStatsForTracks(HitContainer const *__restrict__ tuples,
 
 void kernel_countHitInTracks(HitContainer const *__restrict__ tuples,
                              Quality const *__restrict__ quality,
-                             CAHitNtupletGeneratorKernelsGPU::HitToTuple *hitToTuple,
+                             CAHitNtupletGeneratorKernels::HitToTuple *hitToTuple,
                              sycl::nd_item<1> item) {
   int first = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
   for (int idx = first, ntot = tuples->nbins(); idx < ntot;
@@ -462,7 +462,7 @@ void kernel_countHitInTracks(HitContainer const *__restrict__ tuples,
 
 void kernel_fillHitInTracks(HitContainer const *__restrict__ tuples,
                             Quality const *__restrict__ quality,
-                            CAHitNtupletGeneratorKernelsGPU::HitToTuple *hitToTuple,
+                            CAHitNtupletGeneratorKernels::HitToTuple *hitToTuple,
                             sycl::nd_item<1> item) {
   int first = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
   for (int idx = first, ntot = tuples->nbins(); idx < ntot;
@@ -496,8 +496,8 @@ void kernel_fillHitDetIndices(HitContainer const *__restrict__ tuples,
   }
 }
 
-void kernel_doStatsForHitInTracks(CAHitNtupletGeneratorKernelsGPU::HitToTuple const *__restrict__ hitToTuple,
-                                  CAHitNtupletGeneratorKernelsGPU::Counters *counters,
+void kernel_doStatsForHitInTracks(CAHitNtupletGeneratorKernels::HitToTuple const *__restrict__ hitToTuple,
+                                  CAHitNtupletGeneratorKernels::Counters *counters,
                                   sycl::nd_item<1> item) {
   auto &c = *counters;
   int first = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
@@ -515,7 +515,7 @@ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
                            HitContainer const *__restrict__ ptuples, //using HitContainer = cms::sycltools::OneToManyAssoc<hindex_type, S, 5 * S>; S=32 * 1024
                            TkSoA const *__restrict__ ptracks,
                            Quality *__restrict__ quality,
-                           CAHitNtupletGeneratorKernelsGPU::HitToTuple const *__restrict__ phitToTuple, //HistoContainer<uint32_t, MAXONES, MAXMANYS, sizeof(uint32_t) * 8, I, 1>; I = uint16_t, 48 * 1024, 24 * 1024 *4
+                           CAHitNtupletGeneratorKernels::HitToTuple const *__restrict__ phitToTuple, //HistoContainer<uint32_t, MAXONES, MAXMANYS, sizeof(uint32_t) * 8, I, 1>; I = uint16_t, 48 * 1024, 24 * 1024 *4
                            sycl::nd_item<1> item) {
   constexpr auto bad = trackQuality::bad;
   constexpr auto dup = trackQuality::dup;
@@ -578,7 +578,7 @@ void kernel_print_found_ntuplets(TrackingRecHit2DSOAView const *__restrict__ hhp
                                  HitContainer const *__restrict__ ptuples,
                                  TkSoA const *__restrict__ ptracks,
                                  Quality const *__restrict__ quality,
-                                 CAHitNtupletGeneratorKernelsGPU::HitToTuple const *__restrict__ phitToTuple,
+                                 CAHitNtupletGeneratorKernels::HitToTuple const *__restrict__ phitToTuple,
                                  uint32_t maxPrint,
                                  int iev,
                                  sycl::nd_item<1> item) {

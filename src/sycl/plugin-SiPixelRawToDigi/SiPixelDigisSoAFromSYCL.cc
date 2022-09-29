@@ -42,14 +42,16 @@ void SiPixelDigisSoAFromSYCL::acquire(const edm::Event& iEvent,
 
   const auto& gpuDigis = ctx.get(iEvent, digiGetToken_);
 
+  auto stream = ctx.stream();
   nDigis_ = gpuDigis.nDigis();
-  pdigi_ = gpuDigis.pdigiToHostAsync(ctx.stream());
-  rawIdArr_ = gpuDigis.rawIdArrToHostAsync(ctx.stream());
-  adc_ = gpuDigis.adcToHostAsync(ctx.stream());
-  clus_ = gpuDigis.clusToHostAsync(ctx.stream());
+  pdigi_ = gpuDigis.pdigiToHostAsync(stream);
+  rawIdArr_ = gpuDigis.rawIdArrToHostAsync(stream);
+  adc_ = gpuDigis.adcToHostAsync(stream);
+  clus_ = gpuDigis.clusToHostAsync(stream);
+  // stream.wait();
 }
 
-// TODOME_ Do we need it in sycl? pinned memory question for later
+// TODO_ ?
 void SiPixelDigisSoAFromSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   // The following line copies the data from the pinned host memory to
   // regular host memory. In principle that feels unnecessary (why not
