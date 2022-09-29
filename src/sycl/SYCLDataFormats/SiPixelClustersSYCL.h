@@ -40,10 +40,10 @@ public:
   public:
     // DeviceConstView() = default;
 
-    __forceinline uint32_t moduleStart(int i) const { return *(moduleStart_ + i); }
-    __forceinline uint32_t clusInModule(int i) const { return *(clusInModule_ + i); }
-    __forceinline uint32_t moduleId(int i) const { return *(moduleId_ + i); }
-    __forceinline uint32_t clusModuleStart(int i) const { return *(clusModuleStart_ + i); }
+    __attribute__((always_inline)) uint32_t moduleStart(int i) const { return *(moduleStart_ + i); }
+    __attribute__((always_inline)) uint32_t clusInModule(int i) const { return *(clusInModule_ + i); }
+    __attribute__((always_inline)) uint32_t moduleId(int i) const { return *(moduleId_ + i); }
+    __attribute__((always_inline)) uint32_t clusModuleStart(int i) const { return *(clusModuleStart_ + i); }
 
     friend SiPixelClustersSYCL;
 

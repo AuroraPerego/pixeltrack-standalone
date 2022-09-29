@@ -25,16 +25,13 @@ namespace gpuVertexFinder {
   //
   // based on Rodrighez&Laio algo
   //
-  __forceinline void clusterTracksByDensity(gpuVertexFinder::ZVertices* pdata,
+  __attribute__((always_inline)) void clusterTracksByDensity(gpuVertexFinder::ZVertices* pdata,
                                             gpuVertexFinder::WorkSpace* pws,
                                             int minT,      // min number of neighbours to be "seed"
                                             float eps,     // max absolute distance to cluster
                                             float errmax,  // max error to be "seed"
                                             float chi2max,  // max normalized distance to cluster
-                                            sycl::nd_item<1> item,
-                                            Hist *histt,
-                                            Hist::Counter* hwss,
-                                            unsigned int* foundClusters
+                                            sycl::nd_item<1> item
   ) {
     using namespace gpuVertexFinder;
 
@@ -92,9 +89,6 @@ namespace gpuVertexFinder {
       nn[i] = 0;
     }
     item.barrier();
-    
-    // for (int i = 0; i < (int)nt; i++)
-    //   printf("%d %d %d\n", i, iv[i], izt[i]);
 
     if (item.get_local_id(0) < 32)
       hws[item.get_local_id(0)] = 0;  // used by prefix scan...
@@ -200,6 +194,8 @@ namespace gpuVertexFinder {
     item.barrier();
 #endif
 
+    auto foundClustersbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<unsigned int>(item.get_group());
+    unsigned int* foundClusters = (unsigned int*)foundClustersbuff.get();
     *foundClusters = 0;
     item.barrier();
 
@@ -249,12 +245,9 @@ namespace gpuVertexFinder {
                                     float eps,     // max absolute distance to cluster
                                     float errmax,  // max error to be "seed"
                                     float chi2max,  // max normalized distance to cluster
-                                    sycl::nd_item<1> item,
-                                    cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t> *hist,
-                                    Hist::Counter* hws,
-                                    unsigned int *foundClusters
+                                    sycl::nd_item<1> item
   ) {
-    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item, hist, hws, foundClusters);
+    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item);
   }
 
 }  // namespace gpuVertexFinder

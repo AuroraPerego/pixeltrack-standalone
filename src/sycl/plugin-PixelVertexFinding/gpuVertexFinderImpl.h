@@ -7,6 +7,9 @@
 #include "gpuSortByPt2.h"
 #include "gpuSplitVertices.h"
 
+// #define VERTEX_DEBUG
+// #define GPU_DEBUG
+
 namespace gpuVertexFinder {
   
   using Hist = cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
@@ -55,9 +58,6 @@ namespace gpuVertexFinder {
                              float errmax,  // max error to be "seed"
                              float chi2max,  // max normalized distance to cluster
                              sycl::nd_item<1> item,
-                             Hist *hist_acc,
-                             Hist::Counter *hws_acc,
-                             unsigned int *foundClusters_acc,
                              int* noise_acc,
                              uint32_t *it_acc,
                              float *zz_acc,
@@ -75,7 +75,7 @@ namespace gpuVertexFinder {
                              int *p_acc,
                              uint32_t *firstNeg_acc
   ) {
-    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item, hist_acc, hws_acc, foundClusters_acc); 
+    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item); 
     item.barrier();
     fitVertices(pdata, pws, 50., item, noise_acc);
     item.barrier();
@@ -142,7 +142,11 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 
     if((stream.get_device()).is_cpu())
         stream.wait();
-    
+
+#ifdef GPU_DEBUG
+    stream.wait();
+#endif
+
     auto blockSize = 128;
     auto numberOfBlocks = (TkSoA::stride() + blockSize - 1) / blockSize;
     stream.submit([&](sycl::handler &cgh) {
@@ -159,6 +163,10 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
     if((stream.get_device()).is_cpu())
         stream.wait();
 
+#ifdef GPU_DEBUG
+    stream.wait();
+#endif
+
     if (oneKernel_) {
       // implemented only for density clustesrs
 #ifndef THREE_KERNELS
@@ -171,12 +179,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       auto eps_kernel  = eps;
       auto errmax_kernel = errmax;
       auto chi2max_kernel = chi2max;
-      sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              hist_acc(sycl::range<1>(sizeof(Hist)), cgh);
-      sycl::accessor<Hist::Counter, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              hws_acc(sycl::range<1>(sizeof(Hist::Counter) * 32), cgh);
-      sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              foundClusters_acc(sycl::range<1>(sizeof(unsigned int)), cgh);
       sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
               noise_acc(sycl::range<1>(sizeof(int)), cgh);
       sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
@@ -213,9 +215,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
           [=](sycl::nd_item<1> item)[[intel::reqd_sub_group_size(32)]]{ 
               vertexFinderOneKernel(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item,
-                             (Hist *)hist_acc.get_pointer(),
-                             (Hist::Counter *)hws_acc.get_pointer(),
-                             (unsigned int *)foundClusters_acc.get_pointer(),
                              (int* )noise_acc.get_pointer(),
                              (uint32_t *)it_acc.get_pointer(),
                              (float *)zz_acc.get_pointer(),
@@ -237,6 +236,10 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 
     if((stream.get_device()).is_cpu())
         stream.wait();
+
+#ifdef GPU_DEBUG
+    stream.wait();
+#endif
 
 #else
     numberOfBlocks = 1;
@@ -262,6 +265,10 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 
     if((stream.get_device()).is_cpu())
         stream.wait();
+
+#ifdef GPU_DEBUG
+    stream.wait();
+#endif
 
     numberOfBlocks = 1;
     blockSize      = 1024 - 256;
@@ -302,6 +309,10 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
     if((stream.get_device()).is_cpu())
         stream.wait();
 
+#ifdef GPU_DEBUG
+    stream.wait();
+#endif
+
     numberOfBlocks = 1;
     blockSize      = 1024 - 256;
     stream.submit([&](sycl::handler &cgh) {
@@ -341,6 +352,10 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
     if((stream.get_device()).is_cpu())
         stream.wait();
 
+#ifdef GPU_DEBUG
+    stream.wait();
+#endif
+
 #endif
     } else {  // five kernels
       if (useDensity_) {
@@ -353,23 +368,19 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
         auto eps_kernel  = eps;
         auto errmax_kernel = errmax;
         auto chi2max_kernel = chi2max;
-        sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              hist_acc(sycl::range<1>(sizeof(Hist)), cgh);
-        sycl::accessor<Hist::Counter, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              hws_acc(sycl::range<1>(sizeof(Hist::Counter) * 32), cgh);
-        sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              foundClusters_acc(sycl::range<1>(sizeof(unsigned int)), cgh);
         cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
           [=](sycl::nd_item<1> item)[[intel::reqd_sub_group_size(32)]]{ 
-              clusterTracksByDensityKernel(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item,
-                                    (Hist *)hist_acc.get_pointer(), (Hist::Counter *)hws_acc.get_pointer(),
-                                    (unsigned int *)foundClusters_acc.get_pointer());               
+              clusterTracksByDensityKernel(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);               
       });
     });
 
     if((stream.get_device()).is_cpu())
         stream.wait();
+
+#ifdef GPU_DEBUG
+    stream.wait();
+#endif
 
       } else if (useDBSCAN_) {
       numberOfBlocks = 1;
@@ -399,6 +410,10 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 
     if((stream.get_device()).is_cpu())
         stream.wait();
+
+#ifdef GPU_DEBUG
+    stream.wait();
+#endif
 
       } else if (useIterative_) {
       numberOfBlocks = 1;
@@ -431,6 +446,10 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
     if((stream.get_device()).is_cpu())
         stream.wait();
 
+#ifdef GPU_DEBUG
+    stream.wait();
+#endif
+
       numberOfBlocks = 1;
       blockSize      = 1024 - 256;
       stream.submit([&](sycl::handler &cgh) {
@@ -447,6 +466,10 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 
     if((stream.get_device()).is_cpu())
         stream.wait();
+
+#ifdef GPU_DEBUG
+    stream.wait();
+#endif
 
       // one block per vertex...
       numberOfBlocks = 1024;
@@ -488,6 +511,10 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
     if((stream.get_device()).is_cpu())
         stream.wait();
 
+#ifdef GPU_DEBUG
+    stream.wait();
+#endif
+
       numberOfBlocks = 1;
       blockSize      = 1024 - 256;
       stream.submit([&](sycl::handler &cgh) {
@@ -505,6 +532,10 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 
     if((stream.get_device()).is_cpu())
         stream.wait();
+
+#ifdef GPU_DEBUG
+    stream.wait();
+#endif
 
       stream.submit([&](sycl::handler &cgh) {
         auto soa_kernel = soa;
@@ -536,7 +567,11 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 
     if((stream.get_device()).is_cpu())
         stream.wait();
-        
+ 
+#ifdef GPU_DEBUG
+    stream.wait();
+#endif
+
     return vertices;
   }
 

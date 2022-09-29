@@ -24,51 +24,51 @@ public:
   template <typename>
   friend class TrackingRecHit2DHeterogeneous;
 
-  __forceinline uint32_t nHits() const { return m_nHits; }
+  __attribute__((always_inline)) uint32_t nHits() const { return m_nHits; }
 
-  __forceinline float& xLocal(int i) { return m_xl[i]; }
-  __forceinline float xLocal(int i) const { return *(m_xl + i); }
-  __forceinline float& yLocal(int i) { return m_yl[i]; }
-  __forceinline float yLocal(int i) const { return *(m_yl + i); }
+  __attribute__((always_inline)) float& xLocal(int i) { return m_xl[i]; }
+  __attribute__((always_inline)) float xLocal(int i) const { return *(m_xl + i); }
+  __attribute__((always_inline)) float& yLocal(int i) { return m_yl[i]; }
+  __attribute__((always_inline)) float yLocal(int i) const { return *(m_yl + i); }
 
-  __forceinline float& xerrLocal(int i) { return m_xerr[i]; }
-  __forceinline float xerrLocal(int i) const { return *(m_xerr + i); }
-  __forceinline float& yerrLocal(int i) { return m_yerr[i]; }
-  __forceinline float yerrLocal(int i) const { return *(m_yerr + i); }
+  __attribute__((always_inline)) float& xerrLocal(int i) { return m_xerr[i]; }
+  __attribute__((always_inline)) float xerrLocal(int i) const { return *(m_xerr + i); }
+  __attribute__((always_inline)) float& yerrLocal(int i) { return m_yerr[i]; }
+  __attribute__((always_inline)) float yerrLocal(int i) const { return *(m_yerr + i); }
 
-  __forceinline float& xGlobal(int i) { return m_xg[i]; }
-  __forceinline float xGlobal(int i) const { return *(m_xg + i); }
-  __forceinline float& yGlobal(int i) { return m_yg[i]; }
-  __forceinline float yGlobal(int i) const { return *(m_yg + i); }
-  __forceinline float& zGlobal(int i) { return m_zg[i]; }
-  __forceinline float zGlobal(int i) const { return *(m_zg + i); }
-  __forceinline float& rGlobal(int i) { return m_rg[i]; }
-  __forceinline float rGlobal(int i) const { return *(m_rg + i); }
+  __attribute__((always_inline)) float& xGlobal(int i) { return m_xg[i]; }
+  __attribute__((always_inline)) float xGlobal(int i) const { return *(m_xg + i); }
+  __attribute__((always_inline)) float& yGlobal(int i) { return m_yg[i]; }
+  __attribute__((always_inline)) float yGlobal(int i) const { return *(m_yg + i); }
+  __attribute__((always_inline)) float& zGlobal(int i) { return m_zg[i]; }
+  __attribute__((always_inline)) float zGlobal(int i) const { return *(m_zg + i); }
+  __attribute__((always_inline)) float& rGlobal(int i) { return m_rg[i]; }
+  __attribute__((always_inline)) float rGlobal(int i) const { return *(m_rg + i); }
 
-  __forceinline int16_t& iphi(int i) { return m_iphi[i]; }
-  __forceinline int16_t iphi(int i) const { return *(m_iphi + i); }
+  __attribute__((always_inline)) int16_t& iphi(int i) { return m_iphi[i]; }
+  __attribute__((always_inline)) int16_t iphi(int i) const { return *(m_iphi + i); }
 
-  __forceinline int32_t& charge(int i) { return m_charge[i]; }
-  __forceinline int32_t charge(int i) const { return *(m_charge + i); }
-  __forceinline int16_t& clusterSizeX(int i) { return m_xsize[i]; }
-  __forceinline int16_t clusterSizeX(int i) const { return *(m_xsize + i); }
-  __forceinline int16_t& clusterSizeY(int i) { return m_ysize[i]; }
-  __forceinline int16_t clusterSizeY(int i) const { return *(m_ysize + i); }
-  __forceinline uint16_t& detectorIndex(int i) { return m_detInd[i]; }
-  __forceinline uint16_t detectorIndex(int i) const { return *(m_detInd + i); }
+  __attribute__((always_inline)) int32_t& charge(int i) { return m_charge[i]; }
+  __attribute__((always_inline)) int32_t charge(int i) const { return *(m_charge + i); }
+  __attribute__((always_inline)) int16_t& clusterSizeX(int i) { return m_xsize[i]; }
+  __attribute__((always_inline)) int16_t clusterSizeX(int i) const { return *(m_xsize + i); }
+  __attribute__((always_inline)) int16_t& clusterSizeY(int i) { return m_ysize[i]; }
+  __attribute__((always_inline)) int16_t clusterSizeY(int i) const { return *(m_ysize + i); }
+  __attribute__((always_inline)) uint16_t& detectorIndex(int i) { return m_detInd[i]; }
+  __attribute__((always_inline)) uint16_t detectorIndex(int i) const { return *(m_detInd + i); }
 
-  __forceinline pixelCPEforGPU::ParamsOnGPU const& cpeParams() const { return *m_cpeParams; }
+  __attribute__((always_inline)) pixelCPEforGPU::ParamsOnGPU const& cpeParams() const { return *m_cpeParams; }
 
-  __forceinline uint32_t hitsModuleStart(int i) const { return *(m_hitsModuleStart + i); }
+  __attribute__((always_inline)) uint32_t hitsModuleStart(int i) const { return *(m_hitsModuleStart + i); }
 
-  __forceinline uint32_t* hitsLayerStart() { return m_hitsLayerStart; }
-  __forceinline uint32_t const* hitsLayerStart() const { return m_hitsLayerStart; }
+  __attribute__((always_inline)) uint32_t* hitsLayerStart() { return m_hitsLayerStart; }
+  __attribute__((always_inline)) uint32_t const* hitsLayerStart() const { return m_hitsLayerStart; }
 
-  __forceinline Hist& phiBinner() { return *m_hist; }
-  __forceinline Hist const& phiBinner() const { return *m_hist; }
+  __attribute__((always_inline)) Hist& phiBinner() { return *m_hist; }
+  __attribute__((always_inline)) Hist const& phiBinner() const { return *m_hist; }
 
-  __forceinline AverageGeometry& averageGeometry() { return *m_averageGeometry; }
-  __forceinline AverageGeometry const& averageGeometry() const { return *m_averageGeometry; }
+  __attribute__((always_inline)) AverageGeometry& averageGeometry() { return *m_averageGeometry; }
+  __attribute__((always_inline)) AverageGeometry const& averageGeometry() const { return *m_averageGeometry; }
 
 private:
   // local coord

@@ -16,7 +16,7 @@
 
 namespace gpuVertexFinder {
 
-  __forceinline void fitVertices(ZVertices* pdata,
+  __attribute__((always_inline)) void fitVertices(ZVertices* pdata,
                                  WorkSpace* pws,
                                  float chi2Max,  // for outlier rejection
                                  sycl::nd_item<1> item,

@@ -2,7 +2,7 @@
 #include "CAHitNtupletGeneratorKernelsImpl.h"
 
 // #define NTUPLE_DEBUG
-#define GPU_DEBUG
+// #define GPU_DEBUG
 // #define DUMP_GPU_TK_TUPLES 
 
 template <>
@@ -398,7 +398,7 @@ void CAHitNtupletGeneratorKernelsGPU::buildDoublets(HitsOnCPU const &hh, sycl::q
       auto m_params_kernel                 = m_params;
       cgh.parallel_for(
           sycl::nd_range<3>(blks * thrs, thrs),
-          [=](sycl::nd_item<3> item){ 
+          [=](sycl::nd_item<3> item)[[intel::reqd_sub_group_size(32)]]{ 
               gpuPixelDoublets::getDoubletsFromHisto(device_theCells_kernel,
                                                      device_nCells_kernel,
                                                      device_theCellNeighbors_kernel,

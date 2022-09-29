@@ -17,7 +17,7 @@
 namespace gpuVertexFinder {
   using sycl::fabs;
 
-  __forceinline void splitVertices(ZVertices* pdata, 
+  __attribute__((always_inline)) void splitVertices(ZVertices* pdata, 
                                    WorkSpace* pws, 
                                    float maxChi2,                      
                                    sycl::nd_item<1> item,

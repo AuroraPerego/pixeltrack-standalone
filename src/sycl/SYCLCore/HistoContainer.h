@@ -12,6 +12,8 @@
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclstdAlgorithm.h"
 #include "SYCLCore/prefixScan.h"
+#include "SYCLCore/printf.h"
+
 
 namespace cms {
   namespace sycltools {
@@ -58,7 +60,7 @@ namespace cms {
       uint32_t *poff = (uint32_t *)((char *)(h) + offsetof(Histo, off));
       int32_t size = offsetof(Histo, bins) - offsetof(Histo, off);
       assert(size >= int(sizeof(uint32_t) * Histo::totbins()));
-      stream.memset(poff, 0, size);
+      stream.memset(poff, 0x00, size).wait();
     }
 
     template <typename Histo>
@@ -121,7 +123,7 @@ namespace cms {
 
     // iteratate over N bins left and right of the one containing "v"
     template <typename Hist, typename V, typename Func>
-    __forceinline void forEachInBins(Hist const &hist, V value, int n, Func func) {
+    __attribute__((always_inline)) void forEachInBins(Hist const &hist, V value, int n, Func func) {
       int bs = Hist::bin(value);
       int be = sycl::min(int(Hist::nbins() - 1), bs + n);
       bs = sycl::max(0, bs - n);
@@ -133,7 +135,7 @@ namespace cms {
 
     // iteratate over bins containing all values in window wmin, wmax
     template <typename Hist, typename V, typename Func>
-    __forceinline void forEachInWindow(Hist const &hist, V wmin, V wmax, Func const &func) {
+    __attribute__((always_inline)) void forEachInWindow(Hist const &hist, V wmin, V wmax, Func const &func) {
       auto bs = Hist::bin(wmin);
       auto be = Hist::bin(wmax);
       assert(be >= bs);
@@ -191,39 +193,55 @@ namespace cms {
           i = 0;
       }
 
-      __forceinline void add(CountersOnly const &co) {
+      __attribute__((always_inline)) void add(CountersOnly const &co) {
         for (uint32_t i = 0; i < totbins(); ++i) {
           cms::sycltools::atomic_fetch_add<uint32_t,
-                                           sycl::access::address_space::local_space,
-                                           sycl::memory_scope::device>(off +i, static_cast<uint32_t>(co.off[i]));
+                                           sycl::access::address_space::global_space,
+                                           sycl::memory_scope::work_group>(off +i, static_cast<uint32_t>(co.off[i]));
         }
       }
 
-      static __forceinline uint32_t atomicIncrement(Counter &x) {
+      static __attribute__((always_inline)) uint32_t atomicIncrement(Counter &x) {
         return cms::sycltools::atomic_fetch_add<Counter,
                                                 sycl::access::address_space::local_space,
                                                 sycl::memory_scope::device>(&x, 1);
       }
 
-      static __forceinline uint32_t atomicDecrement(Counter &x) {
+      static __attribute__((always_inline)) uint32_t atomicDecrement(Counter &x) {
         return cms::sycltools::atomic_fetch_sub<Counter,
                                                 sycl::access::address_space::local_space,
                                                 sycl::memory_scope::device>(&x, 1);
       }
 
-      __forceinline void countDirect(T b) {
+      __attribute__((always_inline)) void countDirect(T b) {
         assert(b < nbins());
-        atomicIncrement(off[b]);
+        cms::sycltools::atomic_fetch_add<Counter,
+                                         sycl::access::address_space::global_space,
+                                         sycl::memory_scope::work_group>(&off[b], 1);
       }
 
-      __forceinline void fillDirect(T b, index_type j) {
+/*
+NOTE
+The memory order can be:   work_item,
+                          sub_group,
+                          work_group,
+                          device,
+                          system
+The only one that doesn't work with global is device.
+Global should be ok bc the variables are not shared (cuda meaning of it)
+CLEAN the mess and go back to the old arrangement
+*/
+
+      __attribute__((always_inline)) void fillDirect(T b, index_type j) {
         assert(b < nbins());
-        auto w = atomicDecrement(off[b]);
+        auto w = cms::sycltools::atomic_fetch_sub<Counter,
+                                                  sycl::access::address_space::global_space,
+                                                  sycl::memory_scope::work_group>(&off[b], 1);
         assert(w > 0);
         bins[w - 1] = j;
       }
 
-      __forceinline int32_t bulkFill(AtomicPairCounter &apc, index_type const *v, uint32_t n) {
+      __attribute__((always_inline)) int32_t bulkFill(AtomicPairCounter &apc, index_type const *v, uint32_t n) {
         auto c = apc.add(n);
         if (c.m >= nbins())
           return -int32_t(c.m);
@@ -233,11 +251,11 @@ namespace cms {
         return c.m;
       }
 
-      __forceinline void bulkFinalize(AtomicPairCounter const &apc) {
+      __attribute__((always_inline)) void bulkFinalize(AtomicPairCounter const &apc) {
         off[apc.get().m] = apc.get().n;
       }
 
-      __forceinline void bulkFinalizeFill(AtomicPairCounter const &apc, sycl::nd_item<1> item) {
+      __attribute__((always_inline)) void bulkFinalizeFill(AtomicPairCounter const &apc, sycl::nd_item<1> item) {
         auto m = apc.get().m;
         auto n = apc.get().n;
         if (m >= nbins()) {  // overflow!
@@ -250,39 +268,45 @@ namespace cms {
         }
       }
 
-      __forceinline void count(T t) {
+      __attribute__((always_inline)) void count(T t) {
         uint32_t b = bin(t);
         assert(b < nbins());
         atomicIncrement(off[b]);
       }
 
-      __forceinline void fill(T t, index_type j) {
+      __attribute__((always_inline)) void fill(T t, index_type j) {
         uint32_t b = bin(t);
         assert(b < nbins());
         auto w = atomicDecrement(off[b]);
         assert(w > 0);
         bins[w - 1] = j;
       }
-
-      __forceinline void count(T t, uint32_t nh) {
+      
+      __attribute__((always_inline)) void count(T t, uint32_t nh) {
         uint32_t b = bin(t);
         assert(b < nbins());
         b += histOff(nh);
         assert(b < totbins());
-        atomicIncrement(off[b]);
+        cms::sycltools::atomic_fetch_add<Counter,
+                                         sycl::access::address_space::global_space,
+                                         sycl::memory_scope::work_group>(&off[b], 1);
+        //atomicIncrement(off[b]);
       }
 
-      __forceinline void fill(T t, index_type j, uint32_t nh) {
+      __attribute__((always_inline)) void fill(T t, index_type j, uint32_t nh) {
         uint32_t b = bin(t);
         assert(b < nbins());
         b += histOff(nh);
         assert(b < totbins());
-        auto w = atomicDecrement(off[b]);
+        // auto w = atomicDecrement(off[b]);
+        auto w = cms::sycltools::atomic_fetch_sub<Counter,
+                                                  sycl::access::address_space::global_space,
+                                                  sycl::memory_scope::work_group>(&off[b], 1);
         assert(w > 0);
         bins[w - 1] = j;
       }
 
-      __forceinline void finalize(sycl::nd_item<1> item, Counter *ws = nullptr) {
+      __attribute__((always_inline)) void finalize(sycl::nd_item<1> item, Counter *ws = nullptr) {
         assert(off[totbins() - 1] == 0);
         blockPrefixScan(off, totbins(), item, ws);
         assert(off[totbins() - 1] == off[totbins() - 2]);

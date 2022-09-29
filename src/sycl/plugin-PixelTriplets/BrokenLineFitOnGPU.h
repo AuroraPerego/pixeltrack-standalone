@@ -2,7 +2,7 @@
 // Author: Felice Pantaleo, CERN
 //
 
-//#define BROKENLINE_DEBUG
+// #define BROKENLINE_DEBUG
 
 #include <cstdint>
 
@@ -70,9 +70,9 @@ void kernelBLFastFit(Tuples const * foundNtuplets,
 #ifdef BL_DUMP_HITS
     auto donebuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int>(item.get_group());
     int* done = (int*)donebuff.get();
-    done = 0;
+    *done = 0;
     item.barrier();
-    bool dump = (foundNtuplets->size(tkid) == 5 && 0 == cms::sycltools::atomic_fetch_add<int>(&done, 1));
+    bool dump = (foundNtuplets->size(tkid) == 5 && 0 == cms::sycltools::atomic_fetch_add<int, cl::sycl::access::address_space::local_space>(done, 1));
 #endif
 
     // Prepare data structure
@@ -94,7 +94,7 @@ void kernelBLFastFit(Tuples const * foundNtuplets,
                hhp->zGlobal(hit));
         printf("Error: %d: %d  hits_ge.col(%d) << %e,%e,%e,%e,%e,%e\n",
                tkid,
-               hhp->detetectorIndex(hit),
+               hhp->detectorIndex(hit),
                i,
                ge[0],
                ge[1],

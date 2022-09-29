@@ -44,7 +44,7 @@ public:
 
   GPUCACell() = default;
 
-  __forceinline void init(CellNeighborsVector& cellNeighbors,
+  __attribute__((always_inline)) void init(CellNeighborsVector& cellNeighbors,
                           CellTracksVector& cellTracks,
                           Hits const& hh,
                           int layerPairId,
@@ -68,7 +68,7 @@ public:
     assert(tracks().empty());
   }
 
-  __forceinline int addOuterNeighbor(CellNeighbors::value_t t, CellNeighborsVector& cellNeighbors) {
+  __attribute__((always_inline)) int addOuterNeighbor(CellNeighbors::value_t t, CellNeighborsVector& cellNeighbors) {
 
     // use smart cache
     if (outerNeighbors().empty()) {
@@ -88,7 +88,7 @@ public:
     return outerNeighbors().push_back(t);
   }
 
-  __forceinline int addTrack(CellTracks::value_t t, CellTracksVector& cellTracks) {
+  __attribute__((always_inline)) int addTrack(CellTracks::value_t t, CellTracksVector& cellTracks) {
     if (tracks().empty()) {
       auto i = cellTracks.extend();  // maybe waisted....
       if (i > 0) {
@@ -107,26 +107,26 @@ public:
     return tracks().push_back(t);
   }
 
-  __forceinline CellTracks& tracks() { return *theTracks; }
-  __forceinline CellTracks const& tracks() const { return *theTracks; }
-  __forceinline CellNeighbors& outerNeighbors() { return *theOuterNeighbors; }
-  __forceinline CellNeighbors const& outerNeighbors() const { return *theOuterNeighbors; }
-  __forceinline float get_inner_x(Hits const& hh) const { return hh.xGlobal(theInnerHitId); }
-  __forceinline float get_outer_x(Hits const& hh) const { return hh.xGlobal(theOuterHitId); }
-  __forceinline float get_inner_y(Hits const& hh) const { return hh.yGlobal(theInnerHitId); }
-  __forceinline float get_outer_y(Hits const& hh) const { return hh.yGlobal(theOuterHitId); }
-  __forceinline float get_inner_z(Hits const& hh) const { return theInnerZ; }
+  __attribute__((always_inline)) CellTracks& tracks() { return *theTracks; }
+  __attribute__((always_inline)) CellTracks const& tracks() const { return *theTracks; }
+  __attribute__((always_inline)) CellNeighbors& outerNeighbors() { return *theOuterNeighbors; }
+  __attribute__((always_inline)) CellNeighbors const& outerNeighbors() const { return *theOuterNeighbors; }
+  __attribute__((always_inline)) float get_inner_x(Hits const& hh) const { return hh.xGlobal(theInnerHitId); }
+  __attribute__((always_inline)) float get_outer_x(Hits const& hh) const { return hh.xGlobal(theOuterHitId); }
+  __attribute__((always_inline)) float get_inner_y(Hits const& hh) const { return hh.yGlobal(theInnerHitId); }
+  __attribute__((always_inline)) float get_outer_y(Hits const& hh) const { return hh.yGlobal(theOuterHitId); }
+  __attribute__((always_inline)) float get_inner_z(Hits const& hh) const { return theInnerZ; }
   // { return hh.zGlobal(theInnerHitId); } // { return theInnerZ; }
-  __forceinline float get_outer_z(Hits const& hh) const { return hh.zGlobal(theOuterHitId); }
-  __forceinline float get_inner_r(Hits const& hh) const { return theInnerR; }
+  __attribute__((always_inline)) float get_outer_z(Hits const& hh) const { return hh.zGlobal(theOuterHitId); }
+  __attribute__((always_inline)) float get_inner_r(Hits const& hh) const { return theInnerR; }
   // { return hh.rGlobal(theInnerHitId); } // { return theInnerR; }
-  __forceinline float get_outer_r(Hits const& hh) const { return hh.rGlobal(theOuterHitId); }
+  __attribute__((always_inline)) float get_outer_r(Hits const& hh) const { return hh.rGlobal(theOuterHitId); }
 
-  __forceinline auto get_inner_iphi(Hits const& hh) const { return hh.iphi(theInnerHitId); }
-  __forceinline auto get_outer_iphi(Hits const& hh) const { return hh.iphi(theOuterHitId); }
+  __attribute__((always_inline)) auto get_inner_iphi(Hits const& hh) const { return hh.iphi(theInnerHitId); }
+  __attribute__((always_inline)) auto get_outer_iphi(Hits const& hh) const { return hh.iphi(theOuterHitId); }
 
-  __forceinline float get_inner_detIndex(Hits const& hh) const { return hh.detectorIndex(theInnerHitId); }
-  __forceinline float get_outer_detIndex(Hits const& hh) const { return hh.detectorIndex(theOuterHitId); }
+  __attribute__((always_inline)) float get_inner_detIndex(Hits const& hh) const { return hh.detectorIndex(theInnerHitId); }
+  __attribute__((always_inline)) float get_outer_detIndex(Hits const& hh) const { return hh.detectorIndex(theOuterHitId); }
 
   constexpr unsigned int get_inner_hit_id() const { return theInnerHitId; }
   constexpr unsigned int get_outer_hit_id() const { return theOuterHitId; }
@@ -176,7 +176,7 @@ public:
                    hardCurvCut));  // FIXME tune cuts
   }
 
-  __forceinline static bool areAlignedRZ(
+  __attribute__((always_inline)) static bool areAlignedRZ(
       float r1, float z1, float ri, float zi, float ro, float zo, const float ptmin, const float thetaCut) {
     float radius_diff = abs(r1 - ro);
     float distance_13_squared = radius_diff * radius_diff + (z1 - zo) * (z1 - zo);
@@ -209,7 +209,7 @@ public:
     return abs(eq.dca0()) < region_origin_radius_plus_tolerance * abs(eq.curvature());
   }
 
-  __forceinline static bool dcaCutH(float x1,
+  __attribute__((always_inline)) static bool dcaCutH(float x1,
                                     float y1,
                                     float x2,
                                     float y2,

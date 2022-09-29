@@ -35,7 +35,7 @@ namespace cms {
       Counters get() const { return counter.counters; }
 
       // increment n by 1 and m by i.  return previous value
-      __forceinline Counters add(uint32_t i) {
+      __attribute__((always_inline)) Counters add(uint32_t i) {
         c_type c = i;
         c += incr;
         Atomic2 ret;

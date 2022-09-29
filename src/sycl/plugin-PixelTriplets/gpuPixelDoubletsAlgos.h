@@ -29,7 +29,7 @@ namespace gpuPixelDoublets {
   using CellNeighborsVector = CAConstants::CellNeighborsVector;
   using CellTracksVector = CAConstants::CellTracksVector;
 
-  __forceinline void doubletsFromHisto(uint8_t const* __restrict__ layerPairs,
+  __attribute__((always_inline)) void doubletsFromHisto(uint8_t const* __restrict__ layerPairs,
                                        uint32_t nPairs,
                                        GPUCACell* cells,
                                        uint32_t* nCells,
@@ -233,7 +233,6 @@ namespace gpuPixelDoublets {
         p += first;
         for (; p < e; p += stride) {
           auto oi = *(p); 
-          //printf("%p, %p\n", p, e);
           assert(oi >= offsets[outer]);
           assert(oi < offsets[outer + 1]);
           auto mo = hh.detectorIndex(oi);
@@ -260,7 +259,6 @@ namespace gpuPixelDoublets {
           // int layerPairId, int doubletId, int innerHitId, int outerHitId)
           cells[ind].init(*cellNeighbors, *cellTracks, hh, pairLayerId, ind, i, oi);
           isOuterHitOfCell[oi].push_back(ind);
-          //printf("%d %d %d %d\n", pairLayerId, ind, i, oi);
 #ifdef GPU_DEBUG
           if (isOuterHitOfCell[oi].full())
             ++tooMany;

@@ -13,6 +13,8 @@
 #include "PixelRecHits.h"
 #include "gpuPixelRecHits.h"
 
+// #define GPU_DEBUG
+
 namespace {
   void setHitsLayerStart(uint32_t const* __restrict__ hitsModuleStart,
                          pixelCPEforGPU::ParamsOnGPU const* cpeParams,
@@ -76,6 +78,9 @@ namespace pixelgpudetails {
 
     // assuming full warp of threads is better than a smaller number...
     if (nHits) {
+#ifdef GPU_DEBUG
+    std::cout << "launching setHitsLayerStart kernel for 32 blocks" << std::endl;
+#endif
       stream.submit([&](sycl::handler &cgh) {
         auto cpeParams_kernel = cpeParams; 
         auto hits_d_kernel = hits_d.hitsLayerStart(); 
@@ -87,6 +92,9 @@ namespace pixelgpudetails {
       });
     }
     if (nHits) {
+#ifdef GPU_DEBUG
+    std::cout << "launching fillManyFromVector kernel" << std::endl;
+#endif
       cms::sycltools::fillManyFromVector(hits_d.phiBinner(), 10, hits_d.iphi(), hits_d.hitsLayerStart(), nHits, 256, stream);
     }
 

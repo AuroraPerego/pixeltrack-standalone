@@ -7,7 +7,7 @@
 #include "SYCLCore/syclAtomic.h"
 
 template <typename T>
-void __forceinline warpPrefixScan(T const* __restrict__ ci, T* __restrict__ co, uint32_t i, uint32_t mask, sycl::nd_item<1> item) {
+void __attribute__((always_inline)) warpPrefixScan(T const* __restrict__ ci, T* __restrict__ co, uint32_t i, uint32_t mask, sycl::nd_item<1> item) {
   // ci and co may be the same
   auto x = ci[i];
   int laneId = item.get_local_id(0) & 0x1f;
@@ -21,7 +21,7 @@ void __forceinline warpPrefixScan(T const* __restrict__ ci, T* __restrict__ co, 
 }
 
 template <typename T>
-void __forceinline warpPrefixScan(T* c, uint32_t i, uint32_t mask, sycl::nd_item<1> item) {
+void __attribute__((always_inline)) warpPrefixScan(T* c, uint32_t i, uint32_t mask, sycl::nd_item<1> item) {
   auto x = c[i];
   int laneId = item.get_local_id(0) & 0x1f;
 #pragma unroll
@@ -43,7 +43,7 @@ namespace cms {
 
     // 1) limited to 32*32 elements....
     template <typename VT, typename T>
-    __forceinline void blockPrefixScan(VT const* ci,
+    __attribute__((always_inline)) void blockPrefixScan(VT const* ci,
                                        VT* co,
                                        uint32_t size,
                                        sycl::nd_item<1> item,
@@ -90,7 +90,7 @@ namespace cms {
     // same as above (1), may remove
     // limited to 32*32 elements....
     template <typename T>
-    __forceinline void blockPrefixScan(T* c,
+    __attribute__((always_inline)) void blockPrefixScan(T* c,
                                          uint32_t size,
                                          sycl::nd_item<1> item,
                                          T* ws) {
@@ -134,9 +134,9 @@ namespace cms {
     }
 
     // // see https://stackoverflow.com/questions/40021086/can-i-obtain-the-amount-of-allocated-dynamic-shared-memory-from-within-a-kernel/40021087#40021087
-    // __forceinline unsigned dynamic_smem_size() {
+    // __attribute__((always_inline)) unsigned dynamic_smem_size() {
     //   unsigned ret;
-    //   asm volatile("mov.u32 %0, %dynamic_smem_size;" : "=r"(ret)); FIXME_
+    //   asm volatile("mov.u32 %0, %dynamic_smem_size;" : "=r"(ret)); // FIXME_
     //   return ret;
     // }
 
@@ -147,6 +147,8 @@ namespace cms {
                               uint8_t *local_psum, T *ws, bool *isLastBlockDone) {
       volatile T const* ci = ici;
       volatile T* co = ico;
+      // auto wsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t[32]>(item.get_group());
+      // uint32_t* ws = (uint32_t*)wsbuff.get();
 
       // assert(sizeof(T) * item.get_group_range(0) <= dynamic_smem_size());  // size of psum below FIXME_
       assert((int32_t)(item.get_local_range(0) * item.get_group_range(0)) >= size);
@@ -156,16 +158,12 @@ namespace cms {
         blockPrefixScan(ci + off, co + off, std::min(int(item.get_local_range(0)), size - off), item, ws);
 
       // count blocks that finished
+      // auto isLastBlockDonebuff = sycl::ext::oneapi::group_local_memory_for_overwrite<bool>(item.get_group());
+      // bool* isLastBlockDone = (bool*)isLastBlockDonebuff.get();
 
       if (0 == item.get_local_id(0)) {
-        /*
-        DPCT1078:13: Consider replacing memory_order::acq_rel with memory_order::seq_cst for correctness if strong memory order restrictions are needed.
-        */
         sycl::atomic_fence(sycl::memory_order::acq_rel,
                            sycl::memory_scope::device);
-        /*
-        DPCT1039:14: The generated code assumes that "pc" points to the global memory address space. If it points to a local memory address space, replace "sycl::global_ptr" with "sycl::local_ptr".
-        */
         auto value =cms::sycltools::atomic_fetch_add<int32_t,
                                                      sycl::access::address_space::global_space,
                                                      sycl::memory_scope::device>

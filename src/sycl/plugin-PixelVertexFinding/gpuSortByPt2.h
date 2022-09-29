@@ -15,7 +15,7 @@
 
 namespace gpuVertexFinder {
 
-  __forceinline void sortByPt2(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item, uint16_t* sws, 
+  __attribute__((always_inline)) void sortByPt2(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item, uint16_t* sws, 
                                int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
     auto& __restrict__ data = *pdata;
     auto& __restrict__ ws = *pws;
