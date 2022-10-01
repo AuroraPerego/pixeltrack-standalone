@@ -77,13 +77,13 @@ namespace gpuVertexFinder {
   ) {
     clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item); 
     item.barrier();
-    fitVertices(pdata, pws, 50., item, noise_acc);
+    fitVertices(pdata, pws, 50., item);
     item.barrier();
     splitVertices(pdata, pws, 9.f, item, it_acc, zz_acc, newV_acc, ww_acc, nq_acc, znew_acc, wnew_acc, igv_acc);
     item.barrier();
-    fitVertices(pdata, pws, 5000., item, noise_acc);
+    fitVertices(pdata, pws, 5000., item);
     item.barrier();
-    sortByPt2(pdata, pws, item, sws_acc, c_acc, ct_acc, cu_acc, ibs_acc, p_acc, firstNeg_acc);
+    sortByPt2(pdata, pws, item);
   }
 #else
   void vertexFinderKernel1(gpuVertexFinder::ZVertices* pdata,
@@ -96,7 +96,7 @@ namespace gpuVertexFinder {
                            int* noise_acc) {
     (pdata, pws, minT, eps, errmax, chi2max, item, hist_acc, hws_acc, foundClusters_acc);
     item.barrier();
-    fitVertices(pdata, pws, 50., item, noise_acc);
+    fitVertices(pdata, pws, 50., item);
   }
 
   void vertexFinderKernel2(gpuVertexFinder::ZVertices* pdata, gpuVertexFinder::WorkSpace* pws,
@@ -110,9 +110,9 @@ namespace gpuVertexFinder {
                            int *p_acc,
                            uint32_t *firstNeg_acc
   ) {
-    fitVertices(pdata, pws, 5000., item, noise_acc);
+    fitVertices(pdata, pws, 5000., item);
     item.barrier();
-    sortByPt2(pdata, pws, item, sws_acc, c_acc, ct_acc, cu_acc, ibs_acc, p_acc, firstNeg_acc);
+    sortByPt2(pdata, pws, item);
   }
 #endif
 
@@ -460,7 +460,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
           [=](sycl::nd_item<1> item){ 
-                fitVerticesKernel(soa_kernel, ws_kernel, 50., item, (int *)noise_acc.get_pointer());
+                fitVerticesKernel(soa_kernel, ws_kernel, 50., item);
       });
     });
 
@@ -525,7 +525,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
           [=](sycl::nd_item<1> item){ 
-                fitVerticesKernel(soa_kernel, ws_kernel, 5000., item, (int *)noise_acc.get_pointer());
+                fitVerticesKernel(soa_kernel, ws_kernel, 5000., item);
 
       });
     });
@@ -540,27 +540,10 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       stream.submit([&](sycl::handler &cgh) {
         auto soa_kernel = soa;
         auto ws_kernel  = ws_d.get();
-        sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              sws_acc(sycl::range<1>(sizeof(uint16_t) * 32), cgh);
-        sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                c_acc(sycl::range<1>(sizeof(int32_t)), cgh);
-        sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                ct_acc(sycl::range<1>(sizeof(int32_t)), cgh);
-        sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                cu_acc(sycl::range<1>(sizeof(int32_t)), cgh);
-        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                ibs_acc(sycl::range<1>(sizeof(int)), cgh);
-        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                p_acc(sycl::range<1>(sizeof(int)), cgh);
-        sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-                firstNeg_acc(sycl::range<1>(sizeof(uint32_t)), cgh);
         cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
           [=](sycl::nd_item<1> item){ 
-               sortByPt2Kernel(soa_kernel, ws_kernel, item, 
-                              (uint16_t *)sws_acc.get_pointer(), (int32_t *)c_acc.get_pointer(), 
-                              (int32_t *)ct_acc.get_pointer(), (int32_t *)cu_acc.get_pointer(), 
-                              (int *)ibs_acc.get_pointer(), (int *)p_acc.get_pointer(), (uint32_t *)firstNeg_acc.get_pointer());
+               sortByPt2Kernel(soa_kernel, ws_kernel, item);
       });
     });
     }

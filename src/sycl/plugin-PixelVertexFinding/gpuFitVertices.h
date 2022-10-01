@@ -19,8 +19,7 @@ namespace gpuVertexFinder {
   __attribute__((always_inline)) void fitVertices(ZVertices* pdata,
                                  WorkSpace* pws,
                                  float chi2Max,  // for outlier rejection
-                                 sycl::nd_item<1> item,
-                                 int* noise
+                                 sycl::nd_item<1> item
   ) {
 
     auto& __restrict__ data = *pdata;
@@ -53,6 +52,8 @@ namespace gpuVertexFinder {
 
     // only for test
 #ifdef VERTEX_DEBUG
+    auto noisebuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int>(item.get_group());
+    int* noise = (int*)noisebuff.get();
     if (0 == item.get_local_id(0))
       *noise = 0;
 #endif
@@ -110,10 +111,9 @@ namespace gpuVertexFinder {
   void fitVerticesKernel(ZVertices* pdata,
                          WorkSpace* pws,
                          float chi2Max,  // for outlier rejection
-                         sycl::nd_item<1> item,
-                         int* noise
+                         sycl::nd_item<1> item
   ) {
-    fitVertices(pdata, pws, chi2Max, item, noise);
+    fitVertices(pdata, pws, chi2Max, item);
   }
 
 }  // namespace gpuVertexFinder

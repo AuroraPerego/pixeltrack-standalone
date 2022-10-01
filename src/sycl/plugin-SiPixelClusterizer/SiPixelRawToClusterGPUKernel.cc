@@ -556,14 +556,7 @@ namespace pixelgpudetails {
          auto fedId_d = sycl::malloc_device<uint8_t>(wordCounter, stream);
 
          stream.memcpy(word_d, wordFed.word(), sizeof(uint32_t)*wordCounter);         
-         stream.memcpy(fedId_d, wordFed.fedId(), sizeof(uint8_t)*wordCounter/2);
-        
-        // #FIXME_ if debug=false on CPU all results are zero
-        bool cpu_debug = true;
-        if((stream.get_device()).is_cpu()){
-          cpu_debug = debug;
-          debug = true;
-        }
+         stream.memcpy(fedId_d, wordFed.fedId(), sizeof(uint8_t)*wordCounter/2).wait();
 
          stream.submit([&](sycl::handler &cgh) {
                  auto cablingMap_kernel   = cablingMap;
@@ -600,12 +593,10 @@ namespace pixelgpudetails {
     
       #ifdef GPU_DEBUG
           stream.wait();
-      #else
-          if((stream.get_device()).is_cpu()){
-            debug = cpu_debug;
-            stream.wait();
-          }
       #endif
+          if((stream.get_device()).is_cpu())
+            stream.wait();
+
         
           sycl::free(word_d,stream);
           sycl::free(fedId_d,stream);
