@@ -4,7 +4,6 @@
 #include <utility>
 
 #include "SYCLCore/ESProduct.h"
-//#include "SYCLCore/HostAllocator.h"
 #include "CondFormats/pixelCPEforGPU.h"
 
 class PixelCPEFast {

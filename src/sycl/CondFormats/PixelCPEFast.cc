@@ -3,7 +3,6 @@
 
 #include <CL/sycl.hpp>
 
-//#include "SYCLCore/device_unique_ptr.h"
 #include "Geometry/phase1PixelTopology.h"
 #include "CondFormats/PixelCPEFast.h"
 

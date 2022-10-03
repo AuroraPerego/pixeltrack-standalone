@@ -2,7 +2,6 @@
 
 #include "SYCLCore/device_unique_ptr.h"
 #include "SYCLCore/host_unique_ptr.h"
-//#include "SYCLCore/copyAsync.h" check if it works w/o this, using directly memcpy
 
 SiPixelDigisSYCL::SiPixelDigisSYCL(size_t maxFedWords, sycl::queue stream) {
   xx_d = cms::sycltools::make_device_unique<uint16_t[]>(maxFedWords, stream, "xx_d");
