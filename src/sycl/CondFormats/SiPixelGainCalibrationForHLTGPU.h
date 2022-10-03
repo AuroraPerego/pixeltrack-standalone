@@ -31,12 +31,8 @@ private:
     GPUData() = default;
     ~GPUData() {}
 
-    // std::unique_ptr<SiPixelGainForHLTonGPU, cms::sycltools::device::impl::DeviceDeleter> gainForHLTonGPU;
-    // std::unique_ptr<SiPixelGainForHLTonGPU_DecodingStructure[], cms::sycltools::device::impl::DeviceDeleter>
-    //     gainDataOnGPU;
-
-    SiPixelGainForHLTonGPU *gainForHLTonGPU = nullptr;
-    SiPixelGainForHLTonGPU_DecodingStructure *gainDataOnGPU = nullptr;
+    cms::sycltools::device::unique_ptr<SiPixelGainForHLTonGPU> gainForHLTonGPU;
+    cms::sycltools::device::unique_ptr<SiPixelGainForHLTonGPU_DecodingStructure[]> gainDataOnGPU;
     
   };
   cms::sycltools::ESProduct<GPUData> gpuData_;

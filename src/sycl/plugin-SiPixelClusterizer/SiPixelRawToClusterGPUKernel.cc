@@ -552,17 +552,17 @@ namespace pixelgpudetails {
          sycl::range<1> globalSize(blocks*threadsPerBlock);
          assert(0 == wordCounter % 2);
 
-         auto word_d = sycl::malloc_device<uint32_t>(wordCounter, stream);
-         auto fedId_d = sycl::malloc_device<uint8_t>(wordCounter, stream);
+         auto word_d = cms::sycltools::make_device_unique<uint32_t[]>(wordCounter, stream);
+         auto fedId_d = cms::sycltools::make_device_unique<uint8_t[]>(wordCounter, stream);
 
-         stream.memcpy(word_d, wordFed.word(), sizeof(uint32_t)*wordCounter);         
-         stream.memcpy(fedId_d, wordFed.fedId(), sizeof(uint8_t)*wordCounter/2).wait();
+         stream.memcpy(word_d.get(), wordFed.word(), sizeof(uint32_t)*wordCounter);         
+         stream.memcpy(fedId_d.get(), wordFed.fedId(), sizeof(uint8_t)*wordCounter/2).wait();
 
          stream.submit([&](sycl::handler &cgh) {
                  auto cablingMap_kernel   = cablingMap;
                  auto modToUnp_kernel     = modToUnp;
-                 auto word_d_kernel       = word_d;
-                 auto fedId_d_kernel      = fedId_d;
+                 auto word_d_kernel       = word_d.get();
+                 auto fedId_d_kernel      = fedId_d.get();
                  auto digis_x_kernel      = digis_d.xx();
                  auto digis_y_kernel      = digis_d.yy();
                  auto digis_adc_kernel    = digis_d.adc();
@@ -597,11 +597,8 @@ namespace pixelgpudetails {
           if((stream.get_device()).is_cpu())
             stream.wait();
 
-        
-          sycl::free(word_d,stream);
-          sycl::free(fedId_d,stream);
        }
-          // End of Raw2Digi and passing data for clusterin  
+          // End of Raw2Digi and passing data for clustering  
           {
             // clusterizer ...
             using namespace gpuClustering;

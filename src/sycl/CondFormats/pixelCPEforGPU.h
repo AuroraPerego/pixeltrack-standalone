@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <iterator>
 
+#include "SYCLCore/device_unique_ptr.h"
 #include "SYCLDataFormats/gpuClusteringConstants.h"
 #include "DataFormats/SOARotation.h"
 #include "Geometry/phase1PixelTopology.h"
@@ -55,24 +56,29 @@ namespace pixelCPEforGPU {
   };
 
   struct ParamsOnGPU {
-    CommonParams const* m_commonParams;
-    DetParams const* m_detParams;
-    LayerGeometry const* m_layerGeometry;
-    AverageGeometry const* m_averageGeometry;
+    // FIXME_ all of these were raw const pointer, but as unique they cannot be raw. Is that ok or we WANT them const?
+    cms::sycltools::device::unique_ptr<CommonParams> m_commonParams;
+    cms::sycltools::device::unique_ptr<DetParams[]> m_detParams;
+    cms::sycltools::device::unique_ptr<LayerGeometry> m_layerGeometry;
+    cms::sycltools::device::unique_ptr<AverageGeometry> m_averageGeometry;
+    // CommonParams const* m_commonParams;
+    // DetParams const* m_detParams;
+    // LayerGeometry const* m_layerGeometry;
+    // AverageGeometry const* m_averageGeometry;
 
     constexpr CommonParams const& __restrict__ commonParams() const {
-      CommonParams const* __restrict__ l = m_commonParams;
+      CommonParams const* __restrict__ l = m_commonParams.get();
       return *l;
     }
     constexpr DetParams const& __restrict__ detParams(int i) const {
-      DetParams const* __restrict__ l = m_detParams;
+      DetParams const* __restrict__ l = m_detParams.get();
       return l[i];
     }
-    constexpr LayerGeometry const& __restrict__ layerGeometry() const { return *m_layerGeometry; }
-    constexpr AverageGeometry const& __restrict__ averageGeometry() const { return *m_averageGeometry; }
+    constexpr LayerGeometry const& __restrict__ layerGeometry() const { return *m_layerGeometry.get(); }
+    constexpr AverageGeometry const& __restrict__ averageGeometry() const { return *m_averageGeometry.get(); }
 
     uint8_t layer(uint16_t id) const {
-      return *(m_layerGeometry->layer + id / phase1PixelTopology::maxModuleStride);
+      return *(m_layerGeometry.get()->layer + id / phase1PixelTopology::maxModuleStride);
     };
   };
 
