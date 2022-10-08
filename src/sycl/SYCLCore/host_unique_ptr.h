@@ -56,7 +56,7 @@ namespace cms {
       static_assert(std::is_trivially_constructible<T>::value,
                     "Allocating with non-trivial constructor on the pinned host memory is not supported");
       CachingAllocator& allocator = getCachingAllocator(stream.get_device());
-      void* mem = allocator.allocate(sizeof(T), stream, true);
+      void* mem = allocator.allocate_host(sizeof(T), stream);
       return typename host::impl::make_host_unique_selector<T>::non_array{reinterpret_cast<T *>(mem),
                                                                           host::impl::HostDeleter{stream}};
     }
@@ -67,7 +67,7 @@ namespace cms {
       static_assert(std::is_trivially_constructible<element_type>::value,
                     "Allocating with non-trivial constructor on the pinned host memory is not supported");
       CachingAllocator& allocator = getCachingAllocator(stream.get_device());
-      void* mem = allocator.allocate(n * sizeof(element_type), stream, true);
+      void* mem = allocator.allocate_host(n * sizeof(element_type), stream);
       return typename host::impl::make_host_unique_selector<T>::unbounded_array{reinterpret_cast<element_type *>(mem),
                                                                                 host::impl::HostDeleter{stream}};
     }
@@ -79,7 +79,7 @@ namespace cms {
     template <typename T>
     typename host::impl::make_host_unique_selector<T>::non_array make_host_unique_uninitialized(sycl::queue stream) {
       CachingAllocator& allocator = getCachingAllocator(stream.get_device());
-      void* mem = allocator.allocate(sizeof(T), stream, true);
+      void* mem = allocator.allocate_host(sizeof(T), stream);
       return typename host::impl::make_host_unique_selector<T>::non_array{reinterpret_cast<T *>(mem),
                                                                           host::impl::HostDeleter{stream}};
     }
@@ -89,7 +89,7 @@ namespace cms {
         size_t n, sycl::queue stream) {
       using element_type = typename std::remove_extent<T>::type;
       CachingAllocator& allocator = getCachingAllocator(stream.get_device());
-      void* mem = allocator.allocate(n * sizeof(element_type), stream, true);
+      void* mem = allocator.allocate_host(n * sizeof(element_type), stream);
       return typename host::impl::make_host_unique_selector<T>::unbounded_array{reinterpret_cast<element_type *>(mem),
                                                                                 host::impl::HostDeleter{stream}};
     }

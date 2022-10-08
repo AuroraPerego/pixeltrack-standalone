@@ -136,13 +136,31 @@ namespace cms::sycltools {
     }
 
     // Allocate given number of bytes on the current device associated to given queue
-    void* allocate(size_t bytes, sycl::queue const& queue, bool isHost) {
+    void* allocate_host(size_t bytes, sycl::queue const& queue) {
       assert(queue.get_device() == device_);
       // create a block descriptor for the requested allocation
       BlockDescriptor block;
       block.queue = queue;
       block.bytes_requested = bytes;
-      block.isHost = isHost;
+      block.isHost = true;
+      std::tie(block.bin, block.bytes) = findBin(bytes);
+
+      // try to re-use a cached block, or allocate a new buffer
+      if (not tryReuseCachedBlock(block)) {
+        allocateNewBlock(block);
+      }
+
+      return block.d_ptr;
+    }
+
+    // Allocate given number of bytes on the current device associated to given queue
+    void* allocate_device(size_t bytes, sycl::queue const& queue) {
+      assert(queue.get_device() == device_);
+      // create a block descriptor for the requested allocation
+      BlockDescriptor block;
+      block.queue = queue;
+      block.bytes_requested = bytes;
+      block.isHost = false;
       std::tie(block.bin, block.bytes) = findBin(bytes);
 
       // try to re-use a cached block, or allocate a new buffer
