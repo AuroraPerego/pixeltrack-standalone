@@ -18,12 +18,9 @@ namespace cms {
         public:
           DeviceDeleter() = default;  // for edm::Wrapper
           DeviceDeleter(sycl::queue stream) : stream_{stream} {}
-          DeviceDeleter(sycl::queue stream, std::string varName) : stream_{stream}, varName_{varName} {}
 
           void operator()(void *ptr) {
             if (stream_) {
-              //if (ptr != nullptr && !varName_.empty())
-              //  std::cout << "Deallocating " << varName_ << std::endl;
               auto dev = (*stream_).get_device();
               CachingAllocator& allocator = getCachingAllocator(dev);
               allocator.free(ptr);
@@ -67,15 +64,14 @@ namespace cms {
 
     template <typename T>
     typename device::impl::make_device_unique_selector<T>::unbounded_array make_device_unique(size_t n,
-                                                                                              sycl::queue stream,
-                                                                                              std::string varName="") {
+                                                                                              sycl::queue stream) {
       using element_type = typename std::remove_extent<T>::type;
       static_assert(std::is_trivially_constructible<element_type>::value,
                     "Allocating with non-trivial constructor on the device memory is not supported");
       CachingAllocator& allocator = getCachingAllocator(stream.get_device());
       void* mem = allocator.allocate_device(n * sizeof(element_type), stream);
       return typename device::impl::make_device_unique_selector<T>::unbounded_array{
-          reinterpret_cast<element_type *>(mem), device::impl::DeviceDeleter{stream, varName}};
+          reinterpret_cast<element_type *>(mem), device::impl::DeviceDeleter{stream}};
     }
 
     template <typename T, typename... Args>

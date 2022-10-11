@@ -17,11 +17,11 @@ SiPixelDigiErrorsSYCL::SiPixelDigiErrorsSYCL(size_t maxFedWords, PixelFormatterE
   assert(error_h->empty());
   assert(error_h->capacity() == static_cast<int>(maxFedWords));
 
-  stream.memcpy(error_d.get(), error_h.get(), sizeof(PixelErrorCompact));
+  stream.memcpy(error_d.get(), error_h.get(), sizeof(PixelErrorCompact)).wait();
 }
 
 void SiPixelDigiErrorsSYCL::copyErrorToHostAsync(sycl::queue stream) {
-  stream.memcpy(error_h.get(), error_d.get(), sizeof(PixelErrorCompact));
+  stream.memcpy(error_h.get(), error_d.get(), sizeof(PixelErrorCompact)).wait();
 }
 
 SiPixelDigiErrorsSYCL::HostDataError SiPixelDigiErrorsSYCL::dataErrorToHostAsync(sycl::queue stream) const {
@@ -32,7 +32,7 @@ SiPixelDigiErrorsSYCL::HostDataError SiPixelDigiErrorsSYCL::dataErrorToHostAsync
 
   // but transfer only the required amount
   if (not error_h->empty()) {
-    stream.memcpy(data.get(), data_d.get(), error_h->size() * sizeof(PixelErrorCompact));
+    stream.memcpy(data.get(), data_d.get(), error_h->size() * sizeof(PixelErrorCompact)).wait();
   }
   auto err = *error_h;
   err.set_data(data.get());

@@ -25,8 +25,7 @@ const SiPixelGainForHLTonGPU* SiPixelGainCalibrationForHLTGPU::getGPUProductAsyn
     stream.memcpy(data.gainForHLTonGPU.get(), this->gainForHLTonHost_, sizeof(SiPixelGainForHLTonGPU)).wait();
 
     // SiPixelGainForHLTonGPU* hostSock = (SiPixelGainForHLTonGPU *)sycl::malloc_host(sizeof(SiPixelGainForHLTonGPU),stream);
-
-    stream.memcpy(data.gainForHLTonGPU.get()->v_pedestals, (data.gainForHLTonGPU.get()), sizeof(SiPixelGainForHLTonGPU_DecodingStructure)).wait();
+    // stream.memcpy(data.gainForHLTonGPU.get()->v_pedestals, (data.gainForHLTonGPU.get()), sizeof(SiPixelGainForHLTonGPU_DecodingStructure)).wait();
 
   });
   return data.gainForHLTonGPU.get();

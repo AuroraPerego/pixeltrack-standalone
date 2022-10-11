@@ -37,7 +37,7 @@ public:
   cms::sycltools::host::unique_ptr<T> toHostAsync(sycl::queue stream) const {
     assert(dm_ptr);
     auto ret = cms::sycltools::make_host_unique<T>(stream);
-    stream.memcpy(ret.get(), dm_ptr.get(), sizeof(T));
+    stream.memcpy(ret.get(), dm_ptr.get(), sizeof(T)).wait();
     return ret;
   }
 

@@ -34,7 +34,7 @@ void BeamSpotToSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
   cms::sycltools::host::unique_ptr<BeamSpotPOD> bsHost;
   bsHost = cms::sycltools::make_host_unique<BeamSpotPOD>(stream);
   *bsHost = iSetup.get<BeamSpotPOD>();
-  stream.memcpy(bsDevice.ptr().get(), bsHost.get(), sizeof(BeamSpotPOD));
+  stream.memcpy(bsDevice.ptr().get(), bsHost.get(), sizeof(BeamSpotPOD)).wait();
   ctx.emplace(iEvent, bsPutToken_, std::move(bsDevice));
 }
 

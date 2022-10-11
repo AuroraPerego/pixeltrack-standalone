@@ -282,7 +282,8 @@ ONEAPI_ENV    := $(ONEAPI_BASE)/setvars.sh
 SYCL_BASE     := $(ONEAPI_BASE)/compiler/$(SYCL_VERSION)/linux
 DPCT_BASE     := $(ONEAPI_BASE)/dpcpp-ct/$(SYCL_VERSION)
 DPCT_CXXFLAGS := -Wsycl-strict -fno-sycl-id-queries-fit-in-int -isystem $(DPCT_BASE)/include
-USER_SYCLFLAGS := -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device xe_hp_sdv" -fp-model=precise -fimf-arch-consistency=true -no-fma 
+USER_SYCLFLAGS := -fp-model=precise -fimf-arch-consistency=true -no-fma 
+# -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device xe_hp_sdv"
 export SYCL_CXX      := $(SYCL_BASE)/bin/dpcpp
 export SYCL_CXXFLAGS := -fsycl $(DPCT_CXXFLAGS) $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
 endif
@@ -549,11 +550,9 @@ external_eigen: $(EIGEN_BASE)
 
 $(EIGEN_BASE):
 	# from Eigen master branch as of 2021.08.18
-	#git clone -b cms/master/82dd3710dac619448f50331c1d6a35da673f764a https://github.com/cms-externals/eigen-git-mirror.git $@
-	git clone https://gitlab.com/libeigen/eigen.git $@
+	git clone https://gitlab.com/AuroraPerego/eigen.git $@
 	# include all Patatrack updates
-	#cd $@ && git reset --hard 6294f3471cc18068079ec6af8ceccebe34b40021
-	cd $@ && git reset --hard 34780d8bd13d0af0cf17a22789ef286e8512594d
+	cd $@ && git reset --hard a652c3a08a5ea1507c6f002e7d4e9180825ca7a8
 # Boost
 .PHONY: external_boost
 external_boost: $(BOOST_BASE)
