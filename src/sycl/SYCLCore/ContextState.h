@@ -2,6 +2,7 @@
 #define HeterogeneousCore_SYCLCore_ContextState_h
 
 #include <memory>
+#include <optional>
 
 #include <CL/sycl.hpp>
 

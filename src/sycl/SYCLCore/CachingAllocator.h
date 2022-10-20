@@ -347,7 +347,7 @@ namespace cms::sycltools {
     }
 
     void* allocateBuffer(size_t bytes, sycl::queue const& queue, bool isHost) {
-      if (isHost) {  // TODO is_host -> data member
+      if (isHost) {
         return sycl::malloc_host(bytes, queue);
       } else {
         return sycl::malloc_device(bytes, queue);

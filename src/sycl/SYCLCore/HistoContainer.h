@@ -71,26 +71,24 @@ namespace cms {
       auto nthreads = 1024;
       auto nblocks = (Histo::totbins() + nthreads - 1) / nthreads;
       stream.submit([&](sycl::handler &cgh) {
-          sycl::accessor<uint8_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              local_psum_acc(sycl::range<1>(sizeof(uint8_t) * nblocks), cgh);
-          sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
-              ws_acc(sycl::range<1>(sizeof(uint32_t) * 32), cgh); //FIXME_ why 32? 
-          sycl::accessor<bool, 0, sycl::access_mode::read_write, sycl::access::target::local>
-              isLastBlockDone_acc(cgh);
-          
+          sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::target::local> psum_acc(
+            sizeof(int32_t) * nblocks, cgh);
+          sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::target::local> ws_acc(32, cgh);
+          sycl::accessor<bool, 0, sycl::access_mode::read_write, sycl::target::local> isLastBlockDone_acc(cgh);
+        
           auto Histo_totbins_kernel = Histo::totbins();
 
           cgh.parallel_for(
               sycl::nd_range<1>(nblocks * sycl::range<1>(nthreads), sycl::range<1>(nthreads)),
               [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
-                    multiBlockPrefixScan(poff,
+                    multiBlockPrefixScan<uint32_t>(poff,
                                          poff,
                                          Histo_totbins_kernel,
                                          ppsws,
                                          item,
-                                         (uint8_t *)local_psum_acc.get_pointer(),
+                                         (uint32_t *)psum_acc.get_pointer(),
                                          (uint32_t *)ws_acc.get_pointer(),
-                                         isLastBlockDone_acc.get_pointer());
+                                         (bool *)isLastBlockDone_acc.get_pointer());
               });
                   });
     }

@@ -144,7 +144,7 @@ namespace cms {
     // in principle not limited....
     template <typename T>
     void multiBlockPrefixScan(T const* ici, T* ico, int32_t size, int32_t* pc, sycl::nd_item<1> item,
-                              uint8_t *local_psum, T *ws, bool *isLastBlockDone) {
+                              T* psum, T* ws, bool* isLastBlockDone) {
       volatile T const* ci = ici;
       volatile T* co = ico;
       // auto wsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t[32]>(item.get_group());
@@ -181,7 +181,6 @@ namespace cms {
       // good each block has done its work and now we are left in last block
 
       // let's get the partial sums from each block
-      auto psum = (T*)local_psum;
       for (int i = item.get_local_id(0), ni = item.get_group_range(0); i < ni;
            i += item.get_local_range(0)) {
         int32_t j = item.get_local_range(0) * i + item.get_local_range(0) - 1;
