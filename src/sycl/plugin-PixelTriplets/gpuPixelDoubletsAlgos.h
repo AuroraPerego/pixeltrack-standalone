@@ -71,13 +71,14 @@ namespace gpuPixelDoublets {
     // e.g. see  https://nvlabs.github.io/cub/classcub_1_1_warp_scan.html
     const int nPairsMax = CAConstants::maxNumberOfLayerPairs();
 
+    // SYCL_BUG_ multi_ptrs don't work, number of tracks is zero with them :(
     // auto innerLayerCumulativeSizebuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t[nPairsMax]>(item.get_group());
     // uint32_t* innerLayerCumulativeSize = (uint32_t*)innerLayerCumulativeSizebuff.get();
-    //auto ntotbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t>(item.get_group());
-    //uint32_t* ntot = (uint32_t*)ntotbuff.get();
+    // auto ntotbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t>(item.get_group());
+    // uint32_t* ntot = (uint32_t*)ntotbuff.get();
 
     uint32_t innerLayerCumulativeSize[nPairsMax];
-    // const uint32_t* const ntot = innerLayerCumulativeSize + nPairs - 1; //reproducer THIS DOESN'T WORK
+    // const uint32_t* const ntot = innerLayerCumulativeSize + nPairs - 1; // THIS DOESN'T WORK
     
     assert(nPairs <= nPairsMax);
 
@@ -85,13 +86,7 @@ namespace gpuPixelDoublets {
     for (uint32_t i = 1; i < nPairs; ++i) {
       innerLayerCumulativeSize[i] = innerLayerCumulativeSize[i - 1] + layerSize(layerPairs[2 * i]);
     }
-    const uint32_t ntot = innerLayerCumulativeSize[nPairs - 1]; //THIS WORKS
-
-    // if (item.get_local_id(1) == 0 && item.get_local_id(2) == 0 && item.get_group(1) == 0) {
-    //   for (uint32_t i = 1; i < 2*nPairs; ++i) {
-    //     // printf(" %d %d %d %d %d\n", nPairs, innerLayerCumulativeSize[nPairs - 1], innerLayerCumulativeSize[nPairs - 1 - 1], layerSize(layerPairs[2 * (nPairs - 1)]), layerPairs[2 * (nPairs - 1)]);
-    //   }
-    // }
+    const uint32_t ntot = innerLayerCumulativeSize[nPairs - 1]; // THIS WORKS
   
     // x runs faster
     auto idy = item.get_group(1) * item.get_local_range().get(1) + item.get_local_id(1);
@@ -99,15 +94,6 @@ namespace gpuPixelDoublets {
     auto stride = item.get_local_range().get(2);
 
     uint32_t pairLayerId = 0;  // cannot go backward
-
-    //2238 gpu vs 30996 cpu
-    // if (item.get_local_id(1) == 0 && item.get_local_id(2) == 0 && item.get_group(1) == 0){
-    //   printf(" %d %d %d %d %d\n", nPairs, innerLayerCumulativeSize[nPairs - 1], innerLayerCumulativeSize[nPairs - 1 - 1], layerSize(layerPairs[2 * (nPairs - 1)]), layerPairs[2 * (nPairs - 1)]);
-    //   printf("dovrebbero essere uguali %d %d \n", innerLayerCumulativeSize[nPairs - 1], ntot);
-    // }
-
-    // if (item.get_local_id(1) == 0 && item.get_local_id(2) == 0 && item.get_group(1) == 0)
-    //   printf("ntot: %d \n", ntot); //, innerLayerCumulativeSize + nPairs - 1, *(innerLayerCumulativeSize + nPairs - 1), &(innerLayerCumulativeSize[nPairs - 1]), innerLayerCumulativeSize[nPairs - 1]);
 
      for (auto j = idy; j < ntot; j += item.get_local_range().get(1) * item.get_group_range(1)) {
       while (j >= innerLayerCumulativeSize[pairLayerId++])
@@ -123,7 +109,6 @@ namespace gpuPixelDoublets {
       assert(outer > inner);
 
       auto hoff = Hist::histOff(outer);
-      // SAME printf("%d %d %d\n", inner, outer, hoff);
 
       auto i = (0 == pairLayerId) ? j : j - innerLayerCumulativeSize[pairLayerId - 1];
       i += offsets[inner];
@@ -135,7 +120,6 @@ namespace gpuPixelDoublets {
 
       // found hit corresponding to our cuda thread, now do the job
       auto mi = hh.detectorIndex(i);
-      // SAME printf("%d %d\n", i, mi);
       if (mi > 2000)
         continue;  // invalid
 
@@ -146,10 +130,8 @@ namespace gpuPixelDoublets {
       */
 
       auto mez = hh.zGlobal(i);
-      // NOT SAME printf("%f\n", mez);
-      if (mez < minz[pairLayerId] || mez > maxz[pairLayerId]){
-        //printf("a %f %f %f\n", mez, minz[pairLayerId], maxz[pairLayerId]);
-        continue;}
+      if (mez < minz[pairLayerId] || mez > maxz[pairLayerId])
+        continue;
 
       int16_t mes = -1;  // make compiler happy
       if (doClusterCut) {
@@ -221,7 +203,6 @@ namespace gpuPixelDoublets {
 #endif
 
       auto khh = kh;
-      // printf("%d %d \n", kl, khh);
       incr(khh);
       for (auto kk = kl; kk != khh; incr(kk)) {
 #ifdef GPU_DEBUG
@@ -242,7 +223,7 @@ namespace gpuPixelDoublets {
           if (doZ0Cut && z0cutoff(oi))
             continue;
           auto mop = hh.iphi(oi);
-          uint16_t idphi = sycl::min(abs(int16_t(mop - mep)), abs(int16_t(mep - mop)));
+          uint16_t idphi = abs(static_cast<int16_t>(mep-mop)); // different from the original CUDA version
           if (idphi > iphicut)
             continue;
 

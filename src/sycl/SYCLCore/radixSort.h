@@ -117,7 +117,7 @@ __attribute__((always_inline)) void radixSortImpl(
     j[i] = i;
   item.barrier();
 
-  // while ((item.barrier(), sycl::all_of_group(item.get_group(), *p < w / d))) {
+  while ((item.barrier(), sycl::all_of_group(item.get_group(), *p < w / d))) {
     if (item.get_local_id(0) < sb)
       c[item.get_local_id(0)] = 0;
     item.barrier();
@@ -160,7 +160,7 @@ __attribute__((always_inline)) void radixSortImpl(
     // broadcast
     *ibs = size - 1;
     item.barrier();
-    // while ((item.barrier(), sycl::all_of_group(item.get_group(), *ibs > 0))) {
+    while ((item.barrier(), sycl::all_of_group(item.get_group(), *ibs > 0))) {
       int i = *ibs - item.get_local_id(0);
       if (item.get_local_id(0) < sb) {
         cu[item.get_local_id(0)] = -1;
@@ -194,7 +194,7 @@ __attribute__((always_inline)) void radixSortImpl(
       if (item.get_local_id(0) == 0)
         *ibs -= sb;
       item.barrier();
-    // }
+    }
 
     /*
     // broadcast for the nulls  (for documentation)
@@ -217,7 +217,7 @@ __attribute__((always_inline)) void radixSortImpl(
     if (item.get_local_id(0) == 0)
       ++(*p);
     item.barrier();
-  // }
+  }
 
   if ((w != 8) && (0 == (NS & 1)))
     assert(j == ind);  // w/d is even so ind is correct

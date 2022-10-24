@@ -3,7 +3,7 @@
 
 #include <atomic>
 #include <memory>
-#include <optional>
+#include <optional> // needed in SYCL CUDA with llvm
 
 #include <CL/sycl.hpp>
 

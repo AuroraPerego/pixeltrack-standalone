@@ -67,7 +67,7 @@ namespace gpuVertexFinder {
     item.barrier();
     fitVertices(pdata, pws, 5000., item);
     item.barrier();
-    sortByPt2(pdata, pws, item);
+    // sortByPt2(pdata, pws, item); // FIXME_ seg fault at radixSort.h:188
   }
 #else
   void vertexFinderKernel1(gpuVertexFinder::ZVertices* pdata,
@@ -96,8 +96,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
         std::cout << "producing Vertices on GPU" << std::endl;
     #endif
         
-    constexpr int MAXTK = 512;
-
     ZVertexHeterogeneous vertices(cms::sycltools::make_device_unique<ZVertexSoA>(stream));
     assert(tksoa);
     auto* soa = vertices.get();
@@ -146,7 +144,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       // implemented only for density clustesrs
 #ifndef THREE_KERNELS
     numberOfBlocks = 1;
-    blockSize      = 1024 - 256;
+    blockSize      = 32; //1024 - 256; SYCL_BUG_
     stream.submit([&](sycl::handler &cgh) {
       auto soa_kernel  = soa;
       auto ws_kernel   = ws_d.get();
@@ -157,10 +155,9 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
           [=](sycl::nd_item<1> item)[[intel::reqd_sub_group_size(32)]]{ 
-              vertexFinderOneKernel(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);
+	  vertexFinderOneKernel(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);
       });
     });
-
     if((stream.get_device()).is_cpu())
         stream.wait();
 
@@ -176,7 +173,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       auto ws_kernel  = ws_d.get();
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item){ 
+          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { 
               vertexFinderKernel1(soa_kernel, 
                                   ws_kernel, 
                                   minT, 
@@ -195,13 +192,13 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 #endif
 
     numberOfBlocks = 1;
-    blockSize      = 1024 - 256;
+    blockSize      = 32; //1024 - 256;
     stream.submit([&](sycl::handler &cgh) {
       auto soa_kernel = soa;
       auto ws_kernel  = ws_d.get();
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item){ 
+          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { 
               splitVerticesKernel(soa_kernel, ws_kernel, 9.f, item);
       });
     });
@@ -214,13 +211,13 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 #endif
 
     numberOfBlocks = 1;
-    blockSize      = 1024 - 256;
+    blockSize      = 32; //1024 - 256; SYCL_BUG_
     stream.submit([&](sycl::handler &cgh) {
       auto soa_kernel = soa;
       auto ws_kernel  = ws_d.get();
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item){ 
+          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { 
               vertexFinderKernel2(soa_kernel, ws_kernel, item);
       });
     });
@@ -284,7 +281,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 
       } else if (useIterative_) {
       numberOfBlocks = 1;
-      blockSize      = 1024 - 256;
+      blockSize      = 32; //1024 - 256; SYCL_BUG_
       stream.submit([&](sycl::handler &cgh) {
         auto soa_kernel = soa;
         auto ws_kernel  = ws_d.get();
@@ -314,7 +311,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
         auto ws_kernel  = ws_d.get();
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item){ 
+          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { 
                 fitVerticesKernel(soa_kernel, ws_kernel, 50., item);
       });
     });
@@ -328,13 +325,13 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 
       // one block per vertex...
       numberOfBlocks = 1024;
-      blockSize      = 128;
+      blockSize      = 32; //128 SYCL_BUG_
       stream.submit([&](sycl::handler &cgh) {
       auto soa_kernel = soa;
       auto ws_kernel  = ws_d.get();
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item){ 
+          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { 
               splitVerticesKernel(soa_kernel, ws_kernel, 9.f, item);
       });
     });
@@ -353,7 +350,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
         auto ws_kernel  = ws_d.get();
       cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item){ 
+          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { 
                 fitVerticesKernel(soa_kernel, ws_kernel, 5000., item);
 
       });
@@ -365,13 +362,14 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 #ifdef GPU_DEBUG
     stream.wait();
 #endif
-
+      numberOfBlocks = 1;
+      blockSize      = 32; //1024-256 SYCL_BUG_
       stream.submit([&](sycl::handler &cgh) {
         auto soa_kernel = soa;
         auto ws_kernel  = ws_d.get();
         cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item){ 
+          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { 
                sortByPt2Kernel(soa_kernel, ws_kernel, item);
       });
     });

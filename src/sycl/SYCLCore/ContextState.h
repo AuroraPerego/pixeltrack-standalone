@@ -2,7 +2,7 @@
 #define HeterogeneousCore_SYCLCore_ContextState_h
 
 #include <memory>
-#include <optional>
+#include <optional> // needed in SYCL CUDA with llvm
 
 #include <CL/sycl.hpp>
 

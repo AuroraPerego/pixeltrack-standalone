@@ -654,7 +654,7 @@ namespace pixelgpudetails {
              // read the number of modules into a data member, used by getProduct())
              stream.memcpy(&(nModules_Clusters_h[0]), clusters_d.moduleStart(), sizeof(uint32_t)).wait();  
 
-            threadsPerBlock = 32;
+            threadsPerBlock = 32; // SYCL_BUG_, was 256
             blocks = MaxNumModules;
             sycl::range<1> numthreadsPerBlock1(threadsPerBlock);
             sycl::range<1> globalSize1(blocks*threadsPerBlock);
@@ -724,16 +724,16 @@ namespace pixelgpudetails {
             // synchronization/ExternalWor  
             stream.submit([&](sycl::handler &cgh) { 
             // apply charge cut
-                    auto clusters_in_kernel  = clusters_d.c_clusInModule();
-                    auto clusters_s_kernel  = clusters_d.clusModuleStart();
-               cgh.parallel_for(
+              auto clusters_in_kernel  = clusters_d.c_clusInModule();
+              auto clusters_s_kernel  = clusters_d.clusModuleStart();
+              cgh.parallel_for(
                     sycl::nd_range<1>(sycl::range<1>(1024), sycl::range<1>(1024)),
                     [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
                                    fillHitsModuleStart(clusters_in_kernel, 
                                                        clusters_s_kernel,
                                                        item);
                     });
-                        });  
+              });  
             // MUST be ONE block
 
             // last element holds the number of all clusters

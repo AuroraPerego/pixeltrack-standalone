@@ -11,17 +11,13 @@
 #include "SYCLCore/syclAtomic.h"
 #include "SYCLCore/printf.h"
 
-#include "assert.h"
 #include <cassert>
 
 #include "gpuClusteringConstants.h"
-namespace gpuClustering {
 
 // #define GPU_DEBUG
 
-#ifdef GPU_DEBUG
-  uint32_t gMaxHit = 0;
-#endif
+namespace gpuClustering {
 
   void countModules(uint16_t const* __restrict__ id,
                     uint32_t* __restrict__ moduleStart,
@@ -47,7 +43,7 @@ namespace gpuClustering {
   }
 
   //init hist  (ymax=416 < 512 : 9bits)
-  constexpr uint32_t maxPixInModule = 4000;
+  constexpr int maxPixInModule = 4000;
   constexpr auto nbins = phase1PixelTopology::numColsInModule + 2;  //2+2;
   using Hist = cms::sycltools::HistoContainer<uint16_t, nbins, maxPixInModule, 9, uint16_t>;
 
@@ -61,9 +57,13 @@ namespace gpuClustering {
                 int numElements,
                 sycl::nd_item<1> item) {
 
-
     if (item.get_group(0) >= moduleStart[0])
       return;
+
+#ifdef GPU_DEBUG
+  uint32_t gMaxHit = 0; //FIXME_ think about a global accessor with access mode atomic maybe
+#endif
+
     auto firstPixel = moduleStart[1 + item.get_group(0)];
     auto thisModuleId = id[firstPixel];
     
@@ -93,11 +93,11 @@ namespace gpuClustering {
         break;
       }
     }
-    
-     auto wsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t[32]>(item.get_group());
-     uint32_t* ws = (uint32_t*)wsbuff.get();
-     auto histbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<Hist>(item.get_group());
-     Hist* hist = (Hist*)histbuff.get();
+
+    auto wsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t[32]>(item.get_group());
+    uint32_t* ws = (uint32_t*)wsbuff.get();
+    auto histbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<Hist>(item.get_group());
+    Hist* hist = (Hist*)histbuff.get();
 
     //constexpr auto nbins = phase1PixelTopology::numColsInModule + 2;  //2+2
     for (auto j = item.get_local_id(0); j < Hist::totbins(); j += item.get_local_range(0)) {
@@ -105,8 +105,6 @@ namespace gpuClustering {
     }
     item.barrier();
     
-
-    constexpr int maxPixInModule = 4000;
     // limit to maxPixInModule  (FIXME if recurrent (and not limited to simulation with low threshold) one will need to implement something cleverer)
     if (0 == item.get_local_id(0)) {
       if ((*msize - static_cast<int>(firstPixel)) > maxPixInModule) {
@@ -137,7 +135,7 @@ namespace gpuClustering {
     }
     
     item.barrier();
-    if (item.get_local_id(0) < 32u)
+    if (item.get_local_id(0) < 32)
       ws[item.get_local_id(0)] = 0;  // used by prefix scan...
     
     item.barrier();
@@ -156,14 +154,17 @@ namespace gpuClustering {
       hist->fill(y[i], i - firstPixel);
     }
 
-    // assume that we can cover the whole module with up to 16 blockDim.x-wide iterations
-    constexpr int maxiter = 16;  // it was auto maxiter = hist->size(); ifndef CUDA_ARCH but ariable length arrays are not supported in SYCL
+    // assume that we can cover the whole module with up to 16 blockDim.x-wide iterations -> this is true with blockDim.x=128
+    // When the number of threads per block is changed, also this number must be changed to be still able to cover the whole module
+    // when the bug with any_of_group will be fixed, the variables values can be restored.
+    constexpr int maxiter = 32;  // in serial version: maxiter = hist->size() SYCL_BUG_
     // allocate space for duplicate pixels: a pixel can appear more than once with different charge in the same event
     constexpr int maxNeighbours = 10;
 
     //nearest neighbour
     uint16_t nn[maxiter][maxNeighbours];
     uint8_t nnn[maxiter];  // number of nn
+    assert((hist->size() / item.get_local_range(0)) <= maxiter);
     for (uint32_t k = 0; k < maxiter; ++k)
       nnn[k] = 0;
     item.barrier();  // for hit filling
@@ -198,7 +199,7 @@ namespace gpuClustering {
 #endif
 
     //fill NN
-    for (auto j = item.get_local_id(0), k = (unsigned long)0U; j < hist->size(); j += item.get_local_range(0), ++k) {
+    for (unsigned int j = item.get_local_id(0), k = 0U; j < hist->size(); j += item.get_local_range(0), ++k) {
       assert(k < maxiter);
       auto p = hist->begin() + j;
       auto i = *p + firstPixel;
@@ -230,7 +231,7 @@ namespace gpuClustering {
 
     while ((item.barrier(), sycl::any_of_group(item.get_group(), more))) {
       if (1 == nloops % 2) {
-        for (auto j = item.get_local_id(0), k = (unsigned long)0U; j < hist->size();
+        for (unsigned int j = item.get_local_id(0), k = 0U; j < hist->size();
              j += item.get_local_range(0), ++k) {
           auto p = hist->begin() + j;
           auto i = *p + firstPixel;
@@ -241,7 +242,7 @@ namespace gpuClustering {
         }
       } else {
         more = false;
-        for (auto j = item.get_local_id(0), k = (unsigned long)0U; j < hist->size();
+        for (unsigned int j = item.get_local_id(0), k = 0U; j < hist->size();
              j += item.get_local_range(0), ++k) {
           auto p = hist->begin() + j;
           auto i = *p + firstPixel;
@@ -254,16 +255,15 @@ namespace gpuClustering {
                                                         sycl::memory_scope::device>
                                             (static_cast<int32_t*>(&clusterId[m]), static_cast<int32_t>(clusterId[i]));
             
-            
             if (old != clusterId[i]) {
               // end the loop only if no changes were applied
               more = true;
             }
             
             cms::sycltools::atomic_fetch_min<int32_t,
-                                                sycl::access::address_space::global_space,
-                                                sycl::memory_scope::device>
-                                             (static_cast<int32_t*>(&clusterId[i]), static_cast<int32_t>(old));
+                                            sycl::access::address_space::global_space,
+                                            sycl::memory_scope::device>
+                                            (static_cast<int32_t*>(&clusterId[i]), static_cast<int32_t>(old));
           }  // nnloop
         }    // pixel loop
       }
@@ -275,9 +275,9 @@ namespace gpuClustering {
       auto n0buff = sycl::ext::oneapi::group_local_memory_for_overwrite<int>(item.get_group());
       int* n0 = (int*)n0buff.get();
       if (item.get_local_id(0) == 0)
-        n0 = nloops;
+        *n0 = nloops;
       item.barrier();
-      auto ok = n0 == nloops;
+      auto ok = *n0 == nloops;
       if (thisModuleId % 100 == 1)
         if (item.get_local_id(0) == 0)
           printf("# loops %d\n", nloops);
@@ -327,13 +327,13 @@ namespace gpuClustering {
           nClustersInModule[thisModuleId] = *foundClusters;
           moduleId[item.get_group(0)] = thisModuleId;
       #ifdef GPU_DEBUG
-            if (foundClusters > gMaxHit) {
-              gMaxHit = foundClusters;
+            if (*foundClusters > gMaxHit) {
+              gMaxHit = *foundClusters;
               if (*foundClusters > 8)
-                printf("max hit %d in %d\n", foundClusters, thisModuleId);
+                printf("max hit %d in %d\n", *foundClusters, thisModuleId);
             }
             if (thisModuleId % 100 == 1)
-              printf("%d clusters in module %d\n", foundClusters, thisModuleId);
+              printf("%d clusters in module %d\n", *foundClusters, thisModuleId);
       #endif
     }
   }
