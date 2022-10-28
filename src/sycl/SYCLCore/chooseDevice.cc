@@ -55,7 +55,7 @@ namespace cms::sycltools {
 
   sycl::device chooseDevice(edm::StreamID id) {
     auto const& devices = enumerateDevices();
-    auto const& device = devices[id % devices.size()];
+    auto const& device = devices[id % (devices.size()-1)];
     std::cerr << "EDM stream " << id << " offload to " << device.get_info<cl::sycl::info::device::name>()
               << " on backend " << device.get_backend() << std::endl;
     return device;

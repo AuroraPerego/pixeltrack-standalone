@@ -18,10 +18,10 @@ namespace cms {
           HostDeleter() = default;  // for edm::Wrapper
           HostDeleter(sycl::queue stream) : stream_{stream} {}
 
-          void operator()(void *ptr) {
+          void operator()(void* ptr) {
             if (stream_) {
-              auto dev = (*stream_).get_device();
-              CachingAllocator& allocator = getCachingAllocator(dev);
+              auto host = sycl::device::get_devices(sycl::info::device_type::host)[0];
+              CachingAllocator& allocator = getCachingAllocator(host);
               allocator.free(ptr);
             }
           }
@@ -52,50 +52,56 @@ namespace cms {
 
     // Allocate pinned host memory
     template <typename T>
-    typename host::impl::make_host_unique_selector<T>::non_array make_host_unique(sycl::queue stream) {
+    typename host::impl::make_host_unique_selector<T>::non_array make_host_unique(sycl::queue const& stream) {
       static_assert(std::is_trivially_constructible<T>::value,
                     "Allocating with non-trivial constructor on the pinned host memory is not supported");
-      CachingAllocator& allocator = getCachingAllocator(stream.get_device());
-      void* mem = allocator.allocate_host(sizeof(T), stream);
-      return typename host::impl::make_host_unique_selector<T>::non_array{reinterpret_cast<T *>(mem),
+      auto host = sycl::device::get_devices(sycl::info::device_type::host)[0];
+      CachingAllocator& allocator = getCachingAllocator(host);
+      void* mem = allocator.allocate(sizeof(T), stream);
+      return typename host::impl::make_host_unique_selector<T>::non_array{reinterpret_cast<T*>(mem),
                                                                           host::impl::HostDeleter{stream}};
     }
 
     template <typename T>
-    typename host::impl::make_host_unique_selector<T>::unbounded_array make_host_unique(size_t n, sycl::queue stream) {
+    typename host::impl::make_host_unique_selector<T>::unbounded_array make_host_unique(size_t n,
+                                                                                        sycl::queue const& stream) {
       using element_type = typename std::remove_extent<T>::type;
       static_assert(std::is_trivially_constructible<element_type>::value,
                     "Allocating with non-trivial constructor on the pinned host memory is not supported");
-      CachingAllocator& allocator = getCachingAllocator(stream.get_device());
-      void* mem = allocator.allocate_host(n * sizeof(element_type), stream);
-      return typename host::impl::make_host_unique_selector<T>::unbounded_array{reinterpret_cast<element_type *>(mem),
+      auto host = sycl::device::get_devices(sycl::info::device_type::host)[0];
+      CachingAllocator& allocator = getCachingAllocator(host);
+      void* mem = allocator.allocate(n * sizeof(element_type), stream);
+      return typename host::impl::make_host_unique_selector<T>::unbounded_array{reinterpret_cast<element_type*>(mem),
                                                                                 host::impl::HostDeleter{stream}};
     }
 
     template <typename T, typename... Args>
-    typename host::impl::make_host_unique_selector<T>::bounded_array make_host_unique(Args &&...) = delete;
+    typename host::impl::make_host_unique_selector<T>::bounded_array make_host_unique(Args&&...) = delete;
 
     // No check for the trivial constructor, make it clear in the interface
     template <typename T>
-    typename host::impl::make_host_unique_selector<T>::non_array make_host_unique_uninitialized(sycl::queue stream) {
-      CachingAllocator& allocator = getCachingAllocator(stream.get_device());
-      void* mem = allocator.allocate_host(sizeof(T), stream);
-      return typename host::impl::make_host_unique_selector<T>::non_array{reinterpret_cast<T *>(mem),
+    typename host::impl::make_host_unique_selector<T>::non_array make_host_unique_uninitialized(
+        sycl::queue const& stream) {
+      auto host = sycl::device::get_devices(sycl::info::device_type::host)[0];
+      CachingAllocator& allocator = getCachingAllocator(host);
+      void* mem = allocator.allocate(sizeof(T), stream);
+      return typename host::impl::make_host_unique_selector<T>::non_array{reinterpret_cast<T*>(mem),
                                                                           host::impl::HostDeleter{stream}};
     }
 
     template <typename T>
     typename host::impl::make_host_unique_selector<T>::unbounded_array make_host_unique_uninitialized(
-        size_t n, sycl::queue stream) {
+        size_t n, sycl::queue const& stream) {
       using element_type = typename std::remove_extent<T>::type;
-      CachingAllocator& allocator = getCachingAllocator(stream.get_device());
-      void* mem = allocator.allocate_host(n * sizeof(element_type), stream);
-      return typename host::impl::make_host_unique_selector<T>::unbounded_array{reinterpret_cast<element_type *>(mem),
+      auto host = sycl::device::get_devices(sycl::info::device_type::host)[0];
+      CachingAllocator& allocator = getCachingAllocator(host);  
+      void* mem = allocator.allocate(n * sizeof(element_type), stream);
+      return typename host::impl::make_host_unique_selector<T>::unbounded_array{reinterpret_cast<element_type*>(mem),
                                                                                 host::impl::HostDeleter{stream}};
     }
 
     template <typename T, typename... Args>
-    typename host::impl::make_host_unique_selector<T>::bounded_array make_host_unique_uninitialized(Args &&...) = delete;
+    typename host::impl::make_host_unique_selector<T>::bounded_array make_host_unique_uninitialized(Args&&...) = delete;
   }  // namespace sycltools
 }  // namespace cms
 

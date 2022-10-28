@@ -136,31 +136,11 @@ namespace cms::sycltools {
     }
 
     // Allocate given number of bytes on the current device associated to given queue
-    void* allocate_host(size_t bytes, sycl::queue const& queue) {
-      assert(queue.get_device() == device_);
+    void* allocate(size_t bytes, sycl::queue const& queue) {
       // create a block descriptor for the requested allocation
       BlockDescriptor block;
       block.queue = queue;
       block.bytes_requested = bytes;
-      block.isHost = true;
-      std::tie(block.bin, block.bytes) = findBin(bytes);
-
-      // try to re-use a cached block, or allocate a new buffer
-      if (not tryReuseCachedBlock(block)) {
-        allocateNewBlock(block);
-      }
-
-      return block.d_ptr;
-    }
-
-    // Allocate given number of bytes on the current device associated to given queue
-    void* allocate_device(size_t bytes, sycl::queue const& queue) {
-      assert(queue.get_device() == device_);
-      // create a block descriptor for the requested allocation
-      BlockDescriptor block;
-      block.queue = queue;
-      block.bytes_requested = bytes;
-      block.isHost = false;
       std::tie(block.bin, block.bytes) = findBin(bytes);
 
       // try to re-use a cached block, or allocate a new buffer
@@ -223,7 +203,6 @@ namespace cms::sycltools {
       size_t bytes = 0;                  // bytes allocated
       size_t bytes_requested = 0;        // bytes requested
       unsigned int bin = 0;              // bin class id, binGrowth^bin is the block size
-      bool isHost;                       // malloc_host if true, malloc_device if false
     };
     std::mutex mutex_;
 
@@ -346,8 +325,8 @@ namespace cms::sycltools {
       return false;
     }
 
-    void* allocateBuffer(size_t bytes, sycl::queue const& queue, bool isHost) {
-      if (isHost) {
+    void* allocateBuffer(size_t bytes, sycl::queue const& queue) {
+      if (device_.is_host()) {  // TODO is_host -> data member
         return sycl::malloc_host(bytes, queue);
       } else {
         return sycl::malloc_device(bytes, queue);
@@ -356,7 +335,7 @@ namespace cms::sycltools {
 
     void allocateNewBlock(BlockDescriptor& block) {
       try {
-        block.d_ptr = allocateBuffer(block.bytes, *block.queue, block.isHost);
+        block.d_ptr = allocateBuffer(block.bytes, *block.queue);
       } catch (const sycl::exception& e) {
         // the allocation attempt failed: free all cached blocks on the device and retry
         // NOTE: TODO implement a method that frees only up to block.bytes bytes
@@ -373,7 +352,7 @@ namespace cms::sycltools {
 
         // throw an exception if it fails again
         // NOTE: this must be checked
-        block.d_ptr = allocateBuffer(block.bytes, *block.queue, block.isHost);
+        block.d_ptr = allocateBuffer(block.bytes, *block.queue);
       }
 
       // create a new event associated to the "synchronisation device"
