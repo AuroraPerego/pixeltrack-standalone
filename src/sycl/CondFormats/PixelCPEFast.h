@@ -26,7 +26,7 @@ private:
   pixelCPEforGPU::LayerGeometry m_layerGeometry;
   pixelCPEforGPU::AverageGeometry m_averageGeometry;
 
-  // pixelCPEforGPU::ParamsOnGPU cpuData_; FIXME_ this does not want unique ptrs, but raw (it's not use anywhere btw)
+  pixelCPEforGPU::ParamsOnGPUView cpuData_; // FIXME_ this does not want unique ptrs, but raw (it's not use anywhere btw)
 
   struct GPUData {
     ~GPUData();

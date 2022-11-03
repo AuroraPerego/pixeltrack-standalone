@@ -19,7 +19,7 @@
 #include "CAConstants.h"
 #include "GPUCACell.h"
 
-#define GPU_DEBUG
+// #define GPU_DEBUG
 
 namespace gpuPixelDoublets {
   

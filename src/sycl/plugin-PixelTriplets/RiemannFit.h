@@ -343,7 +343,7 @@ namespace Rfit {
 
   inline Vector3d min_eigen3D_fast(const Matrix3d& A) {
     Eigen::SelfAdjointEigenSolver<Matrix3f> solver(3);
-    solver.computeDirect(A.cast<float>()); //FIXME_ this is the line that causes the error, in kernel_test/kernel_comput.cpp it works
+    solver.computeDirect(A.cast<float>()); 
     int min_index;
     solver.eigenvalues().minCoeff(&min_index); 
     return solver.eigenvectors().col(min_index).cast<double>();

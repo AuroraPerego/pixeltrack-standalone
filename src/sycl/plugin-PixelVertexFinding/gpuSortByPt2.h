@@ -15,7 +15,8 @@
 
 namespace gpuVertexFinder {
 
-  __attribute__((always_inline)) void sortByPt2(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item) {
+  __attribute__((always_inline)) void sortByPt2(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item, 
+                               int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
     auto& __restrict__ data = *pdata;
     auto& __restrict__ ws = *pws;
     auto nt = ws.ntrks;
@@ -57,11 +58,13 @@ namespace gpuVertexFinder {
     }
     auto swsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint16_t[1024]>(item.get_group());
     uint16_t* sws = (uint16_t*)swsbuff.get();
-    radixSort<float, 2>(ptv2, sortInd, sws, nvFinal, item);
+    radixSort<float, 2>(ptv2, sortInd, sws, nvFinal, item, c, ct, cu, ibs, p, firstNeg);
   }
 
-  void sortByPt2Kernel(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item) { 
-    sortByPt2(pdata, pws, item); }
+  void sortByPt2Kernel(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item, 
+                               int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) { 
+    sortByPt2(pdata, pws, item, c, ct, cu, ibs, p, firstNeg); 
+  }
 
 }  // namespace gpuVertexFinder
 

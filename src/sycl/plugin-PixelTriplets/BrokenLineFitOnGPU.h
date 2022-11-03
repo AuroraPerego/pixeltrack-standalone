@@ -162,7 +162,6 @@ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMultipl
 
     results->stateAtBS.copyFromCircle(circle.par, circle.cov, line.par, line.cov, 1.f / float(B), tkid);
     results->pt(tkid) = float(B) / float(sycl::abs(circle.par(2)));
-    //results->eta(tkid) = sycl::asinh(line.par(0)); //FIXME_ asinhf!!
     results->eta(tkid) = asinhf(line.par(0));
     results->chi2(tkid) = (circle.chi2 + line.chi2) / (2 * N - 5);
 

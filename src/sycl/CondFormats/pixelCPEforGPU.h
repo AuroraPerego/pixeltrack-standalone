@@ -55,8 +55,31 @@ namespace pixelCPEforGPU {
     uint8_t layer[phase1PixelTopology::layerIndexSize];
   };
 
+  struct ParamsOnGPUView {
+    // FIXME_ can be merged with the next struct?
+    CommonParams const* m_commonParams;
+    DetParams const* m_detParams;
+    LayerGeometry const* m_layerGeometry;
+    AverageGeometry const* m_averageGeometry;
+
+    constexpr CommonParams const& __restrict__ commonParams() const {
+      CommonParams const* __restrict__ l = m_commonParams;
+      return *l;
+    }
+    constexpr DetParams const& __restrict__ detParams(int i) const {
+      DetParams const* __restrict__ l = m_detParams;
+      return l[i];
+    }
+    constexpr LayerGeometry const& __restrict__ layerGeometry() const { return *m_layerGeometry; }
+    constexpr AverageGeometry const& __restrict__ averageGeometry() const { return *m_averageGeometry; }
+
+    uint8_t layer(uint16_t id) const {
+      return *(m_layerGeometry->layer + id / phase1PixelTopology::maxModuleStride);
+    };
+  };
+
   struct ParamsOnGPU {
-    // FIXME_ all of these were raw const pointer, but as unique they cannot be raw. Is that ok or we WANT them const?
+    // FIXME_ these were raw const pointer
     cms::sycltools::device::unique_ptr<CommonParams> m_commonParams;
     cms::sycltools::device::unique_ptr<DetParams[]> m_detParams;
     cms::sycltools::device::unique_ptr<LayerGeometry> m_layerGeometry;

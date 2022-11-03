@@ -51,7 +51,6 @@ void SiPixelDigisSoAFromSYCL::acquire(const edm::Event& iEvent,
   // stream.wait();
 }
 
-// TODO_ ?
 void SiPixelDigisSoAFromSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   // The following line copies the data from the pinned host memory to
   // regular host memory. In principle that feels unnecessary (why not
