@@ -98,6 +98,56 @@ export ROCM_LDFLAGS := -L$(ROCM_LIBDIR) -lamdhip64
 export ROCM_TEST_CXXFLAGS := -DGPU_DEBUG
 endif
 
+# Intel oneAPI
+SYCL_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Wno-non-template-friend -Werror=format-contains-nul -Werror=return-local-addr -Werror=unused-but-set-variable
+
+ifdef USE_SYCL_PATATRACK
+SYCL_BASE      := /data2/user/wredjeb/sycl_workspace/build
+USER_SYCLFLAGS := -fsycl-targets=nvptx64-nvidia-cuda -std=c++17
+export SYCL_CXX      := $(SYCL_BASE)/bin/clang++
+export SYCL_CXXFLAGS := -fsycl $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
+
+else ifdef USE_SYCL_LLVM
+export PATH=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09/bin:$PATH
+export LD_LIBRARY_PATH=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09/lib:$LD_LIBRARY_PATH
+export OCL_ICD_FILENAMES=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/runtime/intel/oclcpuexp_2022.14.8.0.04/x64/libintelocl.so
+
+SYCL_BASE     := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09
+USER_SYCLFLAGS := -fsycl-targets=nvptx64-nvidia-cuda -std=c++17
+export SYCL_CXX      := $(SYCL_BASE)/bin/clang++
+export SYCL_CXXFLAGS := -fsycl $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
+
+else
+ONEAPI_BASE := /cvmfs/projects.cern.ch/intelsw/oneAPI/linux/x86_64/2022
+SYCL_VERSION   := latest
+ifneq ($(wildcard $(ONEAPI_BASE)),)
+ONEAPI_ENV    := $(ONEAPI_BASE)/setvars.sh #--config="/eos/user/a/aperego/dev/pixeltrack-standalone/config.txt"
+# the config.txt file can be used to source only specific tools or a specific version of a tool
+SYCL_BASE     := $(ONEAPI_BASE)/compiler/$(SYCL_VERSION)/linux
+USER_SYCLFLAGS := -fp-model=precise -fimf-arch-consistency=true -no-fma -Wsycl-strict -fno-sycl-early-optimizations -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device 0x020a"
+# math flag: -fp-model=precise -fimf-arch-consistency=true -no-fma
+# workaround for bug in sycl 2022.2: -fno-sycl-early-optimizations
+# aot: -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device 0x020a" 
+export SYCL_CXX      := $(SYCL_BASE)/bin/dpcpp
+export SYCL_CXXFLAGS := -fsycl $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
+endif
+endif
+
+# to use a different toolchain
+#   - unset ONEAPI_ENV
+#   - set SYCL_BASE appropriately
+
+# check if libraries are under lib or lib64
+ifdef SYCL_BASE
+ifneq ($(wildcard $(SYCL_BASE)/lib/libsycl.so),)
+SYCL_LIBDIR := $(SYCL_BASE)/lib
+else ifneq ($(wildcard $(SYCL_BASE)/lib64/libsycl.so),)
+SYCL_LIBDIR := $(SYCL_BASE)/lib64
+else
+SYCL_BASE :=
+endif
+endif
+
 # Input data definitions
 DATA_BASE := $(BASE_DIR)/data
 export DATA_DEPS := $(DATA_BASE)/data_ok
@@ -111,8 +161,15 @@ export HWLOC_DEPS := $(HWLOC_BASE)
 HWLOC_CXXFLAGS := -isystem $(HWLOC_BASE)/include
 HWLOC_LDFLAGS := -L$(HWLOC_BASE)/lib -lhwloc
 
+ifdef ONEAPI_BASE
+# TBB from oneapi
+TBB_BASE := $(ONEAPI_BASE)/tbb/latest
+TBB_LIBDIR := $(TBB_BASE)/lib/intel64/gcc4.8/libtbb
+else
+#TBB from external
 TBB_BASE := $(EXTERNAL_BASE)/tbb
 TBB_LIBDIR := $(TBB_BASE)/lib
+endif
 TBB_LIB := $(TBB_LIBDIR)/libtbb.so
 TBB_CMAKEFLAGS := -DCMAKE_INSTALL_PREFIX=$(TBB_BASE) \
                   -DCMAKE_INSTALL_LIBDIR=lib \
@@ -137,7 +194,6 @@ export EIGEN_CXXFLAGS := -isystem $(EIGEN_BASE) -DEIGEN_DONT_PARALLELIZE
 export EIGEN_LDFLAGS :=
 export EIGEN_NVCC_CXXFLAGS := --diag-suppress 20014
 export EIGEN_SYCL_CXXFLAGS := -DEIGEN_USE_SYCL
-# -fsycl-enable-function-pointers
 
 BOOST_BASE := /usr
 # Minimum required version of Boost, e.g. 1.78.0
@@ -262,51 +318,6 @@ ifdef KOKKOS_HOST_PARALLEL
 endif
 export KOKKOS_DEPS := $(KOKKOS_LIB)
 
-# Intel oneAPI
-SYCL_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Wno-non-template-friend -Werror=format-contains-nul -Werror=return-local-addr -Werror=unused-but-set-variable
-SYCL_VERSION  := 2022.1.0
-
-ifdef USE_SYCL_PATATRACK
-ONEAPI_BASE := /data2/user/wredjeb/sycl_workspace
-SYCL_BASE     := $(ONEAPI_BASE)/build
-USER_SYCLFLAGS := -fsycl-targets=nvptx64-nvidia-cuda -std=c++17 -fp-model=precise -fimf-arch-consistency=true -no-fma
-export SYCL_CXX      := $(SYCL_BASE)/bin/clang++
-export SYCL_CXXFLAGS := -fsycl $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
-
-else
-ONEAPI_BASE := /cvmfs/projects.cern.ch/intelsw/oneAPI/linux/x86_64/2022
-# /cvmfs/projects.cern.ch/intelsw/oneAPI/linux/x86_64/2022
-# /opt/intel/oneapi
-ifneq ($(wildcard $(ONEAPI_BASE)),)
-ONEAPI_ENV    := $(ONEAPI_BASE)/setvars.sh
-SYCL_BASE     := $(ONEAPI_BASE)/compiler/$(SYCL_VERSION)/linux
-DPCT_BASE     := $(ONEAPI_BASE)/dpcpp-ct/$(SYCL_VERSION)
-DPCT_CXXFLAGS := -Wsycl-strict -fno-sycl-id-queries-fit-in-int -isystem $(DPCT_BASE)/include
-USER_SYCLFLAGS := -fp-model=precise -fimf-arch-consistency=true -no-fma 
-# -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device xe_hp_sdv"
-export SYCL_CXX      := $(SYCL_BASE)/bin/dpcpp
-export SYCL_CXXFLAGS := -fsycl $(DPCT_CXXFLAGS) $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
-endif
-endif
-
-# to use a different toolchain
-#   - unset ONEAPI_ENV
-#   - set SYCL_BASE appropriately
-
-# check if libraries are under lib or lib64
-ifdef SYCL_BASE
-ifneq ($(wildcard $(SYCL_BASE)/lib/libsycl.so),)
-SYCL_LIBDIR := $(SYCL_BASE)/lib
-else ifneq ($(wildcard $(SYCL_BASE)/lib64/libsycl.so),)
-SYCL_LIBDIR := $(SYCL_BASE)/lib64
-else
-SYCL_BASE :=
-endif
-endif
-# USER_SYCLFLAGS :=
-# ifdef SYCL_BASE
-# export SYCL_CXX      := $(SYCL_BASE)/bin/dpcpp
-# export SYCL_CXXFLAGS := -fsycl $(DPCT_CXXFLAGS) $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
 ifdef CUDA_BASE
 export SYCL_CUDA_PLUGIN := $(wildcard $(SYCL_LIBDIR)/libpi_cuda.so)
 export SYCL_CUDA_FLAGS  := --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version
@@ -527,6 +538,7 @@ $(EXTERNAL_BASE):
 external_tbb: $(TBB_LIB)
 
 # Let TBB Makefile to define its own CXXFLAGS
+ifndef ONEAPI_BASE
 $(TBB_LIB): $(HWLOC_BASE)
 $(TBB_LIB): CXXFLAGS:=
 $(TBB_LIB):
@@ -544,6 +556,7 @@ $(TBB_LIB):
 	$(eval undefine TBB_TMP)
 	$(eval undefine TBB_TMP_SRC)
 	$(eval undefine TBB_TMP_BUILD)
+endif
 
 # Eigen
 external_eigen: $(EIGEN_BASE)
