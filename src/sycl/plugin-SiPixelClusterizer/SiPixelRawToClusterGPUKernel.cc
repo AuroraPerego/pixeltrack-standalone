@@ -649,7 +649,7 @@ namespace pixelgpudetails {
                                                                          wordCounter, 
       					                                                         item);
                                                             });
-      	      }).wait();
+      	      });
                    
              // read the number of modules into a data member, used by getProduct())
              stream.memcpy(&(nModules_Clusters_h[0]), clusters_d.moduleStart(), sizeof(uint32_t)).wait();  
@@ -716,7 +716,7 @@ namespace pixelgpudetails {
                                                        wordCounter,
                                                        item);
                     });
-                        }).wait();
+                        });
 
             // count the module start indices already here (instead of
             // rechits) so that the number of clusters/hits can be made

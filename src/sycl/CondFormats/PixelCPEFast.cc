@@ -28,13 +28,6 @@ PixelCPEFast::PixelCPEFast(std::string const &path) {
     in.read(reinterpret_cast<char *>(&m_averageGeometry), sizeof(pixelCPEforGPU::AverageGeometry));
     in.read(reinterpret_cast<char *>(&m_layerGeometry), sizeof(pixelCPEforGPU::LayerGeometry));
   }
-
-  cpuData_ = {
-      &m_commonParamsGPU,
-      m_detParamsGPU.data(),
-      &m_layerGeometry,
-      &m_averageGeometry,
-  };
 }
 
 const pixelCPEforGPU::ParamsOnGPU *PixelCPEFast::getGPUProductAsync(sycl::queue stream) const {
