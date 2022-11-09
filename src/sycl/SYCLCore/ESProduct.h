@@ -6,25 +6,18 @@
 #include <mutex>
 #include <vector>
 
-#include "SYCLCore/EventCache.h"
 #include "SYCLCore/ScopedSetDevice.h"
-//#include "SYCLCore/syclCheck.h"
-#include "SYCLCore/deviceCount.h"
-#include "SYCLCore/currentDevice.h"
+#include "SYCLCore/chooseDevice.h"
+#include "SYCLCore/getDeviceIndex.h"
 #include "SYCLCore/eventWorkHasCompleted.h"
 
 namespace cms {
   namespace sycltools {
+
     template <typename T>
     class ESProduct {
     public:
-      ESProduct() : gpuDataPerDevice_(deviceCount()) {
-        if (not gpuDataPerDevice_.empty()) {
-          for (size_t i = 0; i < gpuDataPerDevice_.size(); ++i) {
-            gpuDataPerDevice_[i].m_event = getEventCache().get(sycl::device::get_devices(sycl::info::device_type::all)[i]);
-          }
-        }
-      }
+      ESProduct() : gpuDataPerDevice_(enumerateDevices().size()) {}
 
       ~ESProduct() = default;
 
@@ -33,11 +26,9 @@ namespace cms {
       // to the CUDA stream
       template <typename F>
       const T& dataForCurrentDeviceAsync(sycl::queue stream, F transferAsync) const {
-        sycl::device device = stream.get_device();
-        std::vector<sycl::device> device_list = sycl::device::get_devices(sycl::info::device_type::all);
-	      int dev_idx = distance(device_list.begin(), find(device_list.begin(), device_list.end(), device));
+	      int dev_idx = getDeviceIndex(stream.get_device());
         auto& data = gpuDataPerDevice_[dev_idx];
-
+      
         // If the GPU data has already been filled, we can return it immediately
         if (not data.m_filled.load()) {
           // It wasn't, so need to fill it
@@ -48,22 +39,27 @@ namespace cms {
             return data.m_data;
           }
 
-          if (data.m_fillingStream != nullptr) {
+          if (data.m_fillingStream) {
             // Someone else is filling
             // Check first if the recorded event has occurred
-            if (eventWorkHasCompleted(data.m_event.get())) {
+            assert(data.m_event);
+            if (eventWorkHasCompleted(*data.m_event)) {
               // It was, so data is accessible from all CUDA streams on
               // the device. Set the 'filled' for all subsequent calls and
               // return the value
               auto should_be_false = data.m_filled.exchange(true);
               assert(not should_be_false);
-              data.m_fillingStream = nullptr;
+              data.m_fillingStream.reset();
+              data.m_event.reset();
             } else if (*data.m_fillingStream != stream) {
               // Filling is still going on. For other CUDA stream, add
               // wait on the CUDA stream and return the value. Subsequent
               // work queued on the stream will wait for the event to
               // occur (i.e. transfer to finish).
-              stream.wait(); //may be wrong.. was cudaStreamWaitEvent
+
+              stream.ext_oneapi_submit_barrier({*data.m_event});
+              //was cudaCheck(cudaStreamWaitEvent(cudaStream, data.m_event.get(), 0),
+              //          "Failed to make a stream to wait for an event");
             }
             // else: filling is still going on. But for the same CUDA
             // stream (which would be a bit strange but fine), we can just
@@ -74,12 +70,13 @@ namespace cms {
             // Now we can be sure that the data is not yet on the GPU, and
             // this thread is the first to try that.
             transferAsync(data.m_data, stream);
-            assert(data.m_fillingStream == nullptr);
-            data.m_fillingStream = &stream;
+            assert(not data.m_fillingStream);
+            data.m_fillingStream = stream;
             // Record in the cudaStream an event to mark the readiness of the
             // EventSetup data on the GPU, so other streams can check for it
-
-            //cudaCheck(cudaEventReord(data.m_event.get(), stream)); FIXME_ commented for now
+            assert(not data.m_event);
+            data.m_event = stream.ext_oneapi_submit_barrier(); 
+            //was cudaCheck(cudaEventRecord(data.m_event.get(), stream)); 
 
             // Now the filling has been enqueued to the cudaStream, so we
             // can return the GPU data immediately, since all subsequent
@@ -94,11 +91,11 @@ namespace cms {
     private:
       struct Item {
         mutable std::mutex m_mutex;
-        mutable SharedEventPtr m_event;  // guarded by m_mutex
+        mutable std::optional<sycl::event> m_event;          // guarded by m_mutex
         // non-null if some thread is already filling (cudaStream_t is just a pointer)
-        mutable sycl::queue* m_fillingStream = nullptr;  // guarded by m_mutex
-        mutable std::atomic<bool> m_filled = false;      // easy check if data has been filled already or not
-        mutable T m_data;                                // guarded by m_mutex
+        mutable std::optional<sycl::queue> m_fillingStream;  // guarded by m_mutex
+        mutable std::atomic<bool> m_filled = false;          // easy check if data has been filled already or not
+        mutable T m_data;                                    // guarded by m_mutex
       };
 
       std::vector<Item> gpuDataPerDevice_;

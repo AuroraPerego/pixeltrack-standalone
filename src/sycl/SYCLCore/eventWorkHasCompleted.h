@@ -15,18 +15,12 @@ namespace cms {
    *
    * In case of errors, throws an exception.
    */
-    inline bool eventWorkHasCompleted(sycl::event* event) {
-    sycl::event e;
-    const auto ret = e.get_info<sycl::info::event::command_execution_status>();
+    inline bool eventWorkHasCompleted(sycl::event const& event) {
+    const auto ret = event.get_info<sycl::info::event::command_execution_status>();
 
-      if (ret == sycl::info::event_command_status::complete) { //FIXME_ test and see if ret is int or string
+      if (ret == sycl::info::event_command_status::complete) { 
         return true;
-      } else { // the other possibilities are submitted, running
-
-        return false;
-      }
-      // leave error case handling to cudaCheck
-      //cudaCheck(ret);
+      } 
       return false;  // to keep compiler happy
     }
   }  // namespace sycltools
