@@ -6,11 +6,10 @@
 #include "chooseDevice.h"
 
 namespace cms::sycltools {
-  std::vector<sycl::device> const& discoverDevices() {
-    static std::vector<sycl::device> temp;
+  static std::vector<sycl::device> discoverDevices() {
+    std::vector<sycl::device> temp;
     std::vector<sycl::device> cpus = sycl::device::get_devices(sycl::info::device_type::cpu);
     std::vector<sycl::device> gpus = sycl::device::get_devices(sycl::info::device_type::gpu);
-    std::vector<sycl::device> hosts = sycl::device::get_devices(sycl::info::device_type::host);
     for (auto it = cpus.begin(); it != cpus.end(); it++) {
       if (it + 1 == cpus.end()) {
         break;
@@ -36,7 +35,6 @@ namespace cms::sycltools {
       }
     }
     temp.insert(temp.end(), gpus.begin(), gpus.end());
-    temp.insert(temp.end(), hosts.begin(), hosts.end());
     return temp;
   }
 
@@ -53,9 +51,33 @@ namespace cms::sycltools {
     return devices;
   }
 
+  static std::vector<sycl::platform> discoverPlatforms() {
+    std::vector<sycl::platform> temp;
+    auto const& devices = enumerateDevices();
+
+    for (auto dev : devices) {
+      if (std::find(temp.begin(), temp.end(), dev.get_platform()) == temp.end()) {
+        temp.emplace_back(dev.get_platform());
+      }
+    }
+
+    return temp;
+  }
+
+  std::vector<sycl::platform> const& enumeratePlatforms(bool verbose) {
+    static const std::vector<sycl::platform> platforms = discoverPlatforms();
+
+    if (verbose) {
+      std::cerr << "Found " << platforms.size() << " SYCL Platforms:" << std::endl;
+      for (auto const& plt : platforms)
+        std::cerr << "  - " << plt.get_info<sycl::info::platform::name>() << std::endl;
+    }
+    return platforms;
+  }
+
   sycl::device chooseDevice(edm::StreamID id) {
     auto const& devices = enumerateDevices();
-    auto const& device = devices[id % (devices.size()-1)];
+    auto const& device = devices[id % devices.size()];
     std::cerr << "EDM stream " << id << " offload to " << device.get_info<cl::sycl::info::device::name>()
               << " on backend " << device.get_backend() << std::endl;
     return device;
