@@ -164,7 +164,7 @@ HWLOC_LDFLAGS := -L$(HWLOC_BASE)/lib -lhwloc
 ifdef ONEAPI_BASE
 # TBB from oneapi
 TBB_BASE := $(ONEAPI_BASE)/tbb/latest
-TBB_LIBDIR := $(TBB_BASE)/lib/intel64/gcc4.8/libtbb
+TBB_LIBDIR := $(TBB_BASE)/lib/intel64/gcc4.8
 else
 #TBB from external
 TBB_BASE := $(EXTERNAL_BASE)/tbb
