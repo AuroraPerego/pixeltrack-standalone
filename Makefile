@@ -102,15 +102,13 @@ endif
 SYCL_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Wno-non-template-friend -Werror=format-contains-nul -Werror=return-local-addr -Werror=unused-but-set-variable
 
 ifdef USE_SYCL_LLVM
-export PATH=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09/bin:$PATH
-export LD_LIBRARY_PATH=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09/lib:$LD_LIBRARY_PATH
-export OCL_ICD_FILENAMES=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/runtime/intel/oclcpuexp_2022.14.8.0.04/x64/libintelocl.so
-
+# export PATH=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09/bin:$PATH
+# export LD_LIBRARY_PATH=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09/lib:$LD_LIBRARY_PATH
+# export OCL_ICD_FILENAMES=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/runtime/intel/oclcpuexp_2022.14.8.0.04/x64/libintelocl.so
 SYCL_BASE     := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09
-USER_SYCLFLAGS := -fsycl-targets=nvptx64-nvidia-cuda -std=c++17
+USER_SYCLFLAGS := -std=c++17 #-fsycl-targets=nvptx64-nvidia-cuda
 export SYCL_CXX      := $(SYCL_BASE)/bin/clang++
 export SYCL_CXXFLAGS := -fsycl $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
-
 else
 ONEAPI_BASE := /cvmfs/projects.cern.ch/intelsw/oneAPI/linux/x86_64/2022
 SYCL_VERSION   := latest
