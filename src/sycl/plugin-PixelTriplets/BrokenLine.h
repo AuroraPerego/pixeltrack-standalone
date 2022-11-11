@@ -1,6 +1,8 @@
 #ifndef RecoPixelVertexing_PixelTrackFitting_interface_BrokenLine_h
 #define RecoPixelVertexing_PixelTrackFitting_interface_BrokenLine_h
 
+#include <CL/sycl.hpp>
+
 #include <Eigen/Eigenvalues>
 
 #include "FitUtils.h"
@@ -8,8 +10,12 @@
 namespace BrokenLine {
 
   using sycl::abs;
-  using sycl::sqrt;
+  using sycl::atan;
   using sycl::atan2;
+  using sycl::cos;
+  using sycl::log;
+  using sycl::sin;
+  using sycl::sqrt;
 
   //!< Karimäki's parameters: (phi, d, k=1/R)
   /*!< covariance matrix: \n

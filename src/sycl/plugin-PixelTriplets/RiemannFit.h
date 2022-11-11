@@ -1,6 +1,8 @@
 #ifndef RecoPixelVertexing_PixelTrackFitting_interface_RiemannFit_h
 #define RecoPixelVertexing_PixelTrackFitting_interface_RiemannFit_h
 
+#include <CL/sycl.hpp>
+
 #include "SYCLCore/printf.h"
 
 #include "FitUtils.h"
@@ -12,6 +14,8 @@ namespace Rfit {
   using sycl::abs;
   using sycl::atan;
   using sycl::atan2;
+  using sycl::cos;
+  using sycl::sin;
   using sycl::sqrt;
 
   /*!  Compute the Radiation length in the uniform hypothesis

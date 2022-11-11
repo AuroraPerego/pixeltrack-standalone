@@ -99,6 +99,8 @@ export ROCM_TEST_CXXFLAGS := -DGPU_DEBUG
 endif
 
 # Intel oneAPI
+# USE_SYCL_LLVM := true
+
 SYCL_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Wno-non-template-friend -Werror=format-contains-nul -Werror=return-local-addr -Werror=unused-but-set-variable
 
 ifdef USE_SYCL_PATATRACK
@@ -108,12 +110,23 @@ export SYCL_CXX      := $(SYCL_BASE)/bin/clang++
 export SYCL_CXXFLAGS := -fsycl $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
 
 else ifdef USE_SYCL_LLVM
-export PATH=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09/bin:$PATH
-export LD_LIBRARY_PATH=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09/lib:$LD_LIBRARY_PATH
-export OCL_ICD_FILENAMES=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/runtime/intel/oclcpuexp_2022.14.8.0.04/x64/libintelocl.so
+SYCL_BASE := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09
+USER_SYCLFLAGS := -std=c++17 -fsycl-targets=nvptx64-nvidia-cuda -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-unused-variable
+# -fno-bundle-offload-arch              Specify that the offload bundler should not identify a bundle with specific arch.
+#                                       For example, the bundle for `nvptx64-nvidia-cuda-sm_80` uses the bundle tag
+#                                       `nvptx64-nvidia-cuda` when used. This allows .o files to contain .bc bundles
+#                                       that are unspecific to a particular arch version.
+#
+# --offload-arch=sm_60                  CUDA offloading device architecture (e.g. sm_35), or HIP offloading target ID in
+# --offload-arch=sm_70                  the form of a device architecture followed by target ID features delimited by a
+# --offload-arch=sm_75                  colon. Each target ID feature is a pre-defined string followed by a plus or minus
+#                                       sign (e.g. gfx908:xnack+:sramecc-).
+#                                       May be specified more than once.
 
-SYCL_BASE     := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09
-USER_SYCLFLAGS := -fsycl-targets=nvptx64-nvidia-cuda -std=c++17
+#export PATH := $(SYCL_BASE)/bin:$(PATH)
+#export LD_LIBRARY_PATH := $(SYCL_BASE)/lib:$(LD_LIBRARY_PATH)
+#export OCL_ICD_FILENAMES := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/runtime/intel/oclcpuexp_2022.14.8.0.04/x64/libintelocl.so
+
 export SYCL_CXX      := $(SYCL_BASE)/bin/clang++
 export SYCL_CXXFLAGS := -fsycl $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
 
@@ -562,10 +575,10 @@ endif
 external_eigen: $(EIGEN_BASE)
 
 $(EIGEN_BASE):
-	# from Eigen master branch as of 2021.08.18
+	# from Eigen master branch on gitlab as of 2022.08.09
 	git clone https://gitlab.com/AuroraPerego/eigen.git $@
 	# include all Patatrack updates
-	cd $@ && git reset --hard a652c3a08a5ea1507c6f002e7d4e9180825ca7a8
+	cd $@ && git reset --hard 8e5437b54be69d984df83acd9f17ecbc96d06264
 # Boost
 .PHONY: external_boost
 external_boost: $(BOOST_BASE)

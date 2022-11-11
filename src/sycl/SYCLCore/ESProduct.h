@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cassert>
 #include <mutex>
+#include <optional>
 #include <vector>
 
 #include "SYCLCore/ScopedSetDevice.h"
