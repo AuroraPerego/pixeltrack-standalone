@@ -45,9 +45,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       });
     });
 
-    if ((stream.get_device()).is_cpu())
-      stream.wait();
-    
     stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
 	    auto bField_kernel = bField_;
@@ -70,9 +67,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       });
     });
     
-    if ((stream.get_device()).is_cpu())
-      stream.wait();
-
     stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
 	    auto bField_kernel = bField_;
@@ -97,9 +91,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       });
     });
     
-    if ((stream.get_device()).is_cpu())
-      stream.wait();
-
     // quads
     stream.submit([&](sycl::handler &cgh) {
       auto tuples_d_kernel = tuples_d;
@@ -123,9 +114,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       });
     });
     
-    if ((stream.get_device()).is_cpu())
-      stream.wait();
-
     stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
 	    auto bField_kernel = bField_;
@@ -148,9 +136,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       });
     });
     
-    if ((stream.get_device()).is_cpu())
-      stream.wait();
-
     stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
 	    auto bField_kernel = bField_;
@@ -175,9 +160,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
       });
     });
     
-    if ((stream.get_device()).is_cpu())
-      stream.wait();
-
     if (fit5as4_) {
       // penta
       stream.submit([&](sycl::handler &cgh) {
@@ -202,9 +184,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
         });
       });
     
-      if ((stream.get_device()).is_cpu())
-        stream.wait();
-
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
 	      auto bField_kernel = bField_;
@@ -227,9 +206,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
         });
       });
       
-      if ((stream.get_device()).is_cpu())
-        stream.wait();
-
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
 	      auto bField_kernel = bField_;
@@ -254,9 +230,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
         });
       });
     
-      if ((stream.get_device()).is_cpu())
-        stream.wait();   
-
     } else {
       // penta all 5
       stream.submit([&](sycl::handler &cgh) {
@@ -281,9 +254,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
           });
       });
       
-      if ((stream.get_device()).is_cpu())
-        stream.wait();
-      
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
 	      auto bField_kernel = bField_;
@@ -306,9 +276,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
         });
       });
     
-      if ((stream.get_device()).is_cpu())
-        stream.wait();
-
       stream.submit([&](sycl::handler &cgh) {
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
 	      auto bField_kernel = bField_;
@@ -333,8 +300,6 @@ void HelixFitOnGPU::launchRiemannKernels(HitsView const *hv,
         });
       });
 
-      if ((stream.get_device()).is_cpu())
-        stream.wait();
     }
   }
 }

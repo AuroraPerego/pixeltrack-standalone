@@ -125,9 +125,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       });
     });
 
-    if((stream.get_device()).is_cpu())
-        stream.wait();
-
 #ifdef GPU_DEBUG
     stream.wait();
 #endif
@@ -144,9 +141,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               loadTracks(tksoa_kernel, soa_kernel, ws_kernel, ptMin, item);  
       });
     });
-
-    if((stream.get_device()).is_cpu())
-        stream.wait();
 
 #ifdef GPU_DEBUG
     stream.wait();
@@ -190,9 +184,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
                              (uint32_t *)firstNeg_acc.get_pointer());
       });
     });
-    if((stream.get_device()).is_cpu())
-        stream.wait();
-
 #ifdef GPU_DEBUG
     stream.wait();
 #endif
@@ -216,9 +207,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       });
     });
 
-    if((stream.get_device()).is_cpu())
-        stream.wait();
-
 #ifdef GPU_DEBUG
     stream.wait();
 #endif
@@ -234,9 +222,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               splitVerticesKernel(soa_kernel, ws_kernel, 9.f, item);
       });
     });
-
-    if((stream.get_device()).is_cpu())
-        stream.wait();
 
 #ifdef GPU_DEBUG
     stream.wait();
@@ -274,9 +259,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       });
     });
 
-    if((stream.get_device()).is_cpu())
-        stream.wait();
-
 #ifdef GPU_DEBUG
     stream.wait();
 #endif
@@ -300,9 +282,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       });
     });
 
-    if((stream.get_device()).is_cpu())
-        stream.wait();
-
 #ifdef GPU_DEBUG
     stream.wait();
 #endif
@@ -323,9 +302,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
               clusterTracksDBSCAN(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);
       });
     });
-
-    if((stream.get_device()).is_cpu())
-        stream.wait();
 
 #ifdef GPU_DEBUG
     stream.wait();
@@ -349,9 +325,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
     });
       }
 
-    if((stream.get_device()).is_cpu())
-        stream.wait();
-
 #ifdef GPU_DEBUG
     stream.wait();
 #endif
@@ -367,9 +340,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
                 fitVerticesKernel(soa_kernel, ws_kernel, 50., item);
       });
     });
-
-    if((stream.get_device()).is_cpu())
-        stream.wait();
 
 #ifdef GPU_DEBUG
     stream.wait();
@@ -388,9 +358,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       });
     });
 
-    if((stream.get_device()).is_cpu())
-        stream.wait();
-
 #ifdef GPU_DEBUG
     stream.wait();
 #endif
@@ -407,9 +374,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 
       });
     });
-
-    if((stream.get_device()).is_cpu())
-        stream.wait();
 
 #ifdef GPU_DEBUG
     stream.wait();
@@ -447,9 +411,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
     });
     }
 
-    if((stream.get_device()).is_cpu())
-        stream.wait();
- 
 #ifdef GPU_DEBUG
     stream.wait();
 #endif

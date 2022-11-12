@@ -442,9 +442,6 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       });
     });
 
-  if((stream.get_device()).is_cpu())
-    stream.wait();
-    
 #ifdef GPU_DEBUG
   stream.wait();
 #endif
@@ -463,8 +460,6 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       });
     });
 
-    if((stream.get_device()).is_cpu())
-      stream.wait();
   }
   
 #ifdef GPU_DEBUG
@@ -485,9 +480,6 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       });
     });
 
-  if((stream.get_device()).is_cpu())
-    stream.wait();
-  
 #ifdef GPU_DEBUG
   stream.wait();
 #endif
@@ -509,9 +501,6 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       });
     });
     
-    if((stream.get_device()).is_cpu())
-      stream.wait();
-  
 #ifdef GPU_DEBUG
   stream.wait();
 #endif
@@ -531,8 +520,6 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       });
     });
 
-    if((stream.get_device()).is_cpu())
-      stream.wait();
   }
   
 #ifdef GPU_DEBUG
@@ -558,8 +545,6 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       });
     });
 
-    if((stream.get_device()).is_cpu())
-      stream.wait();
   }
   
 #ifdef GPU_DEBUG
@@ -582,9 +567,6 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       });
     });
 
-    if((stream.get_device()).is_cpu())
-      stream.wait();
-  
 #ifdef GPU_DEBUG
   stream.wait();
 #endif
@@ -604,8 +586,6 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       });
     });
 
-    if((stream.get_device()).is_cpu())
-      stream.wait();
   }
 #ifdef GPU_DEBUG
   stream.wait();
@@ -646,8 +626,6 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
               kernel_print_found_ntuplets(hh_kernel, tuples_d_kernel, tracks_d_kernel, quality_d_kernel, device_hitToTuple_kernel, 100, iev, item);
       });
     });
-  if((stream.get_device()).is_cpu())
-    stream.wait();
 #endif
   
 #ifdef GPU_DEBUG

@@ -594,9 +594,6 @@ namespace pixelgpudetails {
       #ifdef GPU_DEBUG
           stream.wait();
       #endif
-          if((stream.get_device()).is_cpu())
-            stream.wait();
-
        }
           // End of Raw2Digi and passing data for clustering  
           {

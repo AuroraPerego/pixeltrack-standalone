@@ -71,9 +71,6 @@ namespace pixelgpudetails {
 
 #ifdef GPU_DEBUG
     stream.wait();
-#else
-    if((stream.get_device()).is_cpu())
-      stream.wait();
 #endif
 
     // assuming full warp of threads is better than a smaller number...
@@ -100,9 +97,6 @@ namespace pixelgpudetails {
 
 #ifdef GPU_DEBUG
     stream.wait();
-#else
-    if((stream.get_device()).is_cpu())
-      stream.wait();
 #endif
 
     return hits_d;

@@ -41,9 +41,6 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       });
     });
 
-    if ((stream.get_device()).is_cpu())
-      stream.wait();
-    
     stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
       auto bField_kernel              = bField_;
@@ -67,9 +64,6 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       });
     });
     
-    if ((stream.get_device()).is_cpu())
-      stream.wait();
-
     // fit quads
     stream.submit([&](sycl::handler &cgh) {
       auto tuples_d_kernel            = tuples_d; 
@@ -93,8 +87,6 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                    item);
       });
     });
-    if ((stream.get_device()).is_cpu())
-      stream.wait();
 
     stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
@@ -118,8 +110,6 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                item);
       });
     });
-    if ((stream.get_device()).is_cpu())
-      stream.wait();
 
     if (fit5as4_) {
       // fit penta (only first 4)
@@ -145,8 +135,6 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                    item);
           });
         });
-    if ((stream.get_device()).is_cpu())
-      stream.wait();
     
     stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
@@ -170,8 +158,6 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                item);
         });
       });
-    if ((stream.get_device()).is_cpu())
-      stream.wait();
 
     } else {
       // fit penta (all 5)
@@ -197,8 +183,6 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                    item);
           });
         });
-      if ((stream.get_device()).is_cpu())
-        stream.wait();
 
       stream.submit([&](sycl::handler &cgh) {
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d; 
@@ -222,8 +206,6 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                item);
         });
       });
-    if ((stream.get_device()).is_cpu())
-      stream.wait();
     }
   }  // loop on concurrent fits
 }
