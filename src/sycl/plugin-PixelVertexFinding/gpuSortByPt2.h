@@ -8,15 +8,14 @@
 #include "SYCLCore/HistoContainer.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
-
+#include "SYCLCore/printf.h"
 #include "SYCLCore/radixSort.h"
 
 #include "gpuVertexFinder.h"
 
 namespace gpuVertexFinder {
 
-  __attribute__((always_inline)) void sortByPt2(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item, 
-                               int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) {
+  __attribute__((always_inline)) void sortByPt2(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item) {
     auto& __restrict__ data = *pdata;
     auto& __restrict__ ws = *pws;
     auto nt = ws.ntrks;
@@ -24,11 +23,13 @@ namespace gpuVertexFinder {
     uint32_t const& nvFinal = data.nvFinal;
 
     int32_t const* __restrict__ iv = ws.iv;
-    float* __restrict__ ptv2 = data.ptv2;
-    uint16_t* __restrict__ sortInd = data.sortInd;
+    float* __restrict__ ptv2 = data.ptv2;             // empty, will be filled here
+    uint16_t* __restrict__ sortInd = data.sortInd;    // empty, will be filled in radixSort
 
-    // if (item.get_local_id(0) == 0)
-    //    printf("sorting %d vertices\n",nvFinal);
+#ifdef VERTEX_DEBUG
+    if (item.get_local_id(0) == 0)
+       printf("sorting %d vertices\n",nvFinal);
+#endif
 
     if (nvFinal < 1)
       return;
@@ -44,12 +45,17 @@ namespace gpuVertexFinder {
     }
     item.barrier();
 
+    // ptt2 is the pt of the track squared
+    // ptv2 is the "pt of the vertex" (i.e. sum of the pt^2 of the tracks that belong to that vertex) squared
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] > 9990)
         continue;
       cms::sycltools::atomic_fetch_add<float>(&ptv2[iv[i]], ptt2[i]);
     }
     item.barrier();
+    // now only the first "number of vertices" entries of ptv2 will be relevant
+    // because iv[i] goes from 0 to the number of vertices, while i from 0 to the number of tracks
+    // even though ptv2 has size nt(=number of tracks)
 
     if (1 == nvFinal) {
       if (item.get_local_id(0) == 0)
@@ -58,12 +64,11 @@ namespace gpuVertexFinder {
     }
     auto swsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint16_t[1024]>(item.get_group());
     uint16_t* sws = (uint16_t*)swsbuff.get();
-    radixSort<float, 2>(ptv2, sortInd, sws, nvFinal, item, c, ct, cu, ibs, p, firstNeg);
+    radixSort<float, 2>(ptv2, sortInd, sws, nvFinal, item);
   }
 
-  void sortByPt2Kernel(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item, 
-                               int32_t *c, int32_t *ct, int32_t *cu, int *ibs, int *p, uint32_t *firstNeg) { 
-    sortByPt2(pdata, pws, item, c, ct, cu, ibs, p, firstNeg); 
+  void sortByPt2Kernel(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item) { 
+    sortByPt2(pdata, pws, item); 
   }
 
 }  // namespace gpuVertexFinder

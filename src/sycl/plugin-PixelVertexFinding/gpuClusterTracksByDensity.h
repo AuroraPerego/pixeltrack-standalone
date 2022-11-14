@@ -7,12 +7,12 @@
 
 #include "SYCLCore/HistoContainer.h"
 #include "SYCLCore/sycl_assert.h"
-#include "SYCLCore/syclAtomic.h"
 #include "SYCLCore/printf.h"
+#include "SYCLCore/syclAtomic.h"
 
 #include "gpuVertexFinder.h"
 
-// #define VERTEX_DEBUG
+// #define GPU_DEBUG
 
 namespace gpuVertexFinder {
 
@@ -42,18 +42,18 @@ namespace gpuVertexFinder {
 
     auto er2mx = errmax * errmax;
 
-    auto& __restrict__ data = *pdata;
-    auto& __restrict__ ws = *pws;
-    auto nt = ws.ntrks;
-    float const* __restrict__ zt = ws.zt;
-    float const* __restrict__ ezt2 = ws.ezt2;
+    auto& __restrict__ data = *pdata;                       // info on tracks
+    auto& __restrict__ ws = *pws;                           // info on vertices
+    auto nt = ws.ntrks;                                     // number of tracks (uint32_t)
+    float const* __restrict__ zt = ws.zt;                   // z coord of the tracks at bs
+    float const* __restrict__ ezt2 = ws.ezt2;               // squared error on the z coord
 
-    uint32_t& nvFinal = data.nvFinal;
-    uint32_t& nvIntermediate = ws.nvIntermediate;
+    uint32_t& nvFinal = data.nvFinal;                       // final number of vertices
+    uint32_t& nvIntermediate = ws.nvIntermediate;           // intermediate number of vertices
 
-    uint8_t* __restrict__ izt = ws.izt;
-    int32_t* __restrict__ nn = data.ndof;
-    int32_t* __restrict__ iv = ws.iv;
+    uint8_t* __restrict__ izt = ws.izt;                     // z coord of input tracks as an integer
+    int32_t* __restrict__ nn = data.ndof;                   // number of degrees of freedom / nearest neighbours of the vertices
+    int32_t* __restrict__ iv = ws.iv;                       // index of the vertex each track is associated to
 
     assert(pdata);
     assert(zt);
@@ -76,6 +76,10 @@ namespace gpuVertexFinder {
     assert(nt <= hist->capacity());
 
     // fill hist  (bin shall be wider than "eps")
+    // here the z coord of each track is turned into an integer from 0 to 255
+    // and used to increment the counts of the hist
+    // iv[i] depend on the order tracks have been found and 
+    // the values are not the same if the program is executed multiple times
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       assert(i < ZVertices::MAXTRACKS);
       int iz = int(zt[i] * 10.);  // valid if eps<=0.1
@@ -89,7 +93,6 @@ namespace gpuVertexFinder {
       nn[i] = 0;
     }
     item.barrier();
-
     if (item.get_local_id(0) < 32)
       hws[item.get_local_id(0)] = 0;  // used by prefix scan...
     item.barrier();
@@ -214,7 +217,7 @@ namespace gpuVertexFinder {
       }
     }
     item.barrier();
-
+ 
     assert(*foundClusters < ZVertices::MAXVTX);
 
     // propagate the negative id to all the tracks in the cluster.
@@ -225,7 +228,7 @@ namespace gpuVertexFinder {
       }
     }
     item.barrier();
-
+    
     // adjust the cluster id to be a positive value starting from 0
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       iv[i] = -iv[i] - 1;
@@ -233,10 +236,10 @@ namespace gpuVertexFinder {
 
     nvIntermediate = nvFinal = *foundClusters;
 
-  #ifdef VERTEX_DEBUG
-    if (item.get_local_id(0) == 0)
-      printf("found %d proto vertices\n", *foundClusters);
-  #endif
+#ifdef VERTEX_DEBUG
+  if (item.get_local_id(0) == 0)
+    printf("found %d proto vertices\n", *foundClusters);
+#endif
   }
 
   void clusterTracksByDensityKernel(gpuVertexFinder::ZVertices* pdata,
