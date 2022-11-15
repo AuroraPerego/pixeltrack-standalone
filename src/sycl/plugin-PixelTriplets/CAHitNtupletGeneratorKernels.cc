@@ -13,7 +13,7 @@ void CAHitNtupletGeneratorKernels::fillHitDetIndices(HitsView const *hv, TkSoA *
     auto hitIndices_kernel = &tracks_d->hitIndices;
     auto hv_kernel         = hv;
     auto detIndices_kernel = &tracks_d->detIndices;
-      cgh.parallel_for(
+      cgh.parallel_for<class fillHitDetIndices_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
                 kernel_fillHitDetIndices(hitIndices_kernel, hv_kernel, detIndices_kernel, item);
@@ -66,7 +66,7 @@ void CAHitNtupletGeneratorKernels::launchKernels(HitsOnCPU const &hh, TkSoA *tra
       auto device_theCellNeighbors_kernel = device_theCellNeighbors_.get();
       auto device_isOuterHitOfCell_kernel = device_isOuterHitOfCell_.get();
       auto m_params_kernel = m_params;
-      cgh.parallel_for(
+      cgh.parallel_for<class connect_Kernel>(
           sycl::nd_range<3>(blks * thrs, thrs),
           [=](sycl::nd_item<3> item){ 
               kernel_connect(device_hitTuple_apc_kernel,
@@ -102,7 +102,7 @@ void CAHitNtupletGeneratorKernels::launchKernels(HitsOnCPU const &hh, TkSoA *tra
       auto device_theCells_kernel         = device_theCells_.get();
       auto device_nCells_kernel           = device_nCells_;
       auto device_isOuterHitOfCell_kernel = device_isOuterHitOfCell_.get();
-      cgh.parallel_for(
+      cgh.parallel_for<class early_fishbone_Kernel>(
           sycl::nd_range<3>(blks * thrs, thrs),
           [=](sycl::nd_item<3> item){ 
               gpuPixelDoublets::fishbone(hh_kernel, 
@@ -131,7 +131,7 @@ void CAHitNtupletGeneratorKernels::launchKernels(HitsOnCPU const &hh, TkSoA *tra
       auto tuples_d_kernel                = tuples_d;
       auto device_hitTuple_apc_kernel     = device_hitTuple_apc_;
       auto quality_d_kernel               = quality_d;
-      cgh.parallel_for(
+      cgh.parallel_for<class find_ntuplets_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_find_ntuplets(hh_kernel,
@@ -155,7 +155,7 @@ void CAHitNtupletGeneratorKernels::launchKernels(HitsOnCPU const &hh, TkSoA *tra
       auto hh_kernel                      = hh.view();
       auto device_theCells_kernel         = device_theCells_.get();
       auto device_nCells_kernel           = device_nCells_;
-      cgh.parallel_for(
+      cgh.parallel_for<class marked_used_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_mark_used(hh_kernel, device_theCells_kernel, device_nCells_kernel, item);
@@ -175,7 +175,7 @@ void CAHitNtupletGeneratorKernels::launchKernels(HitsOnCPU const &hh, TkSoA *tra
   stream.submit([&](sycl::handler &cgh) {
       auto tuples_d_kernel                = tuples_d;
       auto device_hitTuple_apc_kernel     = device_hitTuple_apc_;
-      cgh.parallel_for(
+      cgh.parallel_for<class finalize_bulk_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               cms::sycltools::finalizeBulk(device_hitTuple_apc_kernel, tuples_d_kernel, item);
@@ -192,7 +192,7 @@ void CAHitNtupletGeneratorKernels::launchKernels(HitsOnCPU const &hh, TkSoA *tra
       auto quality_d_kernel               = quality_d;
       auto device_theCells_kernel         = device_theCells_.get();
       auto device_nCells_kernel           = device_nCells_;
-      cgh.parallel_for(
+      cgh.parallel_for<class EarlyDuplicateRemover_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_earlyDuplicateRemover(device_theCells_kernel, device_nCells_kernel, tuples_d_kernel, quality_d_kernel, item);  
@@ -209,7 +209,7 @@ void CAHitNtupletGeneratorKernels::launchKernels(HitsOnCPU const &hh, TkSoA *tra
       auto tuples_d_kernel                 = tuples_d;
       auto device_tupleMultiplicity_kernel = device_tupleMultiplicity_.get();
       auto quality_d_kernel                = quality_d;
-      cgh.parallel_for(
+      cgh.parallel_for<class countMultiplicity_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_countMultiplicity(tuples_d_kernel, quality_d_kernel, device_tupleMultiplicity_kernel, item); 
@@ -224,7 +224,7 @@ void CAHitNtupletGeneratorKernels::launchKernels(HitsOnCPU const &hh, TkSoA *tra
       auto tuples_d_kernel                 = tuples_d;
       auto device_tupleMultiplicity_kernel = device_tupleMultiplicity_.get();
       auto quality_d_kernel                = quality_d;
-      cgh.parallel_for(
+      cgh.parallel_for<class fillMultiplicity_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_fillMultiplicity(tuples_d_kernel, quality_d_kernel, device_tupleMultiplicity_kernel, item);  
@@ -247,7 +247,7 @@ void CAHitNtupletGeneratorKernels::launchKernels(HitsOnCPU const &hh, TkSoA *tra
       auto device_theCells_kernel         = device_theCells_.get();
       auto device_nCells_kernel           = device_nCells_;
       auto device_isOuterHitOfCell_kernel = device_isOuterHitOfCell_.get();
-      cgh.parallel_for(
+      cgh.parallel_for<class late_fishbone_Kernel>(
           sycl::nd_range<3>(blks * thrs, thrs),
           [=](sycl::nd_item<3> item){ 
               gpuPixelDoublets::fishbone(hh_kernel, 
@@ -278,7 +278,7 @@ void CAHitNtupletGeneratorKernels::launchKernels(HitsOnCPU const &hh, TkSoA *tra
       auto device_isOuterHitOfCell_kernel  = device_isOuterHitOfCell_.get();
       auto m_params_kernel                 = m_params;
       auto counters_kernel                 = counters_;
-      cgh.parallel_for(
+      cgh.parallel_for<class checkOverflows_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_checkOverflows(tuples_d_kernel,
@@ -345,7 +345,7 @@ void CAHitNtupletGeneratorKernels::buildDoublets(HitsOnCPU const &hh, sycl::queu
       auto device_isOuterHitOfCell_kernel  = device_isOuterHitOfCell_.get();
       auto device_theCellTracks_kernel = device_theCellTracks_.get();
       auto device_theCellTracksContainer_kernel = device_theCellTracksContainer_;
-      cgh.parallel_for(
+      cgh.parallel_for<class initDoublets_Kernel>(
           sycl::nd_range<1>( blocks * threadsPerBlock, threadsPerBlock),
           [=](sycl::nd_item<1> item){
               gpuPixelDoublets::initDoublets(device_isOuterHitOfCell_kernel,
@@ -393,7 +393,7 @@ void CAHitNtupletGeneratorKernels::buildDoublets(HitsOnCPU const &hh, sycl::queu
       auto device_theCellTracks_kernel     = device_theCellTracks_.get();
       auto device_isOuterHitOfCell_kernel  = device_isOuterHitOfCell_.get();
       auto m_params_kernel                 = m_params;
-      cgh.parallel_for(
+      cgh.parallel_for<class getDoubletsFromHisto_Kernel>(
           sycl::nd_range<3>(blks * thrs, thrs),
           [=](sycl::nd_item<3> item)[[intel::reqd_sub_group_size(32)]]{ 
               gpuPixelDoublets::getDoubletsFromHisto(device_theCells_kernel,
@@ -431,7 +431,7 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       auto tuples_d_kernel = tuples_d;
       auto tracks_d_kernel = tracks_d;
       auto quality_d_kernel = quality_d;
-      cgh.parallel_for(      
+      cgh.parallel_for<class classifyTracks_Kernel>(      
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_classifyTracks(tuples_d_kernel, 
@@ -453,7 +453,7 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       auto device_theCells_kernel = device_theCells_.get();
       auto device_nCells_kernel = device_nCells_;
       auto quality_d_kernel = quality_d; 
-      cgh.parallel_for(
+      cgh.parallel_for<class fishboneCleaner_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_fishboneCleaner(device_theCells_kernel, device_nCells_kernel, quality_d_kernel, item); 
@@ -473,7 +473,7 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       auto device_nCells_kernel = device_nCells_;
       auto tuples_d_kernel = tuples_d;
       auto tracks_d_kernel = tracks_d;
-      cgh.parallel_for(
+      cgh.parallel_for<class fastDuplicateRemover_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_fastDuplicateRemover(device_theCells_kernel, device_nCells_kernel, tuples_d_kernel, tracks_d_kernel, item);
@@ -494,7 +494,7 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       auto device_hitToTuple_kernel = device_hitToTuple_.get();
       auto tuples_d_kernel = tuples_d;
       auto quality_d_kernel = quality_d;
-      cgh.parallel_for(
+      cgh.parallel_for<class countHitInTracks_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_countHitInTracks(tuples_d_kernel, quality_d_kernel, device_hitToTuple_kernel, item); 
@@ -513,7 +513,7 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       auto device_hitToTuple_kernel = device_hitToTuple_.get();
       auto tuples_d_kernel = tuples_d;
       auto quality_d_kernel = quality_d;
-      cgh.parallel_for(
+      cgh.parallel_for<class fillHitInTracks_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_fillHitInTracks(tuples_d_kernel, quality_d_kernel, device_hitToTuple_kernel, item);
@@ -538,7 +538,7 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       auto tracks_d_kernel = tracks_d;
       auto quality_d_kernel = quality_d;
       auto device_hitToTuple_kernel = device_hitToTuple_.get();
-      cgh.parallel_for(
+      cgh.parallel_for<class tripletCleaner_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_tripletCleaner(hh_kernel, tuples_d_kernel, tracks_d_kernel, quality_d_kernel, device_hitToTuple_kernel, item);
@@ -560,7 +560,7 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
     stream.submit([&](sycl::handler &cgh) {
       auto device_hitToTuple_kernel = device_hitToTuple_.get();
       auto counters_kernel = counters_;
-      cgh.parallel_for(
+      cgh.parallel_for<class doStatsForHitInTracks_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_doStatsForHitInTracks(device_hitToTuple_kernel, counters_kernel, item);
@@ -579,7 +579,7 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       auto tuples_d_kernel = tuples_d;
       auto quality_d_kernel = quality_d;
       auto counters_kernel = counters_;
-      cgh.parallel_for(
+      cgh.parallel_for<class doStatsForTracks_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_doStatsForTracks(tuples_d_kernel, quality_d_kernel, counters_kernel, item);
@@ -620,7 +620,7 @@ void CAHitNtupletGeneratorKernels::classifyTuples(HitsOnCPU const &hh, TkSoA *tr
       auto tracks_d_kernel = tracks_d;
       auto quality_d_kernel = quality_d;
       auto device_hitToTuple_kernel = device_hitToTuple_.get();
-      cgh.parallel_for(
+      cgh.parallel_for<class print_found_ntuplets_Kernel>(
           sycl::nd_range<1>(blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
               kernel_print_found_ntuplets(hh_kernel, tuples_d_kernel, tracks_d_kernel, quality_d_kernel, device_hitToTuple_kernel, 100, iev, item);

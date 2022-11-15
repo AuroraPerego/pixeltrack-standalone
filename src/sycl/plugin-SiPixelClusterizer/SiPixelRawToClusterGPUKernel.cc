@@ -570,7 +570,7 @@ namespace pixelgpudetails {
                  auto digis_raw_kernel    = digis_d.rawIdArr();
                  auto digis_mod_kernel    = digis_d.moduleInd();
                  auto digiErrors_d_kernel = digiErrors_d.error();
-           cgh.parallel_for(sycl::nd_range<1>(globalSize, numthreadsPerBlock),
+           cgh.parallel_for<class rawToDigi_Kernel>(sycl::nd_range<1>(globalSize, numthreadsPerBlock),
                              [=](sycl::nd_item<1> item) {
                                    RawToDigi_kernel(cablingMap_kernel,
                                                     modToUnp_kernel,
@@ -611,7 +611,7 @@ namespace pixelgpudetails {
               auto clusters_d_kernel  = clusters_d.moduleStart();
               auto clusters_in_kernel = clusters_d.clusInModule();
               auto clusters_cs_kernel = clusters_d.clusModuleStart();
-      	cgh.parallel_for(sycl::nd_range<1>(sycl::range<1>(blocks) * sycl::range<1>(threadsPerBlock), sycl::range<1>(threadsPerBlock)),
+      	cgh.parallel_for<class calibDigis_kernel>(sycl::nd_range<1>(sycl::range<1>(blocks) * sycl::range<1>(threadsPerBlock), sycl::range<1>(threadsPerBlock)),
                                 [=](sycl::nd_item<1> item) {
                                       gpuCalibPixel::calibDigis(isRun2,
                                                                 digis_ind_kernel,
@@ -638,7 +638,7 @@ namespace pixelgpudetails {
       	        auto digis_ind_kernel  = digis_d.c_moduleInd();
                 auto clusters_d_kernel = clusters_d.moduleStart();
                 auto digis_d_kernel    = digis_d.clus();
-      	     cgh.parallel_for(sycl::nd_range<1>(sycl::range<1>(blocks) * sycl::range<1>(threadsPerBlock), sycl::range<1>(threadsPerBlock)),
+      	     cgh.parallel_for<class countModules_kernel>(sycl::nd_range<1>(sycl::range<1>(blocks) * sycl::range<1>(threadsPerBlock), sycl::range<1>(threadsPerBlock)),
                                 [=](sycl::nd_item<1> item) {
                                                             countModules(digis_ind_kernel, 
                                                                          clusters_d_kernel, 
@@ -670,7 +670,7 @@ namespace pixelgpudetails {
                     auto clusters_s_kernel  = clusters_d.c_moduleStart();
                     auto clusters_in_kernel = clusters_d.clusInModule();
                     auto clusters_id_kernel = clusters_d.moduleId();
-                cgh.parallel_for(
+                cgh.parallel_for<class findClus_kernel>(
                     sycl::nd_range<1>(globalSize1, numthreadsPerBlock1),
                     [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
                                       findClus(digis_ind_kernel,
@@ -701,7 +701,7 @@ namespace pixelgpudetails {
                     auto clusters_in_kernel = clusters_d.clusInModule();
                     auto clusters_cs_kernel = clusters_d.c_moduleId();
                     auto digis_clus_kernel  = digis_d.clus();
-                cgh.parallel_for(
+                cgh.parallel_for<class clusterChargeCut_kernel>(
                     sycl::nd_range<1>(globalSize2, numthreadsPerBlock2),
                     [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
                                       clusterChargeCut(digis_ind_kernel,
@@ -723,7 +723,7 @@ namespace pixelgpudetails {
             // apply charge cut
               auto clusters_in_kernel  = clusters_d.c_clusInModule();
               auto clusters_s_kernel  = clusters_d.clusModuleStart();
-              cgh.parallel_for(
+              cgh.parallel_for<class fillHitsModuleStart_kernel>(
                     sycl::nd_range<1>(sycl::range<1>(1024), sycl::range<1>(1024)),
                     [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
                                    fillHitsModuleStart(clusters_in_kernel, 

@@ -106,7 +106,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
     stream.submit([&](sycl::handler &cgh) {
       auto soa_kernel = soa;
       auto ws_kernel   = ws_d.get();
-      cgh.parallel_for(
+      cgh.parallel_for<class init_vertex_Kernel>(
           sycl::nd_range<1>(sycl::range<1>(1), sycl::range<1>(1)),
           [=](sycl::nd_item<1> item){ 
                 init(soa_kernel, ws_kernel);
@@ -123,7 +123,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       auto tksoa_kernel = tksoa;
       auto soa_kernel   = soa;
       auto ws_kernel    = ws_d.get();
-      cgh.parallel_for(
+      cgh.parallel_for<class loadTracks_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
           [=](sycl::nd_item<1> item){ 
               loadTracks(tksoa_kernel, soa_kernel, ws_kernel, ptMin, item);  
@@ -146,7 +146,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       auto eps_kernel  = eps;
       auto errmax_kernel = errmax;
       auto chi2max_kernel = chi2max;
-      cgh.parallel_for(
+      cgh.parallel_for<class vertexFinder_one_Kernel>(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
           [=](sycl::nd_item<1> item)[[intel::reqd_sub_group_size(32)]]{ 
 	            vertexFinderOneKernel(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);

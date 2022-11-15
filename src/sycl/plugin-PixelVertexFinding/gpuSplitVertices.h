@@ -29,7 +29,7 @@ namespace gpuVertexFinder {
     float const* __restrict__ zt = ws.zt;
     float const* __restrict__ ezt2 = ws.ezt2;
     float* __restrict__ zv = data.zv;
-    float* __restrict__ wv = data.wv;
+    [[maybe_unused]] float* __restrict__ wv = data.wv;
     float const* __restrict__ chi2 = data.chi2;
     uint32_t& nvFinal = data.nvFinal;
 

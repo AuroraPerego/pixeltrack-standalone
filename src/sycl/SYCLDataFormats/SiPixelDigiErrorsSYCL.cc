@@ -10,7 +10,7 @@ SiPixelDigiErrorsSYCL::SiPixelDigiErrorsSYCL(size_t maxFedWords, PixelFormatterE
   error_d = cms::sycltools::make_device_unique<cms::sycltools::SimpleVector<PixelErrorCompact>>(stream);
   data_d = cms::sycltools::make_device_unique<PixelErrorCompact[]>(maxFedWords, stream);
 
-  stream.memset(data_d.get(), 0x00, maxFedWords * sizeof(PixelErrorCompact));
+  stream.memset(data_d.get(), 0x00, maxFedWords * sizeof(PixelErrorCompact)).wait();
 
   error_h = cms::sycltools::make_host_unique<cms::sycltools::SimpleVector<PixelErrorCompact>>(stream);
   cms::sycltools::make_SimpleVector(error_h.get(), maxFedWords, data_d.get());

@@ -92,9 +92,9 @@ void go(sycl::queue queue) {
         auto k = *h.begin(ii);
         if (j % 2)
           k = *(h.begin(ii) + (h.end(ii) - h.begin(ii)) / 2);
-        auto bk = h.bin(v[k]);
-        //assert(bk == i);
-        //assert(k < offsets[j + 1]);
+        // auto bk = h.bin(v[k]);
+        // assert(bk == i);
+        // assert(k < offsets[j + 1]);
         auto kl = h.bin(v[k] - window);
         auto kh = h.bin(v[k] + window);
         //assert(kl != i);

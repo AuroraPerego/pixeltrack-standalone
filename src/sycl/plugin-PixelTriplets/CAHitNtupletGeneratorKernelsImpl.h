@@ -488,7 +488,7 @@ void kernel_fillHitDetIndices(HitContainer const *__restrict__ tuples,
   }
   // fill hit indices
   auto const &hh = *hhp;
-  auto nhits = hh.nHits();
+  [[maybe_unused]] auto nhits = hh.nHits(); // unused warning
   for (int idx = first, ntot = tuples->size(); idx < ntot;
        idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     assert(tuples->bins[idx] < nhits);

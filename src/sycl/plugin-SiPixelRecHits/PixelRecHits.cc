@@ -57,7 +57,8 @@ namespace pixelgpudetails {
         auto digis_n_kernel = digis_d.nDigis(); 
         auto clusters_d_kernel = clusters_d.view(); 
         auto hits_d_kernel= hits_d.view();
-        cgh.parallel_for(sycl::nd_range<1>(blocks * threadsPerBlock, threadsPerBlock),
+        cgh.parallel_for<class getHits_Kernel>
+          (sycl::nd_range<1>(blocks * threadsPerBlock, threadsPerBlock),
           [=](sycl::nd_item<1> item){ 
               gpuPixelRecHits::getHits(cpeParams_kernel, 
                                        bs_d_kernel, 
@@ -82,7 +83,7 @@ namespace pixelgpudetails {
         auto cpeParams_kernel = cpeParams; 
         auto hits_d_kernel = hits_d.hitsLayerStart(); 
         auto clusters_d_kernel = clusters_d.clusModuleStart(); 
-        cgh.parallel_for(sycl::nd_range<1>(32, 32),
+        cgh.parallel_for<class setHitsLayerStart_Kernel>(sycl::nd_range<1>(32, 32),
           [=](sycl::nd_item<1> item){
               setHitsLayerStart(clusters_d_kernel, cpeParams_kernel, hits_d_kernel, item);
     	    });

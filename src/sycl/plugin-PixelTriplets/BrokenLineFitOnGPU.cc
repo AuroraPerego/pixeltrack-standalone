@@ -26,7 +26,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       auto hitsGPU_kernel             = hitsGPU_.get(); 
       auto hits_geGPU_kernel          = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
-      cgh.parallel_for(
+      cgh.parallel_for<class kernelBLFastFit_3_3>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
                 kernelBLFastFit<3>(tuples_d_kernel, 
@@ -49,7 +49,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       auto outputSoa_d_kernel         = outputSoa_d;
 
-      cgh.parallel_for(
+      cgh.parallel_for<class kernelBLFit_3_3>(
           sycl::nd_range<1>(numberOfBlocks * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
                 kernelBLFit<3>(tupleMultiplicity_d_kernel,
@@ -73,7 +73,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       auto hits_geGPU_kernel          = hits_geGPU_.get(); 
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
 
-      cgh.parallel_for(
+      cgh.parallel_for<class kernelBLFastFit_4_4>(
           sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
                 kernelBLFastFit<4>(tuples_d_kernel, 
@@ -96,7 +96,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       auto outputSoa_d_kernel         = outputSoa_d;
 
-      cgh.parallel_for(
+      cgh.parallel_for<class kernelBLFit_4_4>(
           sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
           [=](sycl::nd_item<1> item){ 
                 kernelBLFit<4>(tupleMultiplicity_d_kernel,
@@ -121,7 +121,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
         auto hits_geGPU_kernel          = hits_geGPU_.get(); 
         auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
   
-        cgh.parallel_for(
+        cgh.parallel_for<class kernelBLFastFit_4_5>(
             sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
             [=](sycl::nd_item<1> item){ 
                   kernelBLFastFit<4>(tuples_d_kernel, 
@@ -144,7 +144,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       auto outputSoa_d_kernel         = outputSoa_d;
   
-        cgh.parallel_for(
+        cgh.parallel_for<class kernelBLFit_4_5>(
             sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
             [=](sycl::nd_item<1> item){ 
                   kernelBLFit<4>(tupleMultiplicity_d_kernel,
@@ -169,7 +169,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
         auto hits_geGPU_kernel          = hits_geGPU_.get(); 
         auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
   
-        cgh.parallel_for(
+        cgh.parallel_for<class kernelBLFastFit_5_5>(
             sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
             [=](sycl::nd_item<1> item){ 
                   kernelBLFastFit<5>(tuples_d_kernel, 
@@ -192,7 +192,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
       auto fast_fit_resultsGPU_kernel = fast_fit_resultsGPU_.get();
       auto outputSoa_d_kernel         = outputSoa_d;
   
-        cgh.parallel_for(
+        cgh.parallel_for<class kernelBLFit_5_5>(
             sycl::nd_range<1>(numberOfBlocks / 4 * blockSize, blockSize),
             [=](sycl::nd_item<1> item){ 
                   kernelBLFit<5>(tupleMultiplicity_d_kernel,
