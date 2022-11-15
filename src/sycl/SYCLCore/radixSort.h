@@ -97,17 +97,18 @@ __attribute__((always_inline)) void radixSortImpl(
   auto cubuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int32_t[sb]>(item.get_group());
   int32_t* cu = (int32_t*)cubuff.get();
 
-  auto ibsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int>(item.get_group());
-  volatile int* ibs = (int*)ibsbuff.get();
-  auto pbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int>(item.get_group());
-  int* p = (int*)pbuff.get();
+  // Broken...
+  // auto ibsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int>(item.get_group());
+  // int* ibs = (int*)ibsbuff.get();
+  // auto pbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int>(item.get_group());
+  // int* p = (int*)pbuff.get();
 
   assert(size > 0);
   assert(item.get_local_range(0) >= sb);
 
   // bool debug = false; // item.get_local_id(0)==0 && item.get_group(0)==5;
 
-  *p = ps;
+  int p = ps;
 
   auto j = ind;
   auto k = ind2;
@@ -116,14 +117,14 @@ __attribute__((always_inline)) void radixSortImpl(
     j[i] = i;
   item.barrier();
 
-  while ((item.barrier(), sycl::all_of_group(item.get_group(), *p < w / d))) {
+  while ((item.barrier(), sycl::all_of_group(item.get_group(), p < w / d))) {
     if (item.get_local_id(0) < sb)
       c[item.get_local_id(0)] = 0;
     item.barrier();
 
     // fill bins
     for (uint32_t i = item.get_local_id(0); i < size; i += item.get_local_range(0)) {
-      auto bin = (a[j[i]] >> d * *p) & (sb - 1);
+      auto bin = (a[j[i]] >> d * p) & (sb - 1);
       cms::sycltools::atomic_fetch_add<int32_t,
 	                               sycl::access::address_space::local_space,
 				                         sycl::memory_scope::device>
@@ -157,10 +158,9 @@ __attribute__((always_inline)) void radixSortImpl(
     */
 
     // broadcast
-    *ibs = size - 1;
-    item.barrier();
-    while ((item.barrier(), sycl::all_of_group(item.get_group(), *ibs > 0))) {
-      int i = *ibs - item.get_local_id(0);
+    int ibs = size - 1;
+    while ((item.barrier(), sycl::all_of_group(item.get_group(), ibs > 0))) {
+      int i = ibs - item.get_local_id(0);
       if (item.get_local_id(0) < sb) {
         cu[item.get_local_id(0)] = -1;
         ct[item.get_local_id(0)] = -1;
@@ -169,7 +169,8 @@ __attribute__((always_inline)) void radixSortImpl(
       int32_t bin = -1;
       if (item.get_local_id(0) < sb) {
         if (i >= 0) {
-          bin = (a[j[i]] >> d * *p) & (sb - 1);
+          bin = (a[j[i]] >> d * p) & (sb - 1);
+	  // printf("ptv2 is %d, sortInd is %d, p is %d, ibs is %d\n", a[j[i]], j[i], p, ibs);
           ct[item.get_local_id(0)] = bin;
           cms::sycltools::atomic_fetch_max<int32_t,
                                           sycl::access::address_space::local_space,
@@ -193,10 +194,8 @@ __attribute__((always_inline)) void radixSortImpl(
       item.barrier();
       if (bin >= 0)
         assert(c[bin] >= 0);
-      if (item.get_local_id(0) == 0)
-        *ibs -= sb;
-      item.barrier();
-      assert(*ibs<0); // DO NOT REMOVE
+      ibs -= sb;
+      assert(ibs<0);
     }
 
     /*
@@ -217,9 +216,8 @@ __attribute__((always_inline)) void radixSortImpl(
     j = k;
     k = t;
 
-    if (item.get_local_id(0) == 0)
-      ++(*p);
-    item.barrier();
+    ++p;
+    assert(p>ps);
   }
 
   if ((w != 8) && (0 == (NS & 1)))
