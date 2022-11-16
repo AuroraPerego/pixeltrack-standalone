@@ -75,7 +75,7 @@ TrackingRecHit2DSYCL::TrackingRecHit2DSYCL(uint32_t nHits,
                                            sycl::queue stream)
     : m_nHits(nHits), m_hitsModuleStart(hitsModuleStart) {
 
-  static auto view = cms::sycltools::make_host_unique<TrackingRecHit2DSOAView>(stream);
+  auto view = cms::sycltools::make_host_unique<TrackingRecHit2DSOAView>(stream);
 
   view->m_nHits = nHits;
   m_view = cms::sycltools::make_device_unique<TrackingRecHit2DSOAView>(stream);

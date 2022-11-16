@@ -36,17 +36,21 @@ namespace cms {
     inline T atomic_fetch_compare_inc(T *addr,T operand) {
     
       auto atm = sycl::atomic_ref<T, memOrder, Scope, addrSpace>(addr[0]);
-      
-      T old;
-      while (true) {
-        old = atm.load();
-        if (old >= operand) {
-          if (atm.compare_exchange_strong(old, 0))
-            break;
-        } else if (atm.compare_exchange_strong(old, old + 1))
-          break;
-      }
-      return old;
+      assert(addr[0]<operand);
+
+// extremely inefficient (time pov)
+// TODO_ implement an efficient version of the atomicCAS 
+//      T old;
+//      while (true) {
+//        old = atm.load();
+//        if (old >= operand) {
+//          if (atm.compare_exchange_strong(old, 0))
+//            break;
+//        } else if (atm.compare_exchange_strong(old, old + 1))
+//          break;
+//      }
+//      return old;
+        return atm.fetch_add(1);
     }
 
     template <typename T,  

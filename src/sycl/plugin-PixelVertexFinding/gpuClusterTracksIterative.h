@@ -190,9 +190,9 @@ namespace gpuVertexFinder {
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] == int(i)) {
         if (nn[i] >= minT) {
-          auto old = cms::sycltools::atomic_fetch_compare_inc<unsigned int, 
+          auto old = cms::sycltools::atomic_fetch_add<unsigned int, 
                                                               cl::sycl::access::address_space::local_space>
-                                                              (foundClusters, (unsigned int)0xffffffff);
+                                                              (foundClusters, (unsigned int)1);
           iv[i] = -(old + 1);
         } else {  // noise
           iv[i] = -9998;

@@ -170,7 +170,6 @@ __attribute__((always_inline)) void radixSortImpl(
       if (item.get_local_id(0) < sb) {
         if (i >= 0) {
           bin = (a[j[i]] >> d * p) & (sb - 1);
-	  // printf("ptv2 is %d, sortInd is %d, p is %d, ibs is %d\n", a[j[i]], j[i], p, ibs);
           ct[item.get_local_id(0)] = bin;
           cms::sycltools::atomic_fetch_max<int32_t,
                                           sycl::access::address_space::local_space,
@@ -180,7 +179,6 @@ __attribute__((always_inline)) void radixSortImpl(
       }
 
 
-      item.barrier();
       item.barrier();
        if (item.get_local_id(0) < sb) {
          if (i >= 0 && i == cu[bin])  // ensure to keep them in order

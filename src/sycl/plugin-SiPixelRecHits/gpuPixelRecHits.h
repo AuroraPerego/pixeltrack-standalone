@@ -204,8 +204,6 @@ namespace gpuPixelRecHits {
 
         // store it
         assert(h>=0);
-	assert(ic>=0);
-	assert(ic<nClusInIter);
         hits.charge(h) = clusParams->charge[ic];
 
         hits.detectorIndex(h) = me;
