@@ -1,6 +1,7 @@
 #ifndef RecoLocalTracker_SiPixelRecHits_plugins_gpuPixelRecHits_h
 #define RecoLocalTracker_SiPixelRecHits_plugins_gpuPixelRecHits_h
 
+#include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <limits>
@@ -202,7 +203,9 @@ namespace gpuPixelRecHits {
         pixelCPEforGPU::errorFromDB(cpeParams->commonParams(), cpeParams->detParams(me), *clusParams, ic);
 
         // store it
-
+        assert(h>=0);
+	assert(ic>=0);
+	assert(ic<nClusInIter);
         hits.charge(h) = clusParams->charge[ic];
 
         hits.detectorIndex(h) = me;

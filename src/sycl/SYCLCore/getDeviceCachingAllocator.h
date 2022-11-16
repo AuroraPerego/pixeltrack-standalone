@@ -1,5 +1,5 @@
-#ifndef SYCLCore_getCachingAllocator_h
-#define SYCLCore_getCachingAllocator_h
+#ifndef SYCLCore_getDeviceCachingAllocator_h
+#define SYCLCore_getDeviceCachingAllocator_h
 
 #include <optional>
 #include <mutex>
@@ -14,7 +14,7 @@
 namespace cms::sycltools {
 
   namespace detail {
-    inline auto allocate_allocators() {
+    inline auto allocate_device_allocators() {
       using Allocator = cms::sycltools::CachingAllocator;
       auto const& devices = enumerateDevices();
       auto const size = devices.size();
@@ -25,6 +25,7 @@ namespace cms::sycltools {
       // construct the objects in the storage
       for (size_t index = 0; index < size; ++index) {
         new (ptr + index) Allocator(devices[index],
+                                    false,  // isHost
                                     config::binGrowth,
                                     config::minBin,
                                     config::maxBin,
@@ -47,11 +48,11 @@ namespace cms::sycltools {
 
   }  // namespace detail
 
-  inline CachingAllocator& getCachingAllocator(sycl::device const& device) {
+  inline CachingAllocator& getDeviceCachingAllocator(sycl::queue const& stream) {
     // initialise all allocators, one per device
-    static auto allocators = detail::allocate_allocators();
+    static auto allocators = detail::allocate_device_allocators();
 
-    size_t const index = getDeviceIndex(device);
+    size_t const index = getDeviceIndex(stream.get_device());
     assert(index < cms::sycltools::enumerateDevices().size());
 
     // the public interface is thread safe

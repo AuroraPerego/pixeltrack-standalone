@@ -33,9 +33,9 @@ void verify(AtomicPairCounter const *dc, uint32_t const *ind, uint32_t const *co
   //assert(0 == ind[0]);
   //assert(dc->get().m == n);
   //assert(ind[n] == dc->get().n);
-  auto ib = ind[i];
-  auto ie = ind[i + 1];
-  auto k = cont[ib++];
+  // auto ib = ind[i];
+  // auto ie = ind[i + 1];
+  // auto k = cont[ib++];
   //assert(k < n);
   //for (; ib < ie; ++ib)
   //assert(cont[ib] == k);

@@ -101,17 +101,18 @@ endif
 # Intel oneAPI
 # USE_SYCL_LLVM := true
 
-SYCL_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Wno-non-template-friend -Werror=format-contains-nul -Werror=return-local-addr -Werror=unused-but-set-variable
+# Compiler flags supported by GCC but not by the LLVM-based compilers (clang, hipcc, dpcpp, etc.)
+LLVM_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Werror=format-contains-nul -Wno-non-template-friend -Werror=return-local-addr -Werror=unused-but-set-variable
 
-ifdef USE_SYCL_PATATRACK
-SYCL_BASE      := /data2/user/wredjeb/sycl_workspace/build
-USER_SYCLFLAGS := -fsycl-targets=nvptx64-nvidia-cuda -std=c++17
-export SYCL_CXX      := $(SYCL_BASE)/bin/clang++
-export SYCL_CXXFLAGS := -fsycl $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
-
-else ifdef USE_SYCL_LLVM
+ifdef USE_SYCL_LLVM
 SYCL_BASE := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09
-USER_SYCLFLAGS := -std=c++17 -fsycl-targets=nvptx64-nvidia-cuda -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-unused-variable
+USER_SYCLFLAGS := -std=c++17 -Wno-unused-const-variable
+AOT_CUDA_FLAGS := -fsycl-targets=nvptx64-nvidia-cuda -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings
+# AOT_CUDA_FLAGS := -fsycl-targets=nvptx64-nvidia-cuda -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings
+# AOT_HIP_FLAGS  := -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx900 --rocm-path=$(ROCM_BASE) -Wno-linker-warnings 
+# gfx900 is specific for the Radeon PRO WX 9100
+
+# -Wno-linker-warnings will not be needed be needed anymore with https://github.com/intel/llvm/pull/7245
 # -fno-bundle-offload-arch              Specify that the offload bundler should not identify a bundle with specific arch.
 #                                       For example, the bundle for `nvptx64-nvidia-cuda-sm_80` uses the bundle tag
 #                                       `nvptx64-nvidia-cuda` when used. This allows .o files to contain .bc bundles
@@ -123,26 +124,26 @@ USER_SYCLFLAGS := -std=c++17 -fsycl-targets=nvptx64-nvidia-cuda -fno-bundle-offl
 #                                       sign (e.g. gfx908:xnack+:sramecc-).
 #                                       May be specified more than once.
 
-#export PATH := $(SYCL_BASE)/bin:$(PATH)
-#export LD_LIBRARY_PATH := $(SYCL_BASE)/lib:$(LD_LIBRARY_PATH)
-#export OCL_ICD_FILENAMES := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/runtime/intel/oclcpuexp_2022.14.8.0.04/x64/libintelocl.so
+export OCL_ICD_FILENAMES := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/runtime/intel/oclcpuexp_2022.14.8.0.04/x64/libintelocl.so
 
 export SYCL_CXX      := $(SYCL_BASE)/bin/clang++
-export SYCL_CXXFLAGS := -fsycl $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
+export SYCL_CXXFLAGS := -fsycl $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS) $(AOT_CUDA_FLAGS) # $(AOT_HIP_FLAGS)
+# at the moment it's not possible to compile AOT for both CUDA and AMD together (and AMD is still a bit buggy on its own)
 
 else
 ONEAPI_BASE := /cvmfs/projects.cern.ch/intelsw/oneAPI/linux/x86_64/2022
-SYCL_VERSION   := latest
+ONEAPI_VERSION   := latest
 ifneq ($(wildcard $(ONEAPI_BASE)),)
 ONEAPI_ENV    := $(ONEAPI_BASE)/setvars.sh #--config="/eos/user/a/aperego/dev/pixeltrack-standalone/config.txt"
 # the config.txt file can be used to source only specific tools or a specific version of a tool
 SYCL_BASE     := $(ONEAPI_BASE)/compiler/$(SYCL_VERSION)/linux
-USER_SYCLFLAGS := -fp-model=precise -fimf-arch-consistency=true -no-fma -Wsycl-strict -fno-sycl-early-optimizations -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device 0x020a"
+USER_ONEAPI_FLAGS := -fno-sycl-early-optimizations -fp-model=precise -fimf-arch-consistency=true -no-fma
+ONEAPI_AOT_FLAGS := -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device 0x020a"
 # math flag: -fp-model=precise -fimf-arch-consistency=true -no-fma
-# workaround for bug in sycl 2022.2: -fno-sycl-early-optimizations
+# workaround for bug in ONEAPI 2022.2.0: -fno-sycl-early-optimizations
 # aot: -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device 0x020a" 
 export SYCL_CXX      := $(SYCL_BASE)/bin/dpcpp
-export SYCL_CXXFLAGS := -fsycl $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
+export SYCL_CXXFLAGS := -fsycl -Wsycl-strict $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_ONEAPI_FLAGS) $(ONEAPI_AOT_FLAGS)
 endif
 endif
 
@@ -174,15 +175,9 @@ export HWLOC_DEPS := $(HWLOC_BASE)
 HWLOC_CXXFLAGS := -isystem $(HWLOC_BASE)/include
 HWLOC_LDFLAGS := -L$(HWLOC_BASE)/lib -lhwloc
 
-ifdef ONEAPI_BASE
-# TBB from oneapi
-TBB_BASE := $(ONEAPI_BASE)/tbb/latest
-TBB_LIBDIR := $(TBB_BASE)/lib/intel64/gcc4.8
-else
-#TBB from external
+#TBB 
 TBB_BASE := $(EXTERNAL_BASE)/tbb
 TBB_LIBDIR := $(TBB_BASE)/lib
-endif
 TBB_LIB := $(TBB_LIBDIR)/libtbb.so
 TBB_CMAKEFLAGS := -DCMAKE_INSTALL_PREFIX=$(TBB_BASE) \
                   -DCMAKE_INSTALL_LIBDIR=lib \
@@ -206,7 +201,7 @@ export EIGEN_DEPS := $(EIGEN_BASE)
 export EIGEN_CXXFLAGS := -isystem $(EIGEN_BASE) -DEIGEN_DONT_PARALLELIZE
 export EIGEN_LDFLAGS :=
 export EIGEN_NVCC_CXXFLAGS := --diag-suppress 20014
-export EIGEN_SYCL_CXXFLAGS := -DEIGEN_USE_SYCL
+export EIGEN_SYCL_CXXFLAGS := -DEIGEN_USE_SYCL 
 
 BOOST_BASE := /usr
 # Minimum required version of Boost, e.g. 1.78.0
@@ -457,6 +452,8 @@ endif
 # check if oneAPI environment file exists
 ifneq ($(wildcard $(ONEAPI_ENV)),)
 	@echo 'source $(ONEAPI_ENV)'                                            >> $@
+else
+	@echo 'export OCL_ICD_FILENAMES=$(OCL_ICD_FILENAMES)'                   >> $@
 endif
 
 define TARGET_template
@@ -551,7 +548,6 @@ $(EXTERNAL_BASE):
 external_tbb: $(TBB_LIB)
 
 # Let TBB Makefile to define its own CXXFLAGS
-ifndef ONEAPI_BASE
 $(TBB_LIB): $(HWLOC_BASE)
 $(TBB_LIB): CXXFLAGS:=
 $(TBB_LIB):
@@ -561,7 +557,7 @@ $(TBB_LIB):
 	mkdir -p $(TBB_TMP)
 	mkdir -p $(TBB_TMP_SRC)
 	mkdir -p $(TBB_TMP_BUILD)
-	git clone --branch v2021.4.0 https://github.com/oneapi-src/oneTBB.git $(TBB_TMP_SRC)
+	git clone --branch v2021.7.0 https://github.com/oneapi-src/oneTBB.git $(TBB_TMP_SRC)
 	cd $(TBB_TMP_BUILD)/ && $(CMAKE) $(TBB_TMP_SRC) $(TBB_CMAKEFLAGS)
 	+$(MAKE) -C $(TBB_TMP_BUILD)
 	+$(MAKE) -C $(TBB_TMP_BUILD) install
@@ -569,7 +565,6 @@ $(TBB_LIB):
 	$(eval undefine TBB_TMP)
 	$(eval undefine TBB_TMP_SRC)
 	$(eval undefine TBB_TMP_BUILD)
-endif
 
 # Eigen
 external_eigen: $(EIGEN_BASE)

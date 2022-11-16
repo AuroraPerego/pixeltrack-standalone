@@ -71,8 +71,7 @@ namespace cms {
       auto nthreads = 1024;
       auto nblocks = (Histo::totbins() + nthreads - 1) / nthreads;
       stream.submit([&](sycl::handler &cgh) {
-          sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::target::local> psum_acc(
-            sizeof(int32_t) * nblocks, cgh);
+          sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::target::local> psum_acc(nblocks, cgh);
           sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::target::local> ws_acc(32, cgh);
           sycl::accessor<bool, 0, sycl::access_mode::read_write, sycl::target::local> isLastBlockDone_acc(cgh);
         
