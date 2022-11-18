@@ -77,11 +77,10 @@ namespace gpuPixelDoublets {
     // auto ntotbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t>(item.get_group());
     // uint32_t* ntot = (uint32_t*)ntotbuff.get();
 
+    assert(nPairs <= nPairsMax);
     uint32_t innerLayerCumulativeSize[nPairsMax];
     // const uint32_t* const ntot = innerLayerCumulativeSize + nPairs - 1; // THIS DOESN'T WORK
     
-    assert(nPairs <= nPairsMax);
-
     innerLayerCumulativeSize[0] = layerSize(layerPairs[0]);
     for (uint32_t i = 1; i < nPairs; ++i) {
       innerLayerCumulativeSize[i] = innerLayerCumulativeSize[i - 1] + layerSize(layerPairs[2 * i]);

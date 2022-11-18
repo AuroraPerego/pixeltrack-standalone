@@ -651,7 +651,7 @@ namespace pixelgpudetails {
              // read the number of modules into a data member, used by getProduct())
              stream.memcpy(&(nModules_Clusters_h[0]), clusters_d.moduleStart(), sizeof(uint32_t)).wait();  
 
-            threadsPerBlock = 32; // SYCL_BUG_, was 256
+            threadsPerBlock = 256; //SYCL_BUG_ 256 for GPU, set to 32 (and change values in the kernel for CPU)
             blocks = MaxNumModules;
             sycl::range<1> numthreadsPerBlock1(threadsPerBlock);
             sycl::range<1> globalSize1(blocks*threadsPerBlock);

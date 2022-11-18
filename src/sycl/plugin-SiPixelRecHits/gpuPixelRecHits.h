@@ -1,7 +1,6 @@
 #ifndef RecoLocalTracker_SiPixelRecHits_plugins_gpuPixelRecHits_h
 #define RecoLocalTracker_SiPixelRecHits_plugins_gpuPixelRecHits_h
 
-#include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <limits>

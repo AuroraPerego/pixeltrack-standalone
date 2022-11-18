@@ -11,8 +11,6 @@
 #include "SYCLCore/syclAtomic.h"
 #include "SYCLCore/printf.h"
 
-#include <cassert>
-
 #include "gpuClusteringConstants.h"
 
 // #define GPU_DEBUG
@@ -157,7 +155,8 @@ namespace gpuClustering {
     // assume that we can cover the whole module with up to 16 blockDim.x-wide iterations -> this is true with blockDim.x=128
     // When the number of threads per block is changed, also this number must be changed to be still able to cover the whole module
     // when the bug with any_of_group will be fixed, the variables values can be restored.
-    constexpr int maxiter = 32;  // in serial version: maxiter = hist->size() SYCL_BUG_
+    // set to 32 if ThreadsPerBlock is 32 (for CPU) -> SYCL_BUG_
+    constexpr int maxiter = 16;  // in serial version: maxiter = hist->size()
     // allocate space for duplicate pixels: a pixel can appear more than once with different charge in the same event
     constexpr int maxNeighbours = 10;
 
@@ -277,7 +276,6 @@ namespace gpuClustering {
       if (item.get_local_id(0) == 0)
         *n0 = nloops;
       item.barrier();
-      auto ok = *n0 == nloops;
       if (thisModuleId % 100 == 1)
         if (item.get_local_id(0) == 0)
           printf("# loops %d\n", nloops);

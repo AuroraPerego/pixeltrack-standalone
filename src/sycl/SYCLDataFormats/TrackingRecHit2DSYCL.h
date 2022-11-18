@@ -5,8 +5,6 @@
 #include "SYCLCore/device_unique_ptr.h"
 #include "SYCLCore/host_unique_ptr.h"
 
-#include <cassert>
-
 class TrackingRecHit2DSYCL {
 public:
   using Hist = TrackingRecHit2DSOAView::Hist;
