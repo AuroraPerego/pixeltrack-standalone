@@ -143,15 +143,13 @@ void go(sycl::queue queue) {
 }
 
 int main(int argc, char** argv) {
-  cms::sycltools::enumerateDevices(true);
-  std::string arg1(argv[1]);
-  sycl::queue queue; 
-  if (arg1 == "cpu")
-    queue = sycl::queue(sycl::cpu_selector());
-  else
-    queue = sycl::queue(sycl::gpu_selector());
+  std::string devices(argv[1]);
+  setenv("SYCL_DEVICE_FILTER", devices.c_str(), true);
 
-  sycl::device device = queue.get_device();
+  cms::sycltools::enumerateDevices(true);
+  sycl::device device = cms::sycltools::chooseDevice(0);
+  sycl::queue queue = sycl::queue(device, sycl::property::queue::in_order());
+
   std::cout << "HistoContainer offload to " << device.get_info<cl::sycl::info::device::name>()
               << " on backend " << device.get_backend() << std::endl;
 

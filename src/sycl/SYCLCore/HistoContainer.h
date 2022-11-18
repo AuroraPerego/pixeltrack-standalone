@@ -72,9 +72,7 @@ namespace cms {
       auto nblocks = (Histo::totbins() + nthreads - 1) / nthreads;
       stream.submit([&](sycl::handler &cgh) {
           sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::target::local> psum_acc(nblocks, cgh);
-          sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::target::local> ws_acc(32, cgh);
-          sycl::accessor<bool, 0, sycl::access_mode::read_write, sycl::target::local> isLastBlockDone_acc(cgh);
-        
+       
           auto Histo_totbins_kernel = Histo::totbins();
 
           cgh.parallel_for(
@@ -85,9 +83,7 @@ namespace cms {
                                          Histo_totbins_kernel,
                                          ppsws,
                                          item,
-                                         (uint32_t *)psum_acc.get_pointer(),
-                                         (uint32_t *)ws_acc.get_pointer(),
-                                         (bool *)isLastBlockDone_acc.get_pointer());
+                                         (uint32_t *)psum_acc.get_pointer());
               });
                   });
     }

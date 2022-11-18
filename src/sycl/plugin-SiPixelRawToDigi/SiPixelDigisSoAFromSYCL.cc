@@ -48,7 +48,6 @@ void SiPixelDigisSoAFromSYCL::acquire(const edm::Event& iEvent,
   rawIdArr_ = gpuDigis.rawIdArrToHostAsync(stream);
   adc_ = gpuDigis.adcToHostAsync(stream);
   clus_ = gpuDigis.clusToHostAsync(stream);
-  // stream.wait();
 }
 
 void SiPixelDigisSoAFromSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {

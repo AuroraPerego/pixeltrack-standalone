@@ -328,7 +328,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
     stream.wait();
 #endif
       numberOfBlocks = 1;
-      blockSize      = 32; //1024-256 SYCL_BUG_
+      blockSize      = 256;
       stream.submit([&](sycl::handler &cgh) {
         auto soa_kernel = soa;
         auto ws_kernel  = ws_d.get();
