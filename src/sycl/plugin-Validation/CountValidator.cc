@@ -3,7 +3,10 @@
 #include "SYCLDataFormats/PixelTrackHeterogeneous.h"
 #include "SYCLDataFormats/SiPixelClustersSYCL.h"
 #include "SYCLDataFormats/SiPixelDigisSYCL.h"
-#include "SYCLDataFormats/ZVertexHeterogeneous.h"
+
+#include "SYCLDataFormats/ZVertexSoA.h"
+#include "SYCLDataFormats/HeterogeneousSoA.h"
+
 #include "DataFormats/DigiClusterCount.h"
 #include "DataFormats/TrackCount.h"
 #include "DataFormats/VertexCount.h"
@@ -12,6 +15,7 @@
 #include "Framework/PluginFactory.h"
 #include "Framework/EDProducer.h"
 
+using ZVertexHeterogeneous = HeterogeneousSoA<ZVertexSoA>;
 
 #include <atomic>
 #include <iostream>

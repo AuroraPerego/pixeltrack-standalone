@@ -9,7 +9,7 @@
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/printf.h"
 
-#include "gpuClusteringConstants.h"
+#include "SYCLDataFormats/gpuClusteringConstants.h"
 
 namespace gpuCalibPixel {
 

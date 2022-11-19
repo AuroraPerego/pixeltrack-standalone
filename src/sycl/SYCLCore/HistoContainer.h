@@ -10,7 +10,6 @@
 #include "SYCLCore/AtomicPairCounter.h"
 #include "SYCLCore/syclAtomic.h"
 #include "SYCLCore/sycl_assert.h"
-#include "SYCLCore/syclstdAlgorithm.h"
 #include "SYCLCore/prefixScan.h"
 #include "SYCLCore/printf.h"
 
@@ -27,7 +26,7 @@ namespace cms {
       int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
       for (int i = first, nt = offsets[nh]; i < nt;
            i += item.get_group_range(0) * item.get_local_range(0)) {
-        auto off = sycl_std::upper_bound(offsets, offsets + nh + 1, i);
+        auto off = std::upper_bound(offsets, offsets + nh + 1, i);
         assert((*off) > 0);
         int32_t ih = off - offsets - 1;
         assert(ih >= 0);
@@ -45,7 +44,7 @@ namespace cms {
       int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
       for (int i = first, nt = offsets[nh]; i < nt;
            i += item.get_group_range(0) * item.get_local_range(0)) {
-        auto off = sycl_std::upper_bound(offsets, offsets + nh + 1, i);
+        auto off = std::upper_bound(offsets, offsets + nh + 1, i);
         assert((*off) > 0);
         int32_t ih = off - offsets - 1;
         assert(ih >= 0);

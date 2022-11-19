@@ -4,8 +4,10 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "SYCLDataFormats/ZVertexHeterogeneous.h"
 #include "SYCLDataFormats/PixelTrackHeterogeneous.h"
+#include "SYCLDataFormats/ZVertexSoA.h"
+
+using ZVertexHeterogeneous = HeterogeneousSoA<ZVertexSoA>;
 
 namespace gpuVertexFinder {
 

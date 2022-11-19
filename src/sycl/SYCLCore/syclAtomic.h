@@ -39,7 +39,7 @@ namespace cms {
       assert(addr[0]<operand);
 
 // extremely inefficient (time pov)
-// TODO_ implement an efficient version of the atomicCAS 
+// TODO_ implement an efficient version of the atomicInc
 //      T old;
 //      while (true) {
 //        old = atm.load();

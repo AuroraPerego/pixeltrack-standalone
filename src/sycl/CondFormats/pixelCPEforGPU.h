@@ -56,15 +56,10 @@ namespace pixelCPEforGPU {
   };
 
   struct ParamsOnGPU {
-    // FIXME_ these were raw const pointer
     cms::sycltools::device::unique_ptr<CommonParams> m_commonParams;
     cms::sycltools::device::unique_ptr<DetParams[]> m_detParams;
     cms::sycltools::device::unique_ptr<LayerGeometry> m_layerGeometry;
     cms::sycltools::device::unique_ptr<AverageGeometry> m_averageGeometry;
-    // CommonParams const* m_commonParams;
-    // DetParams const* m_detParams;
-    // LayerGeometry const* m_layerGeometry;
-    // AverageGeometry const* m_averageGeometry;
 
     constexpr CommonParams const& __restrict__ commonParams() const {
       CommonParams const* __restrict__ l = m_commonParams.get();

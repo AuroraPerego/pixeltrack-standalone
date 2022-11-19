@@ -22,9 +22,9 @@ namespace cms {
 
       ~ESProduct() = default;
 
-      // transferAsync should be a function of (T&, cudaStream_t)
-      // which enqueues asynchronous transfers (possibly kernels as well)
-      // to the CUDA stream
+      // The current device is the one associated to the `stream` SYCL queue.
+      // `transferAsync` should be a function of (T&, sycl::queue)
+      // that enqueues asynchronous transfers (possibly kernels as well) to the SYCL queue.
       template <typename F>
       const T& dataForCurrentDeviceAsync(sycl::queue stream, F transferAsync) const {
 	      int dev_idx = getDeviceIndex(stream.get_device());
@@ -45,43 +45,38 @@ namespace cms {
             // Check first if the recorded event has occurred
             assert(data.m_event);
             if (eventWorkHasCompleted(*data.m_event)) {
-              // It was, so data is accessible from all CUDA streams on
+              // It was, so data is accessible from all SYCL queues on
               // the device. Set the 'filled' for all subsequent calls and
               // return the value
               auto should_be_false = data.m_filled.exchange(true);
               assert(not should_be_false);
               data.m_fillingStream.reset();
               data.m_event.reset();
-            } else if (*data.m_fillingStream != stream) {
-              // Filling is still going on. For other CUDA stream, add
-              // wait on the CUDA stream and return the value. Subsequent
-              // work queued on the stream will wait for the event to
-              // occur (i.e. transfer to finish).
-
-              stream.ext_oneapi_submit_barrier({*data.m_event});
-              //was cudaCheck(cudaStreamWaitEvent(cudaStream, data.m_event.get(), 0),
-              //          "Failed to make a stream to wait for an event");
+            } else if (data.m_fillingStream != stream) {
+              // Filling is still going on, in a different SYCL queue.
+              // Submit a barrier to our queae and return the value.
+              // Subsequent work in our queue will wait for the event to occur
+              // (i.e. for the transfer to finish).
+	      stream.ext_oneapi_submit_barrier({*data.m_event});
             }
-            // else: filling is still going on. But for the same CUDA
-            // stream (which would be a bit strange but fine), we can just
-            // return as all subsequent work should be enqueued to the
-            // same CUDA stream (or stream to be explicitly synchronized
-            // by the caller)
+            // Filling is still going on, in the same SYCL queue.
+            // Return the value immediately.
+            // Subsequent work in our queue will anyway wait for the
+            // transfer to finish.
           } else {
             // Now we can be sure that the data is not yet on the GPU, and
             // this thread is the first to try that.
             transferAsync(data.m_data, stream);
             assert(not data.m_fillingStream);
             data.m_fillingStream = stream;
-            // Record in the cudaStream an event to mark the readiness of the
+	    // Record in the stream an event to mark the readiness of the
             // EventSetup data on the GPU, so other streams can check for it
             assert(not data.m_event);
-            data.m_event = stream.ext_oneapi_submit_barrier(); 
-            //was cudaCheck(cudaEventRecord(data.m_event.get(), stream)); 
-
-            // Now the filling has been enqueued to the cudaStream, so we
+            data.m_event = stream.ext_oneapi_submit_barrier();
+	    
+	    // Now the filling has been enqueued to the stream, so we
             // can return the GPU data immediately, since all subsequent
-            // work must be either enqueued to the cudaStream, or the cudaStream
+            // work must be either enqueued to the stream, or the stream
             // must be synchronized by the caller
           }
         }

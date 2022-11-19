@@ -4,7 +4,9 @@
 #include "SYCLDataFormats/SiPixelClustersSYCL.h"
 #include "SYCLDataFormats/SiPixelDigisSYCL.h"
 #include "SYCLDataFormats/TrackingRecHit2DSYCL.h"
-#include "SYCLDataFormats/ZVertexHeterogeneous.h"
+#include "SYCLDataFormats/ZVertexSoA.h"
+#include "SYCLDataFormats/HeterogeneousSoA.h"
+
 #include "Framework/EventSetup.h"
 #include "Framework/Event.h"
 #include "Framework/PluginFactory.h"
@@ -14,6 +16,8 @@
 
 #include <map>
 #include <fstream>
+
+using ZVertexHeterogeneous = HeterogeneousSoA<ZVertexSoA>;
 
 class HistoValidator : public edm::EDProducerExternalWork {
 public:

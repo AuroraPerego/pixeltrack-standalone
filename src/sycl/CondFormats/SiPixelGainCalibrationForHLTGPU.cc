@@ -18,14 +18,13 @@ const SiPixelGainForHLTonGPU* SiPixelGainCalibrationForHLTGPU::getGPUProductAsyn
     data.gainDataOnGPU = cms::sycltools::make_device_unique_uninitialized<SiPixelGainForHLTonGPU_DecodingStructure[]>(
         this->gainData_.size(), stream);
 
+    // those in CUDA were three memcpy: here they didn't work
+    // this is another way to achieve the same result
     stream.memcpy(data.gainDataOnGPU.get(), this->gainData_.data(), this->gainData_.size()).wait();
 
     this->gainForHLTonHost_->v_pedestals = data.gainDataOnGPU.get();
 
     stream.memcpy(data.gainForHLTonGPU.get(), this->gainForHLTonHost_, sizeof(SiPixelGainForHLTonGPU)).wait();
-
-    // SiPixelGainForHLTonGPU* hostSock = (SiPixelGainForHLTonGPU *)sycl::malloc_host(sizeof(SiPixelGainForHLTonGPU),stream);
-    // stream.memcpy(data.gainForHLTonGPU.get()->v_pedestals, (data.gainForHLTonGPU.get()), sizeof(SiPixelGainForHLTonGPU_DecodingStructure)).wait();
 
   });
   return data.gainForHLTonGPU.get();

@@ -530,8 +530,6 @@ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
 
   int first = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
   
-  //printf("%d ", hitToTuple.nbins()); //49152
-  
   for (int idx = first, ntot = hh.nHits(); idx < ntot;
        idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     if (hitToTuple.size(idx) < 2)
@@ -613,7 +611,7 @@ void kernel_print_found_ntuplets(TrackingRecHit2DSOAView const *__restrict__ hhp
 void kernel_printCounters(cAHitNtupletGenerator::Counters const *counters) {
   auto const &c = *counters;
   printf("|| Counters      | nEvents | nHits | nCells | nTuples | nFitTacks | nGoodTracks | nUsedHits | nDupHits | nKilledCells | nEmptyCells | nZeroTrackCells ||\n");
-  printf("|| Counters Raw  | %lld |    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|  %lld|  %lld||\n",
+  printf("|| Counters      | %lld |    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|  %lld|  %lld||\n",
          c.nEvents,
          c.nHits,
          c.nCells,
@@ -625,16 +623,4 @@ void kernel_printCounters(cAHitNtupletGenerator::Counters const *counters) {
          c.nKilledCells,
          c.nEmptyCells,
          c.nZeroTrackCells);
-  printf("|| Counters Norm | %lld |  %.1f|  %.1f|  %.1f|  %.1f|  %.1f|  %.1f|  %.1f|  %.1f|  %.3f|  %.3f||\n",
-         c.nEvents,
-         c.nHits / double(c.nEvents),
-         c.nCells / double(c.nEvents),
-         c.nTuples / double(c.nEvents),
-         c.nFitTracks / double(c.nEvents),
-         c.nGoodTracks / double(c.nEvents),
-         c.nUsedHits / double(c.nEvents),
-         c.nDupHits / double(c.nEvents),
-         c.nKilledCells / double(c.nEvents),
-         c.nEmptyCells / double(c.nCells),
-         c.nZeroTrackCells / double(c.nCells));
 }

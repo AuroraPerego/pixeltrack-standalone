@@ -7,13 +7,11 @@
 
 // CMSSW headers
 #include "SYCLCore/device_unique_ptr.h"
+#include "SYCLDataFormats/gpuClusteringConstants.h"                  // !
 #include "plugin-SiPixelClusterizer/SiPixelRawToClusterGPUKernel.h"  // !
-#include "plugin-SiPixelClusterizer/gpuClusteringConstants.h"        // !
 
 #include "PixelRecHits.h"
 #include "gpuPixelRecHits.h"
-
-// #define GPU_DEBUG
 
 namespace {
   void setHitsLayerStart(uint32_t const* __restrict__ hitsModuleStart,

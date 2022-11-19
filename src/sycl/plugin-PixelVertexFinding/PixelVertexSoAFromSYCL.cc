@@ -2,13 +2,18 @@
 
 #include "SYCLCore/Product.h"
 #include "SYCLCore/HostProduct.h"
-#include "SYCLDataFormats/ZVertexHeterogeneous.h"
+
+#include "SYCLDataFormats/ZVertexSoA.h"
+#include "SYCLDataFormats/HeterogeneousSoA.h"
+
 #include "Framework/EventSetup.h"
 #include "Framework/Event.h"
 #include "Framework/PluginFactory.h"
 #include "Framework/EDProducer.h"
 #include "Framework/RunningAverage.h"
 #include "SYCLCore/ScopedContext.h"
+
+using ZVertexHeterogeneous = HeterogeneousSoA<ZVertexSoA>;
 
 class PixelVertexSoAFromSYCL : public edm::EDProducerExternalWork {
 public:

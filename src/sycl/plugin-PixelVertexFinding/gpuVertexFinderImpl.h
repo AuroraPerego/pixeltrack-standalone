@@ -10,6 +10,14 @@
 // #define VERTEX_DEBUG
 // #define GPU_DEBUG
 
+/* NOTE: SYCL_BUG_
+ * in SplitVertices and in GpuSortByPt2 (radixSort) there are any/all_of_group
+ * to work on CPU they require a sub_group_size = numberOfThreadsPerBlock
+ * set the latter to 32 if you want to run on CPU
+ * Note that radixSort will not work in this case (it requires a group size of 256)
+ * working on a different sorting if we are on CPU
+ */
+
 namespace gpuVertexFinder {
   
   using Hist = cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
@@ -180,7 +188,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 #endif
 
     numberOfBlocks = 1;
-    blockSize      = 32; //1024 - 256;
+    blockSize      = 1024 - 256;
     stream.submit([&](sycl::handler &cgh) {
       auto soa_kernel = soa;
       auto ws_kernel  = ws_d.get();
@@ -196,7 +204,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 #endif
 
     numberOfBlocks = 1;
-    blockSize      = 32; //1024 - 256; SYCL_BUG_
+    blockSize      = 1024 - 256;
     stream.submit([&](sycl::handler &cgh) {
       auto soa_kernel = soa;
       auto ws_kernel  = ws_d.get();
@@ -258,7 +266,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 
       } else if (useIterative_) {
       numberOfBlocks = 1;
-      blockSize      = 32; //1024 - 256; SYCL_BUG_
+      blockSize      = 1024 - 256;
       stream.submit([&](sycl::handler &cgh) {
         auto soa_kernel = soa;
         auto ws_kernel  = ws_d.get();
@@ -296,7 +304,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 
       // one block per vertex...
       numberOfBlocks = 1024;
-      blockSize      = 32; //128 SYCL_BUG_
+      blockSize      = 128;
       stream.submit([&](sycl::handler &cgh) {
       auto soa_kernel = soa;
       auto ws_kernel  = ws_d.get();

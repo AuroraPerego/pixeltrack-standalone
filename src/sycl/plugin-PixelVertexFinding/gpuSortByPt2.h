@@ -64,6 +64,7 @@ namespace gpuVertexFinder {
     }
     auto swsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint16_t[1024]>(item.get_group());
     uint16_t* sws = (uint16_t*)swsbuff.get();
+    // TODO_ a different sort for CPU
     radixSort<float, 2>(ptv2, sortInd, sws, nvFinal, item);
   }
 

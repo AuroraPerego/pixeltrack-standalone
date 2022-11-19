@@ -11,7 +11,7 @@
 #include "SYCLCore/syclAtomic.h"
 #include "SYCLCore/printf.h"
 
-#include "gpuClusteringConstants.h"
+#include "SYCLDataFormats/gpuClusteringConstants.h"
 
 // #define GPU_DEBUG
 
@@ -293,10 +293,10 @@ namespace gpuClustering {
           if (id[i] == InvId)  // skip invalid pixels
             continue;
           if (clusterId[i] == i) {
-            auto old = cms::sycltools::atomic_fetch_compare_inc<unsigned int,
+            auto old = cms::sycltools::atomic_fetch_add<unsigned int,
                                                                 sycl::access::address_space::local_space,
                                                                 sycl::memory_scope::work_group>
-                                                                (foundClusters, static_cast<unsigned int>(0xffffffff));
+                                                                (foundClusters, static_cast<unsigned int>(1));
             clusterId[i] = -(old + 1);
           }
         }

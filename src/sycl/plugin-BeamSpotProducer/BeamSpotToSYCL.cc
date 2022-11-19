@@ -29,11 +29,15 @@ BeamSpotToSYCL::BeamSpotToSYCL(edm::ProductRegistry& reg)
 
 void BeamSpotToSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   cms::sycltools::ScopedContextProduce ctx{iEvent.streamID()};
+  
   sycl::queue stream = ctx.stream();
   BeamSpotSYCL bsDevice(stream);
+  
+  // in CUDA this is done in the constructor, but we need the queue so we do it here
   cms::sycltools::host::unique_ptr<BeamSpotPOD> bsHost;
   bsHost = cms::sycltools::make_host_unique<BeamSpotPOD>(stream);
   *bsHost = iSetup.get<BeamSpotPOD>();
+
   stream.memcpy(bsDevice.ptr().get(), bsHost.get(), sizeof(BeamSpotPOD)).wait();
   ctx.emplace(iEvent, bsPutToken_, std::move(bsDevice));
 }

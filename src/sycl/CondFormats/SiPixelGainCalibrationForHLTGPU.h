@@ -17,13 +17,6 @@ public:
   const SiPixelGainForHLTonGPU *getGPUProductAsync(sycl::queue stream) const;
   const SiPixelGainForHLTonGPU *getCPUProduct() const { return gainForHLTonHost_; }
 
-
-   const void printgainData() const{
-    for (int i=0; i<48316 ;i++)
-    std::cout << gainData_[i] << std::endl;
-  }
-
-
 private:
   SiPixelGainForHLTonGPU *gainForHLTonHost_ = nullptr;
   std::vector<char> gainData_;

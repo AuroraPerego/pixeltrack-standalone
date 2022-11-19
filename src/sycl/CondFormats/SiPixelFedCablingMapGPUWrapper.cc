@@ -35,13 +35,10 @@ const SiPixelFedCablingMapGPU* SiPixelFedCablingMapGPUWrapper::getGPUProductAsyn
 
 const unsigned char* SiPixelFedCablingMapGPUWrapper::getModToUnpAllAsync(sycl::queue stream) const {
   const auto& data = modToUnp_.dataForCurrentDeviceAsync(stream, [this](ModulesToUnpack& data, sycl::queue stream) {
-    data.modToUnpDefault =
-        cms::sycltools::make_device_unique<unsigned char[]>(pixelgpudetails::MAX_SIZE_BYTE_BOOL, stream);
-    stream
-        .memcpy(data.modToUnpDefault.get(),
-                this->modToUnpDefault.data(),
-                this->modToUnpDefault.size() * sizeof(unsigned char))
-        .wait();
+    data.modToUnpDefault = cms::sycltools::make_device_unique<unsigned char[]>(pixelgpudetails::MAX_SIZE_BYTE_BOOL, stream);
+    stream.memcpy(data.modToUnpDefault.get(),
+                  this->modToUnpDefault.data(),
+                  this->modToUnpDefault.size() * sizeof(unsigned char)).wait();
   });
   return data.modToUnpDefault.get();
 }

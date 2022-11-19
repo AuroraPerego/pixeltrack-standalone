@@ -361,8 +361,7 @@ inline void GPUCACell::find_ntuplets<0>(Hits const& hh,
                                                    bool startAt0) const {
     printf("ERROR: GPUCACell::find_ntuplets reached full depth!\n");
 
-    abort(); // was __trap() in CUDA with #ifdef __CUDA_ARCH__
-
+    abort(); // was __trap() in CUDA
 }
 
 #endif  // RecoPixelVertexing_PixelTriplets_plugins_GPUCACell_h

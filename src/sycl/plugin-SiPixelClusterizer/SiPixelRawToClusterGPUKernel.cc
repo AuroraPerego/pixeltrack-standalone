@@ -24,7 +24,6 @@
 #include "SYCLDataFormats/gpuClusteringConstants.h"
 #include "SYCLCore/device_unique_ptr.h"
 #include "SYCLCore/host_unique_ptr.h"
-#include "SYCLCore/timing.h"
 #include "CondFormats/SiPixelFedCablingMapGPU.h"
 
 // local includes
@@ -653,8 +652,6 @@ namespace pixelgpudetails {
 
             threadsPerBlock = 256; //SYCL_BUG_ 256 for GPU, set to 32 (and change values in the kernel for CPU)
             blocks = MaxNumModules;
-            sycl::range<1> numthreadsPerBlock1(threadsPerBlock);
-            sycl::range<1> globalSize1(blocks*threadsPerBlock);
       #ifdef GPU_DEBUG
             std::cout << "SYCL findClus kernel launch with " << blocks << " blocks of " << threadsPerBlock << " threads\n";
       #endif             
@@ -671,7 +668,7 @@ namespace pixelgpudetails {
                     auto clusters_in_kernel = clusters_d.clusInModule();
                     auto clusters_id_kernel = clusters_d.moduleId();
                 cgh.parallel_for<class findClus_kernel>(
-                    sycl::nd_range<1>(globalSize1, numthreadsPerBlock1),
+                    sycl::nd_range<1>(sycl::range<1>(blocks * threadsPerBlock), sycl::range<1>(threadsPerBlock)),
                     [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
                                       findClus(digis_ind_kernel,
                                                digis_x_kernel,
@@ -690,8 +687,6 @@ namespace pixelgpudetails {
        #endif  
             threadsPerBlock = 256;
             blocks = MaxNumModules;
-            sycl::range<1> numthreadsPerBlock2(threadsPerBlock);
-            sycl::range<1> globalSize2(blocks*threadsPerBlock);
 
             stream.submit([&](sycl::handler &cgh) {
             // apply charge cut
@@ -702,7 +697,7 @@ namespace pixelgpudetails {
                     auto clusters_cs_kernel = clusters_d.c_moduleId();
                     auto digis_clus_kernel  = digis_d.clus();
                 cgh.parallel_for<class clusterChargeCut_kernel>(
-                    sycl::nd_range<1>(globalSize2, numthreadsPerBlock2),
+                    sycl::nd_range<1>(sycl::range<1>(blocks * threadsPerBlock), sycl::range<1>(threadsPerBlock)),
                     [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
                                       clusterChargeCut(digis_ind_kernel,
                                                        digis_adc_kernel,
