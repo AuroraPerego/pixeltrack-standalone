@@ -7,6 +7,8 @@
 #include "chooseDevice.h"
 
 namespace cms::sycltools {
+    
+    namespace impl {
 
     ScopedContextBase::ScopedContextBase(edm::StreamID streamID)
         : stream_(getDeviceQueue(streamID)) {}
