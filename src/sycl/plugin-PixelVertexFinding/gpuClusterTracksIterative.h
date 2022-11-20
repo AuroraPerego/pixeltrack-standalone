@@ -152,7 +152,7 @@ namespace gpuVertexFinder {
             cms::sycltools::atomic_fetch_min<int32_t>(&iv[i], (int32_t)old);
           };
           ++p;
-          for (; p < hist->end(be); ++p)
+          for (; p < hist->end(be); ++p)  // THIS IS THE LINE THAT GIVES THE ERROR
             loop(*p);
         }  // for i
       }
