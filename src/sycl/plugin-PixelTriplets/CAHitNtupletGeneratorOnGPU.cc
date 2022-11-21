@@ -108,8 +108,8 @@ PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecH
   
   if (m_params.doStats_) {
     kernels.printCounters(m_counters.get(), stream);
+    stream.wait();
   }
-  stream.wait();
 
   return tracks;
 }
