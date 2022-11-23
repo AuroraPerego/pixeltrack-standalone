@@ -658,7 +658,8 @@ namespace pixelgpudetails {
             constexpr uint32_t maxPixInModule = 4000;
             constexpr auto nbins = phase1PixelTopology::numColsInModule + 2;
             using Hist = cms::sycltools::HistoContainer<uint16_t, nbins, maxPixInModule, 9, uint16_t>;
-            
+           if(stream.get_device().is_cpu()){ 
+		   threadsPerBlock = 32;
              stream.submit([&](sycl::handler &cgh) {
                     auto digis_x_kernel     = digis_d.c_xx();
                     auto digis_y_kernel     = digis_d.c_yy();
@@ -667,10 +668,10 @@ namespace pixelgpudetails {
                     auto clusters_s_kernel  = clusters_d.c_moduleStart();
                     auto clusters_in_kernel = clusters_d.clusInModule();
                     auto clusters_id_kernel = clusters_d.moduleId();
-                cgh.parallel_for<class findClus_kernel>(
+                cgh.parallel_for<class findClusCPU_kernel>(
                     sycl::nd_range<1>(sycl::range<1>(blocks * threadsPerBlock), sycl::range<1>(threadsPerBlock)),
                     [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
-                                      findClus(digis_ind_kernel,
+                                      findClusCPU(digis_ind_kernel,
                                                digis_x_kernel,
                                                digis_y_kernel,
                                                clusters_s_kernel,
@@ -681,7 +682,31 @@ namespace pixelgpudetails {
                                                item);
                     });
             });
-
+           }else{
+	      stream.submit([&](sycl::handler &cgh) {
+                    auto digis_x_kernel     = digis_d.c_xx();
+                    auto digis_y_kernel     = digis_d.c_yy();
+                    auto digis_ind_kernel   = digis_d.c_moduleInd();
+                    auto digis_clus_kernel  = digis_d.clus();
+                    auto clusters_s_kernel  = clusters_d.c_moduleStart();
+                    auto clusters_in_kernel = clusters_d.clusInModule();
+                    auto clusters_id_kernel = clusters_d.moduleId();
+                cgh.parallel_for<class findClusGPU_kernel>(
+                    sycl::nd_range<1>(sycl::range<1>(blocks * threadsPerBlock), sycl::range<1>(threadsPerBlock)),
+                    [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
+                                      findClusGPU(digis_ind_kernel,
+                                               digis_x_kernel,
+                                               digis_y_kernel,
+                                               clusters_s_kernel,
+                                               clusters_in_kernel,
+                                               clusters_id_kernel,
+                                               digis_clus_kernel,
+                                               wordCounter,
+                                               item);
+                    });
+            });
+	   
+	   }
       #ifdef GPU_DEBUG
             stream.wait();
        #endif  
@@ -732,7 +757,9 @@ namespace pixelgpudetails {
             stream.memcpy(&(nModules_Clusters_h[1]), 
                             clusters_d.clusModuleStart() + gpuClustering::MaxNumModules, 
                             sizeof(int32_t)).wait(); 
-
+    #ifdef CPU_DEBUG
+          stream.wait();
+    #endif
     #ifdef GPU_DEBUG
           stream.wait();
 	        std::cout << "Number of modules (nModules_Clusters_h[0]): " << nModules_Clusters_h[0] << " and number of clusters (nModules_Clusters_h[1]): " << nModules_Clusters_h[1] << std::endl;

@@ -68,6 +68,83 @@ namespace gpuVertexFinder {
     radixSort<float, 2>(ptv2, sortInd, sws, nvFinal, item);
   }
 
+   __attribute__((always_inline)) void sortByPt2CPU(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item) {
+    auto& __restrict__ data = *pdata;
+    auto& __restrict__ ws = *pws;
+    auto nt = ws.ntrks;
+    float const* __restrict__ ptt2 = ws.ptt2;
+    uint32_t const& nvFinal = data.nvFinal;
+
+    int32_t const* __restrict__ iv = ws.iv;
+    float* __restrict__ ptv2 = data.ptv2;             // empty, will be filled here
+    uint16_t* __restrict__ sortInd = data.sortInd;    // empty, will be filled in radixSort
+
+#ifdef VERTEX_DEBUG
+    if (item.get_local_id(0) == 0)
+       printf("sorting %d vertices\n",nvFinal);
+#endif
+
+    if (nvFinal < 1)
+      return;
+
+    // fill indexing
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
+      data.idv[ws.itrk[i]] = iv[i];
+    }
+
+    // can be done asynchronoisly at the end of previous event
+    for (auto i = item.get_local_id(0); i < nvFinal; i += item.get_local_range(0)) {
+      ptv2[i] = 0;
+    }
+    item.barrier();
+
+    // ptt2 is the pt of the track squared
+    // ptv2 is the "pt of the vertex" (i.e. sum of the pt^2 of the tracks that belong to that vertex) squared
+    for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
+      if (iv[i] > 9990)
+        continue;
+      cms::sycltools::atomic_fetch_add<float>(&ptv2[iv[i]], ptt2[i]);
+    }
+    item.barrier();
+    // now only the first "number of vertices" entries of ptv2 will be relevant
+    // because iv[i] goes from 0 to the number of vertices, while i from 0 to the number of tracks
+    // even though ptv2 has size nt(=number of tracks)
+
+    if (1 == nvFinal) {
+      if (item.get_local_id(0) == 0)
+        sortInd[0] = 0;
+      return;
+    }else{
+        for (uint32_t i = item.get_local_id(0); i < nvFinal; i += item.get_local_range(0))
+          sortInd[i]=i;
+    }
+   // should only the first thread be doing that?
+    //now sort
+    if (item.get_local_id(0) == 0){
+    bool sorting = true;
+    while(sorting){
+        sorting = false;
+        for (uint32_t j = 0; j < (nt-1); j++){
+             auto i = iv[j]; // i think looping on nvFinal is enough, should print ptv2 to be sure
+            if (ptv2[i]>ptv2[i+1]){
+                // sort ptv2 (?)
+                auto tmp = ptv2[i];
+                ptv2[i] = ptv2[i+1];
+                ptv2[i+1] = tmp;
+
+                // sort indexes
+                auto tmp2 = sortInd[i];
+                sortInd[i]=sortInd[i+1];
+                sortInd[i+1]=tmp2;
+
+                //sorting still ongoing
+                sorting = true;
+            }
+        }
+    }
+    }
+  }
+
   void sortByPt2Kernel(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item) { 
     sortByPt2(pdata, pws, item); 
   }

@@ -59,7 +59,7 @@ namespace gpuVertexFinder {
 
 // #define THREE_KERNELS
 #ifndef THREE_KERNELS
-  void vertexFinderOneKernel(gpuVertexFinder::ZVertices* pdata,
+void vertexFinderOneKernelCPU(gpuVertexFinder::ZVertices* pdata,
                              gpuVertexFinder::WorkSpace* pws,
                              int minT,      // min number of neighbours to be "seed"
                              float eps,     // max absolute distance to cluster
@@ -67,7 +67,26 @@ namespace gpuVertexFinder {
                              float chi2max,  // max normalized distance to cluster
                              sycl::nd_item<1> item
   ) {
-    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item); 
+    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item);
+    item.barrier();
+    fitVertices(pdata, pws, 50., item);
+    item.barrier();
+    splitVertices(pdata, pws, 9.f, item);
+    item.barrier();
+    fitVertices(pdata, pws, 5000., item);
+    item.barrier();
+    sortByPt2CPU(pdata, pws, item);
+  }
+
+  void vertexFinderOneKernelGPU(gpuVertexFinder::ZVertices* pdata,
+                             gpuVertexFinder::WorkSpace* pws,
+                             int minT,      // min number of neighbours to be "seed"
+                             float eps,     // max absolute distance to cluster
+                             float errmax,  // max error to be "seed"
+                             float chi2max,  // max normalized distance to cluster
+                             sycl::nd_item<1> item
+  ) {
+    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item);
     item.barrier();
     fitVertices(pdata, pws, 50., item);
     item.barrier();
@@ -145,8 +164,9 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
     if (oneKernel_) {
       // implemented only for density clustesrs
 #ifndef THREE_KERNELS
+       if (stream.get_device().is_cpu()){
     numberOfBlocks = 1;
-    blockSize      = 512; // SYCL_BUG_ on GPU every size is ok, on CPU only 32 (i.e. the sub group size) will work
+    blockSize      = 32; // SYCL_BUG_ on GPU every size is ok, on CPU only 32 (i.e. the sub group size) will work
     stream.submit([&](sycl::handler &cgh) {
       auto soa_kernel  = soa;
       auto ws_kernel   = ws_d.get();
@@ -154,12 +174,29 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
       auto eps_kernel  = eps;
       auto errmax_kernel = errmax;
       auto chi2max_kernel = chi2max;
-      cgh.parallel_for<class vertexFinder_one_Kernel>(
+      cgh.parallel_for<class vertexFinder_one_Kernel_CPU>(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item)[[intel::reqd_sub_group_size(32)]]{ 
-	            vertexFinderOneKernel(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);
+          [=](sycl::nd_item<1> item)[[intel::reqd_sub_group_size(32)]]{
+                    vertexFinderOneKernelCPU(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);
+      });
+   });
+   }else{
+    numberOfBlocks = 1;
+    blockSize      = 1024-256; // SYCL_BUG_ on GPU every size is ok, on CPU only 32 (i.e. the sub group size) will work
+    stream.submit([&](sycl::handler &cgh) {
+      auto soa_kernel  = soa;
+      auto ws_kernel   = ws_d.get();
+      auto minT_kernel = minT;
+      auto eps_kernel  = eps;
+      auto errmax_kernel = errmax;
+      auto chi2max_kernel = chi2max;
+      cgh.parallel_for<class vertexFinder_one_Kernel_GPU>(
+          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+          [=](sycl::nd_item<1> item)[[intel::reqd_sub_group_size(32)]]{
+                    vertexFinderOneKernelGPU(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);
       });
     });
+   }
 #ifdef GPU_DEBUG
     stream.wait();
 #endif
@@ -349,6 +386,9 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
     }
 
 #ifdef GPU_DEBUG
+    stream.wait();
+#endif
+#ifdef CPU_DEBUG
     stream.wait();
 #endif
 

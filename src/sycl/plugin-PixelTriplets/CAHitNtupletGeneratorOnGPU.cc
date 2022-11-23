@@ -102,7 +102,9 @@ PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecH
   std::cout << "..end of n-tuplets fit.\n";
   std::cout << "------------------------\n";
 #endif
-
+#ifdef CPU_DEBUG
+  stream.wait();
+#endif
   kernels.classifyTuples(hits_d, soa, stream);
   stream.wait();
   

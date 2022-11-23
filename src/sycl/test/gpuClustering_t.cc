@@ -270,6 +270,8 @@ int main(int argc, char** argv) {
               << " threads\n";
     queue.memset(d_clusInModule.get(), 0, MaxNumModules * sizeof(uint32_t)).wait();
 
+ if(queue.get_device().is_cpu()){
+	 threadsPerBlock = 32;
     queue.submit([&](sycl::handler &cgh) {
       auto d_id_get = d_id.get();
       auto d_x_get = d_x.get();
@@ -279,10 +281,10 @@ int main(int argc, char** argv) {
       auto d_moduleId_get = d_moduleId.get();
       auto d_clus_get = d_clus.get();
 
-      cgh.parallel_for<class findClus_kernel>(
+      cgh.parallel_for<class findClusCPU_kernel_t>(
           sycl::nd_range<1>(blocksPerGrid * threadsPerBlock, threadsPerBlock),
           [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
-            findClus(d_id_get,
+            findClusCPU(d_id_get,
                      d_x_get,
                      d_y_get,
                      d_moduleStart_get,
@@ -293,6 +295,31 @@ int main(int argc, char** argv) {
                      item);
           });
     });
+ }else{
+    queue.submit([&](sycl::handler &cgh) {
+      auto d_id_get = d_id.get();
+      auto d_x_get = d_x.get();
+      auto d_y_get = d_y.get();
+      auto d_moduleStart_get = d_moduleStart.get();
+      auto d_clusInModule_get = d_clusInModule.get();
+      auto d_moduleId_get = d_moduleId.get();
+      auto d_clus_get = d_clus.get();
+
+      cgh.parallel_for<class findClusGPU_kernel_t>(
+          sycl::nd_range<1>(blocksPerGrid * threadsPerBlock, threadsPerBlock),
+          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
+            findClusGPU(d_id_get,
+                     d_x_get,
+                     d_y_get,
+                     d_moduleStart_get,
+                     d_clusInModule_get,
+                     d_moduleId_get,
+                     d_clus_get,
+                     n,
+                     item);
+          });
+    });
+ }
     queue.wait_and_throw();
     queue.memcpy(&nModules, d_moduleStart.get(), sizeof(uint32_t)).wait();
 

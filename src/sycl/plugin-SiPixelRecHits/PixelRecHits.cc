@@ -97,6 +97,9 @@ namespace pixelgpudetails {
 #ifdef GPU_DEBUG
     stream.wait();
 #endif
+#ifdef CPU_DEBUG
+    stream.wait();
+#endif
 
     return hits_d;
   }
