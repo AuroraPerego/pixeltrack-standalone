@@ -75,7 +75,6 @@ void vertexFinderOneKernelCPU(gpuVertexFinder::ZVertices* pdata,
     item.barrier();
     fitVertices(pdata, pws, 5000., item);
     item.barrier();
-    sortByPt2CPU(pdata, pws, item);
   }
 
   void vertexFinderOneKernelGPU(gpuVertexFinder::ZVertices* pdata,
@@ -179,6 +178,36 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
           [=](sycl::nd_item<1> item)[[intel::reqd_sub_group_size(32)]]{
                     vertexFinderOneKernelCPU(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);
       });
+   });
+     stream.submit([&](sycl::handler &cgh) {
+        auto pdata  = soa;
+        auto pws   = ws_d.get();
+        cgh.single_task([=]() {
+          auto& __restrict__ data = *pdata;
+          float* ptv2 = data.ptv2;
+          uint16_t* sortInd = data.sortInd;
+          uint32_t const& nvFinal = data.nvFinal;
+	  bool sorting = true;
+          while(sorting){
+            sorting = false;
+            for (uint32_t i = 0; i < (nvFinal-1); i++){
+              if (ptv2[i]>ptv2[i+1]){
+                // sort ptv2
+                auto tmp = ptv2[i];
+                ptv2[i] = ptv2[i+1];
+                ptv2[i+1] = tmp;
+
+                // sort indexes
+                auto tmp2 = sortInd[i];
+                sortInd[i]=sortInd[i+1];
+                sortInd[i+1]=tmp2;
+
+                //sorting still ongoing
+                sorting = true;
+            }
+        }
+    }
+        });
    });
    }else{
     numberOfBlocks = 1;
@@ -374,17 +403,60 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 #endif
       numberOfBlocks = 1;
       blockSize      = 256;
+      if (stream.get_device().is_cpu()){
       stream.submit([&](sycl::handler &cgh) {
         auto soa_kernel = soa;
         auto ws_kernel  = ws_d.get();
         cgh.parallel_for(
           sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
           [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { 
+              sortByPt2CPUKernel(soa_kernel, ws_kernel, item);
+      });
+    });
+      stream.submit([&](sycl::handler &cgh) {
+        auto pdata  = soa;
+        auto pws   = ws_d.get();
+        cgh.single_task([=]() {
+          auto& __restrict__ data = *pdata;
+          float* ptv2 = data.ptv2;
+          uint16_t* sortInd = data.sortInd;
+          uint32_t const& nvFinal = data.nvFinal;
+          bool sorting = true;
+          while(sorting){
+            sorting = false;
+            for (uint32_t i = 0; i < (nvFinal-1); i++){
+              if (ptv2[i]>ptv2[i+1]){
+                // sort ptv2
+                auto tmp = ptv2[i];
+                ptv2[i] = ptv2[i+1];
+                ptv2[i+1] = tmp;
+
+                // sort indexes
+                auto tmp2 = sortInd[i];
+                sortInd[i]=sortInd[i+1];
+                sortInd[i+1]=tmp2;
+
+                //sorting still ongoing
+                sorting = true;
+            }
+        }
+    }
+        });
+   });
+    }else{
+      numberOfBlocks = 1;
+      blockSize      = 256;
+      stream.submit([&](sycl::handler &cgh) {
+        auto soa_kernel = soa;
+        auto ws_kernel  = ws_d.get();
+        cgh.parallel_for(
+          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
               sortByPt2Kernel(soa_kernel, ws_kernel, item);
       });
     });
     }
-
+   }
 #ifdef GPU_DEBUG
     stream.wait();
 #endif

@@ -109,39 +109,15 @@ namespace gpuVertexFinder {
     // now only the first "number of vertices" entries of ptv2 will be relevant
     // because iv[i] goes from 0 to the number of vertices, while i from 0 to the number of tracks
     // even though ptv2 has size nt(=number of tracks)
-
+    
     if (1 == nvFinal) {
       if (item.get_local_id(0) == 0)
         sortInd[0] = 0;
       return;
     }else{
-        for (uint32_t i = item.get_local_id(0); i < nvFinal; i += item.get_local_range(0))
-          sortInd[i]=i;
-    }
-   // should only the first thread be doing that?
-    //now sort
-    if (item.get_local_id(0) == 0){
-    bool sorting = true;
-    while(sorting){
-        sorting = false;
-        for (uint32_t j = 0; j < (nt-1); j++){
-             auto i = iv[j]; // i think looping on nvFinal is enough, should print ptv2 to be sure
-            if (ptv2[i]>ptv2[i+1]){
-                // sort ptv2 (?)
-                auto tmp = ptv2[i];
-                ptv2[i] = ptv2[i+1];
-                ptv2[i+1] = tmp;
-
-                // sort indexes
-                auto tmp2 = sortInd[i];
-                sortInd[i]=sortInd[i+1];
-                sortInd[i+1]=tmp2;
-
-                //sorting still ongoing
-                sorting = true;
-            }
-        }
-    }
+        for (uint32_t i = item.get_local_id(0); i < nvFinal; i += item.get_local_range(0)){
+          sortInd[i] = i;
+	}
     }
   }
 
@@ -149,6 +125,9 @@ namespace gpuVertexFinder {
     sortByPt2(pdata, pws, item); 
   }
 
+  void sortByPt2CPUKernel(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item) {
+    sortByPt2CPU(pdata, pws, item);
+  }
 }  // namespace gpuVertexFinder
 
 #endif  // RecoPixelVertexing_PixelVertexFinding_src_gpuSortByPt2_h
