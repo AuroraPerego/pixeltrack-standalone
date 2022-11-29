@@ -20,7 +20,7 @@ inline void reorderSigned(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t si
   auto firstNegbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t>(item.get_group());
   uint32_t* firstNeg = (uint32_t*)firstNegbuff.get();
   *firstNeg = a[ind[0]] < 0 ? 0 : size;
-  item.barrier();
+  sycl::group_barrier(item.get_group());
 
   // find first negative
   for (auto i = first; i < size - 1; i += item.get_local_range(0)) {
@@ -28,21 +28,21 @@ inline void reorderSigned(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t si
       *firstNeg = i + 1;
   }
 
-  item.barrier();
+  sycl::group_barrier(item.get_group());
 
   auto ii = first;
   for (auto i = *firstNeg + item.get_local_id(0); i < size; i += item.get_local_range(0)) {
     ind2[ii] = ind[i];
     ii += item.get_local_range(0);
   }
-  item.barrier();
+  sycl::group_barrier(item.get_group());
   ii = size - *firstNeg + item.get_local_id(0);
   assert(ii >= 0);
   for (auto i = first; i < *firstNeg; i += item.get_local_range(0)) {
     ind2[ii] = ind[i];
     ii += item.get_local_range(0);
   }
-  item.barrier();
+  sycl::group_barrier(item.get_group());
   for (auto i = first; i < size; i += item.get_local_range(0))
     ind[i] = ind2[i];
 }
@@ -54,7 +54,7 @@ inline void reorderFloat(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t siz
   auto firstNegbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t>(item.get_group());
   uint32_t* firstNeg = (uint32_t*)firstNegbuff.get();
   *firstNeg = a[ind[0]] < 0 ? 0 : size;
-  item.barrier();
+  sycl::group_barrier(item.get_group());
 
   // find first negative
   for (uint32_t i = item.get_local_id(0); i < size - 1; i += item.get_local_range(0)) {
@@ -62,21 +62,21 @@ inline void reorderFloat(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t siz
       *firstNeg = i + 1;
   }
 
-  item.barrier();
+  sycl::group_barrier(item.get_group());
 
   int ii = size - *firstNeg - item.get_local_id(0) - 1;
   for (uint32_t i = *firstNeg + item.get_local_id(0); i < size; i += item.get_local_range(0)) {
     ind2[ii] = ind[i];
     ii -= item.get_local_range(0);
   }
-  item.barrier();
+  sycl::group_barrier(item.get_group());
   ii = size - *firstNeg + item.get_local_id(0);
   assert(ii >= 0);
   for (uint32_t i = item.get_local_id(0); i < *firstNeg; i += item.get_local_range(0)) {
     ind2[ii] = ind[i];
     ii += item.get_local_range(0);
   }
-  item.barrier();
+  sycl::group_barrier(item.get_group());
   for (uint32_t i = item.get_local_id(0); i < size; i += item.get_local_range(0))
     ind[i] = ind2[i];
 }
@@ -115,12 +115,12 @@ __attribute__((always_inline)) void radixSortImpl(
 
   for (uint32_t i = item.get_local_id(0); i < size; i += item.get_local_range(0))
     j[i] = i;
-  item.barrier();
+  sycl::group_barrier(item.get_group());
 
-  while ((item.barrier(), sycl::all_of_group(item.get_group(), p < w / d))) {
+  while ((sycl::group_barrier(item.get_group()), sycl::all_of_group(item.get_group(), p < w / d))) {
     if (item.get_local_id(0) < sb)
       c[item.get_local_id(0)] = 0;
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // fill bins
     for (uint32_t i = item.get_local_id(0); i < size; i += item.get_local_range(0)) {
@@ -130,7 +130,7 @@ __attribute__((always_inline)) void radixSortImpl(
 				                         sycl::memory_scope::device>
 				                         (&c[bin], static_cast<int32_t>(1));
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // prefix scan "optimized"???...
     if (item.get_local_id(0) < sb) {
@@ -144,7 +144,7 @@ __attribute__((always_inline)) void radixSortImpl(
       }
       ct[item.get_local_id(0)] = x;
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     if (item.get_local_id(0) < sb) {
       auto ss = (item.get_local_id(0) / 32) * 32 - 1;
       c[item.get_local_id(0)] = ct[item.get_local_id(0)];
@@ -159,13 +159,13 @@ __attribute__((always_inline)) void radixSortImpl(
 
     // broadcast
     int ibs = size - 1;
-    while ((item.barrier(), sycl::all_of_group(item.get_group(), ibs > 0))) {
+    while ((sycl::group_barrier(item.get_group()), sycl::all_of_group(item.get_group(), ibs > 0))) {
       int i = ibs - item.get_local_id(0);
       if (item.get_local_id(0) < sb) {
         cu[item.get_local_id(0)] = -1;
         ct[item.get_local_id(0)] = -1;
       }
-      item.barrier();
+      sycl::group_barrier(item.get_group());
       int32_t bin = -1;
       if (item.get_local_id(0) < sb) {
         if (i >= 0) {
@@ -179,7 +179,7 @@ __attribute__((always_inline)) void radixSortImpl(
       }
 
 
-      item.barrier();
+      sycl::group_barrier(item.get_group());
        if (item.get_local_id(0) < sb) {
          if (i >= 0 && i == cu[bin])  // ensure to keep them in order
            for (int ii = item.get_local_id(0); ii < sb; ++ii)
@@ -189,7 +189,7 @@ __attribute__((always_inline)) void radixSortImpl(
                   k[--c[bin]] = j[i - oi];
             }
       }
-      item.barrier();
+      sycl::group_barrier(item.get_group());
       if (bin >= 0)
         assert(c[bin] >= 0);
       ibs -= sb;
@@ -206,7 +206,7 @@ __attribute__((always_inline)) void radixSortImpl(
     }
     */
 
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     assert(c[0] == 0);
 
     // swap j and k (local, ok)
@@ -225,7 +225,7 @@ __attribute__((always_inline)) void radixSortImpl(
     for (uint32_t i = item.get_local_id(0); i < size; i += item.get_local_range(0))
       ind[i] = ind2[i];
 
-  item.barrier();
+  sycl::group_barrier(item.get_group());
 }
 
 template <typename T,

@@ -34,30 +34,30 @@ void mykernel(T const *__restrict__ v,
   for (auto j = item.get_local_id(0); j < Hist::totbins(); j += item.get_local_range().get(0)) {
     hist->off[j] = 0;
   }
-  item.barrier();
+  sycl::group_barrier(item.get_group());
 
   for (auto j = item.get_local_id(0); j < N; j += item.get_local_range().get(0))
     hist->count(v[j]);
-  item.barrier();
+  sycl::group_barrier(item.get_group());
 
   assert(0 == hist->size());
-  item.barrier();
+  sycl::group_barrier(item.get_group());
 
   hist->finalize(item, ws);
-  item.barrier();
+  sycl::group_barrier(item.get_group());
 
   assert(N == hist->size());
   for (auto j = item.get_local_id(0); j < Hist::nbins(); j += item.get_local_range().get(0))
     assert(hist->off[j] <= hist->off[j + 1]);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
   if (item.get_local_id(0) < 32)
     ws[item.get_local_id(0)] = 0;  // used by prefix scan...
-  item.barrier();
+  sycl::group_barrier(item.get_group());
 
   for (auto j = item.get_local_id(0); j < N; j += item.get_local_range().get(0))
     hist->fill(v[j], j);
-  item.barrier();
+  sycl::group_barrier(item.get_group());
   assert(0 == hist->off[0]);
   assert(N == hist->size());
 

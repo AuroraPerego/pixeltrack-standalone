@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <CL/sycl.hpp>
 #include "SYCLCore/syclAtomic.h"
+#include "SYCLCore/sycl_assert.h"
 
 template <typename T>
 void __attribute__((always_inline)) warpPrefixScan(T const* __restrict__ ci, T* __restrict__ co, uint32_t i, sycl::nd_item<1> item) {
@@ -64,7 +65,8 @@ namespace cms {
         // mask = sycl::reduce_over_group(item.get_sub_group(), local_val2, sycl::plus<>());
         //end of __ballot_sync equivalent
       }
-      item.barrier(sycl::access::fence_space::local_space);
+      // item.barrier(sycl::access::fence_space::local_space);
+      sycl::group_barrier(item.get_group());
       
       if (size <= 32)
         return;
@@ -72,14 +74,16 @@ namespace cms {
       if (item.get_local_id(0) < 32)
         warpPrefixScan(ws, item.get_local_id(0), item);
         
-      item.barrier(sycl::access::fence_space::local_space);
+      // item.barrier(sycl::access::fence_space::local_space);
+      sycl::group_barrier(item.get_group());
       
       for (auto i = first + 32; i < size; i += item.get_local_range(0)) {
         auto warpId = i / 32;
         co[i] += ws[warpId - 1];
       }
 
-      item.barrier(sycl::access::fence_space::local_space);
+      // item.barrier(sycl::access::fence_space::local_space);
+      sycl::group_barrier(item.get_group());
     }
 
     // same as above (1), may remove
@@ -112,7 +116,8 @@ namespace cms {
         // mask = sycl::reduce_over_group(item.get_sub_group(), local_val2, sycl::plus<>());
         //end of __ballot_sync equivalent
       }
-      item.barrier(sycl::access::fence_space::local_space);
+      // item.barrier(sycl::access::fence_space::local_space);
+      sycl::group_barrier(item.get_group());
       
       if (size <= 32)
         return;
@@ -120,12 +125,14 @@ namespace cms {
       if (item.get_local_id(0) < 32)
         warpPrefixScan(ws, item.get_local_id(0), item);
         
-      item.barrier(sycl::access::fence_space::local_space);
+      // item.barrier(sycl::access::fence_space::local_space);
+      sycl::group_barrier(item.get_group());
       for (auto i = first + 32; i < size; i += item.get_local_range(0)) {
         auto warpId = i / 32;
         c[i] += ws[warpId - 1];
       }
-      item.barrier(sycl::access::fence_space::local_space);
+      // item.barrier(sycl::access::fence_space::local_space);
+      sycl::group_barrier(item.get_group());
     }
 
     // // see https://stackoverflow.com/questions/40021086/can-i-obtain-the-amount-of-allocated-dynamic-shared-memory-from-within-a-kernel/40021087#40021087
@@ -166,7 +173,8 @@ namespace cms {
         *isLastBlockDone = (value == (int(item.get_group_range(0)) - 1));
       }
 
-      item.barrier(sycl::access::fence_space::local_space);
+      // item.barrier(sycl::access::fence_space::local_space);
+      sycl::group_barrier(item.get_group());
 
       if (!(*isLastBlockDone))
         return;
@@ -185,7 +193,8 @@ namespace cms {
         psum[i] = (j < size) ? co[j] : T(0);
       }
       //Same as above (0)
-      item.barrier(sycl::access::fence_space::local_space);
+      // item.barrier(sycl::access::fence_space::local_space);
+      sycl::group_barrier(item.get_group());
       blockPrefixScan(psum, psum, item.get_group_range(0), item, ws);
 
       // now it would have been handy to have the other blocks around...

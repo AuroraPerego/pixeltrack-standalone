@@ -31,13 +31,13 @@
                              sycl::nd_item<1> item
   ) {
     clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item); 
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     fitVertices(pdata, pws, 50., item);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     splitVertices(pdata, pws, 9.f, item);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     fitVertices(pdata, pws, 5000., item);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     sortByPt2(pdata, pws, item);
   }
 #endif

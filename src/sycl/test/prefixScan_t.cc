@@ -20,7 +20,7 @@ void testPrefixScan(sycl::nd_item<1> item, uint32_t size) {
   uint32_t first = item.get_local_id(0);
   for (auto i = first; i < size; i += item.get_local_range().get(0))
     c[i] = 1;
-  item.barrier();
+  sycl::group_barrier(item.get_group());
 
   cms::sycltools::blockPrefixScan(c, co, size, item, ws);
   cms::sycltools::blockPrefixScan(c, size, item, ws);
@@ -69,11 +69,11 @@ void testWarpPrefixScan(sycl::nd_item<1> item, uint32_t size) {
 
   uint32_t i = item.get_local_id(0);
   c[i] = 1;
-  item.barrier();
+  sycl::group_barrier(item.get_group());
 
   warpPrefixScan(c, co, i, item);
   warpPrefixScan(c, i, item);
-  item.barrier();
+  sycl::group_barrier(item.get_group());
 
   //assert(1 == c[0]);
   if (1 != c[0]) {

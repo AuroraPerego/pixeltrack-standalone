@@ -68,13 +68,13 @@ void vertexFinderOneKernelCPU(gpuVertexFinder::ZVertices* pdata,
                              sycl::nd_item<1> item
   ) {
     clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     fitVertices(pdata, pws, 50., item);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     splitVertices(pdata, pws, 9.f, item);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     fitVertices(pdata, pws, 5000., item);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
   }
 
   void vertexFinderOneKernelGPU(gpuVertexFinder::ZVertices* pdata,
@@ -86,13 +86,13 @@ void vertexFinderOneKernelCPU(gpuVertexFinder::ZVertices* pdata,
                              sycl::nd_item<1> item
   ) {
     clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     fitVertices(pdata, pws, 50., item);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     splitVertices(pdata, pws, 9.f, item);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     fitVertices(pdata, pws, 5000., item);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     sortByPt2(pdata, pws, item);
   }
 #else
@@ -104,7 +104,7 @@ void vertexFinderOneKernelCPU(gpuVertexFinder::ZVertices* pdata,
                            float chi2max  // max normalized distance to cluster,
                            sycl::nd_item<1> item) {
     clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     fitVertices(pdata, pws, 50., item);
   }
 
@@ -112,7 +112,7 @@ void vertexFinderOneKernelCPU(gpuVertexFinder::ZVertices* pdata,
                            sycl::nd_item<1> item 
   ) {
     fitVertices(pdata, pws, 5000., item);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     sortByPt2(pdata, pws, item);
   }
 #endif

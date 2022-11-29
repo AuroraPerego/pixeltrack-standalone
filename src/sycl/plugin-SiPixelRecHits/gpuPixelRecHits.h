@@ -114,7 +114,7 @@ namespace gpuPixelRecHits {
 
       first += item.get_local_id(0);
 
-      item.barrier();
+      sycl::group_barrier(item.get_group());
 
       // one thead per "digi"
 
@@ -149,7 +149,7 @@ namespace gpuPixelRecHits {
                                          sycl::memory_scope::device>
                                          ((uint32_t*)&clusParams->maxCol[cl], (uint32_t)y);
       }
-      item.barrier();
+      sycl::group_barrier(item.get_group());
 
       // pixmx is not available in the binary dumps
       //auto pixmx = cpeParams->detParams(me).pixmx;
@@ -178,11 +178,11 @@ namespace gpuPixelRecHits {
           cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(&clusParams->Q_f_Y[cl], (int)ch);
         if (clusParams->maxCol[cl] == y)
           cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(&clusParams->Q_l_Y[cl], (int)ch);
-        // item.barrier();
+        // sycl::group_barrier(item.get_group());
         // printf("maxRow[%d]= %d\n", cl, clusParams->maxRow[cl]);
       }
 
-      item.barrier();
+      sycl::group_barrier(item.get_group());
 
       // next one cluster per thread... 
 
@@ -239,7 +239,7 @@ namespace gpuPixelRecHits {
         hits.rGlobal(h) = sycl::sqrt(xg * xg + yg * yg);
         hits.iphi(h) = unsafe_atan2s<7>(yg, xg);
       }
-      item.barrier();
+      sycl::group_barrier(item.get_group());
     }  // end loop on batches
   }
 

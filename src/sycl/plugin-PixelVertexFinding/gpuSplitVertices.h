@@ -63,7 +63,7 @@ namespace gpuVertexFinder {
       auto nqbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t>(item.get_group());
       uint32_t* nq = (uint32_t*)nqbuff.get();    // number of track for this vertex
       *nq = 0; // number of track for this vertex
-      item.barrier();
+      sycl::group_barrier(item.get_group());
 
       // copy to local
       for (auto k = item.get_local_id(0); k < nt; k += item.get_local_range(0)) {
@@ -83,13 +83,13 @@ namespace gpuVertexFinder {
       auto wnewbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<float[2]>(item.get_group());
       float* wnew = (float*)wnewbuff.get();          // the new vertices
 
-      item.barrier();
+      sycl::group_barrier(item.get_group());
       assert(int(*nq) == nn[kv] + 1);
 
       int maxiter = 20;
       // kt-min....
       bool more = true;
-      while ((item.barrier(), sycl::any_of_group(item.get_group(), more))) {
+      while ((sycl::group_barrier(item.get_group()), sycl::any_of_group(item.get_group(), more))) {
         more = false;
         if (0 == item.get_local_id(0)) {
           znew[0] = 0;
@@ -97,18 +97,18 @@ namespace gpuVertexFinder {
           wnew[0] = 0;
           wnew[1] = 0;
         }
-        item.barrier();
+        sycl::group_barrier(item.get_group());
         for (auto k = item.get_local_id(0); k < (unsigned long)*nq; k += item.get_local_range(0)) {
           auto i = newV[k];
           cms::sycltools::atomic_fetch_add<float, cl::sycl::access::address_space::local_space>(&znew[i], zz[k] * ww[k]);
           cms::sycltools::atomic_fetch_add<float, cl::sycl::access::address_space::local_space>(&wnew[i], ww[k]);
         }
-        item.barrier();
+        sycl::group_barrier(item.get_group());
         if (0 == item.get_local_id(0)) {
           znew[0] /= wnew[0];
           znew[1] /= wnew[1];
         }
-        item.barrier();
+        sycl::group_barrier(item.get_group());
         for (auto k = item.get_local_id(0); k < (unsigned long)*nq; k += item.get_local_range(0)) {
           auto d0 = fabs(zz[k] - znew[0]);
           auto d1 = fabs(zz[k] - znew[1]);
@@ -143,7 +143,7 @@ namespace gpuVertexFinder {
       uint32_t* igv = (uint32_t*)igvbuff.get();
       if (0 == item.get_local_id(0))
         *igv = cms::sycltools::atomic_fetch_add<uint32_t>(&ws.nvIntermediate, (uint32_t)1);
-      item.barrier();
+      sycl::group_barrier(item.get_group());
       for (auto k = item.get_local_id(0); k < (unsigned long)*nq; k += item.get_local_range(0)) {
         if (1 == newV[k])
           iv[it[k]] = *igv;

@@ -66,7 +66,7 @@ namespace gpuVertexFinder {
     for (auto j = item.get_local_id(0); j < Hist::totbins(); j += item.get_local_range(0)) {
       hist->off[j] = 0;
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
 #ifdef VERTEX_DEBUG
     if (item.get_local_id(0) == 0)
@@ -92,17 +92,17 @@ namespace gpuVertexFinder {
       iv[i] = i;
       nn[i] = 0;
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     if (item.get_local_id(0) < 32)
       hws[item.get_local_id(0)] = 0;  // used by prefix scan...
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     hist->finalize(item, hws);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     assert(hist->size() == nt);
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       hist->fill(izt[i], uint16_t(i));
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // count neighbours
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
@@ -122,7 +122,7 @@ namespace gpuVertexFinder {
       cms::sycltools::forEachInBins(*hist, izt[i], 1, loop);
     }
 
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // find closest above me .... (we ignore the possibility of two j at same distance from i)
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
@@ -143,7 +143,7 @@ namespace gpuVertexFinder {
       cms::sycltools::forEachInBins(*hist, izt[i], 1, loop);
     }
 
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
 #ifdef GPU_DEBUG
     //  mini verification
@@ -151,7 +151,7 @@ namespace gpuVertexFinder {
       if (iv[i] != int(i))
         assert(iv[iv[i]] != int(i));
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 #endif
 
     // consolidate graph (percolate index of seed)
@@ -163,7 +163,7 @@ namespace gpuVertexFinder {
     }
 
 #ifdef GPU_DEBUG
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     //  mini verification
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] != int(i))
@@ -194,13 +194,13 @@ namespace gpuVertexFinder {
       assert(iv[i] == iv[minJ]);
       assert(nn[i] <= nn[iv[i]]);
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 #endif
 
     auto foundClustersbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<unsigned int>(item.get_group());
     unsigned int* foundClusters = (unsigned int*)foundClustersbuff.get();
     *foundClusters = 0;
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // find the number of different clusters, identified by a tracks with clus[i] == i and density larger than threshold;
     // mark these tracks with a negative id.
@@ -216,7 +216,7 @@ namespace gpuVertexFinder {
         }
       }
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
  
     assert(*foundClusters < ZVertices::MAXVTX);
 
@@ -227,7 +227,7 @@ namespace gpuVertexFinder {
         iv[i] = iv[iv[i]];
       }
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     
     // adjust the cluster id to be a positive value starting from 0
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {

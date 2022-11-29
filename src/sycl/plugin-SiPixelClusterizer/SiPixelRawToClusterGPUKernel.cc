@@ -491,7 +491,7 @@ namespace pixelgpudetails {
       moduleStart[i] += moduleStart[1024];
     }
     
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
 #ifdef GPU_DEBUG
     assert(0 == moduleStart[0]);

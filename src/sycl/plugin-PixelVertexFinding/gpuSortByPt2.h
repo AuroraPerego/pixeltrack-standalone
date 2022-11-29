@@ -43,7 +43,7 @@ namespace gpuVertexFinder {
     for (auto i = item.get_local_id(0); i < nvFinal; i += item.get_local_range(0)) {
       ptv2[i] = 0;
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // ptt2 is the pt of the track squared
     // ptv2 is the "pt of the vertex" (i.e. sum of the pt^2 of the tracks that belong to that vertex) squared
@@ -52,7 +52,7 @@ namespace gpuVertexFinder {
         continue;
       cms::sycltools::atomic_fetch_add<float>(&ptv2[iv[i]], ptt2[i]);
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     // now only the first "number of vertices" entries of ptv2 will be relevant
     // because iv[i] goes from 0 to the number of vertices, while i from 0 to the number of tracks
     // even though ptv2 has size nt(=number of tracks)
@@ -96,7 +96,7 @@ namespace gpuVertexFinder {
     for (auto i = item.get_local_id(0); i < nvFinal; i += item.get_local_range(0)) {
       ptv2[i] = 0;
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // ptt2 is the pt of the track squared
     // ptv2 is the "pt of the vertex" (i.e. sum of the pt^2 of the tracks that belong to that vertex) squared
@@ -105,7 +105,7 @@ namespace gpuVertexFinder {
         continue;
       cms::sycltools::atomic_fetch_add<float>(&ptv2[iv[i]], ptt2[i]);
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     // now only the first "number of vertices" entries of ptv2 will be relevant
     // because iv[i] goes from 0 to the number of vertices, while i from 0 to the number of tracks
     // even though ptv2 has size nt(=number of tracks)

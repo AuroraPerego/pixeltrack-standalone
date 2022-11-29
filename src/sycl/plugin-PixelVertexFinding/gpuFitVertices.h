@@ -57,7 +57,7 @@ namespace gpuVertexFinder {
     if (0 == item.get_local_id(0))
       *noise = 0;
 #endif
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // compute cluster location
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
@@ -74,14 +74,14 @@ namespace gpuVertexFinder {
       cms::sycltools::atomic_fetch_add<float>(&wv[iv[i]], (float)w);
     }
 
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     // reuse nn
     for (auto i = item.get_local_id(0); i < foundClusters; i += item.get_local_range(0)) {
       assert(wv[i] > 0.f);
       zv[i] /= wv[i];
       nn[i] = -1;  // ndof
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // compute chi2
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
@@ -97,7 +97,7 @@ namespace gpuVertexFinder {
       cms::sycltools::atomic_fetch_add<float>(&chi2[iv[i]], (float)c2);
       cms::sycltools::atomic_fetch_add<int32_t>(&nn[iv[i]], (int32_t)1);
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     for (auto i = item.get_local_id(0); i < foundClusters; i += item.get_local_range(0))
       if (nn[i] > 0)
         wv[i] *= float(nn[i]) / chi2[i];

@@ -59,7 +59,7 @@ namespace gpuVertexFinder {
     for (auto j = item.get_local_id(0); j < Hist::totbins(); j += item.get_local_range(0)) {
       hist->off[j] = 0;
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
 #ifdef VERTEX_DEBUG
     if (0 == item.get_local_id(0))
@@ -81,17 +81,17 @@ namespace gpuVertexFinder {
       iv[i] = i;
       nn[i] = 0;
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     if (item.get_local_id(0) < 32)
       hws[item.get_local_id(0)] = 0;  // used by prefix scan...
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     hist->finalize(item, hws);
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     assert(hist->size() == nt);
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       hist->fill(izt[i], uint16_t(i));
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // count neighbours
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
@@ -115,11 +115,11 @@ namespace gpuVertexFinder {
     int* nloops = (int*)nloopsbuff.get();
     *nloops = 0;
 
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // cluster seeds only
     bool more = true;
-    while ((item.barrier(), sycl::any_of_group(item.get_group(), more))) {
+    while ((sycl::group_barrier(item.get_group()), sycl::any_of_group(item.get_group(), more))) {
       if (1 == *nloops % 2) {
         for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
           auto m = iv[i];
@@ -152,7 +152,7 @@ namespace gpuVertexFinder {
             cms::sycltools::atomic_fetch_min<int32_t>(&iv[i], (int32_t)old);
           };
           ++p;
-          for (; p < hist->end(be); ++p)
+          for (; p < hist->end(be); ++p) // SYCL_BUG_ this line gives an error of un undefined intrinsic 
             loop(*p);
         }  // for i
       }
@@ -183,7 +183,7 @@ namespace gpuVertexFinder {
     auto foundClustersbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<unsigned int>(item.get_group());
     unsigned int* foundClusters = (unsigned int*)foundClustersbuff.get();
     *foundClusters = 0;
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // find the number of different clusters, identified by a tracks with clus[i] == i;
     // mark these tracks with a negative id.
@@ -199,7 +199,7 @@ namespace gpuVertexFinder {
         }
       }
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     assert(*foundClusters < ZVertices::MAXVTX);
 
@@ -210,7 +210,7 @@ namespace gpuVertexFinder {
         iv[i] = iv[iv[i]];
       }
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // adjust the cluster id to be a positive value starting from 0
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {

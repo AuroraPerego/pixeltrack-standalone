@@ -73,7 +73,7 @@ namespace gpuClustering {
       charge[i] = 0;
     }
 
-    item.barrier();
+    sycl::group_barrier(item.get_group());
     for (auto i = first; i < numElements; i += item.get_local_range(0)) {
       if (id[i] == InvId)
         continue;  // not valid
@@ -84,14 +84,14 @@ namespace gpuClustering {
                                        sycl::memory_scope::work_group>
                                        (&charge[clusterId[i]], static_cast<int32_t>(adc[i]));
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     auto chargeCut = thisModuleId < 96 ? 2000 : 4000;  // move in constants (calib?)
     for (auto i = item.get_local_id(0); i < nclus; i += item.get_local_range(0)) {
       newclusId[i] = ok[i] = charge[i] > chargeCut ? 1 : 0;
     }
 
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // renumber
     auto wsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint16_t[32]>(item.get_group());
@@ -104,14 +104,14 @@ namespace gpuClustering {
       return;
 
     nClustersInModule[thisModuleId] = newclusId[nclus - 1];
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // mark bad cluster again
     for (auto i = item.get_local_id(0); i < nclus; i += item.get_local_range(0)) {
       if (0 == ok[i])
         newclusId[i] = InvId + 1;
     }
-    item.barrier();
+    sycl::group_barrier(item.get_group());
 
     // reassign id
     for (auto i = first; i < numElements; i += item.get_local_range(0)) {
