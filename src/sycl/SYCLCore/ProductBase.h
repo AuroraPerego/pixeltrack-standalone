@@ -3,7 +3,7 @@
 
 #include <atomic>
 #include <memory>
-#include <optional> // needed in SYCL CUDA with llvm
+#include <optional>
 
 #include <CL/sycl.hpp>
 
@@ -14,7 +14,7 @@ namespace cms {
     }
 
     /**
-     * Base class for all instantiations of CUDA<T> to hold the
+     * Base class for all instantiations of SYCL<T> to hold the
      * non-T-dependent members.
      */
     class ProductBase {
@@ -62,7 +62,7 @@ namespace cms {
       std::optional<sycl::queue> stream_;  //!
       std::optional<sycl::event> event_;   //!
 
-      // This flag tells whether the CUDA stream may be reused by a
+      // This flag tells whether the SYCL stream may be reused by a
       // consumer or not. The goal is to have a "chain" of modules to
       // queue their work to the same stream.
       mutable std::atomic<bool> mayReuseStream_ = true;  //!

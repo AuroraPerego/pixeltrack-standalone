@@ -76,7 +76,7 @@ namespace cms {
 
           cgh.parallel_for(
               sycl::nd_range<1>(nblocks * sycl::range<1>(nthreads), sycl::range<1>(nthreads)),
-              [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (32 is the maximum)
+              [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { // explicitly specify sub-group size (16 is the default)
                     multiBlockPrefixScan<uint32_t>(poff,
                                          poff,
                                          Histo_totbins_kernel,
@@ -212,18 +212,6 @@ namespace cms {
                                          sycl::memory_scope::work_group>(&off[b], 1);
       }
 
-/*
-NOTE
-The memory order can be:   work_item,
-                          sub_group,
-                          work_group,
-                          device,
-                          system
-The only one that doesn't work with global is device.
-Global should be ok bc the variables are not shared (cuda meaning of it)
-CLEAN the mess and go back to the old arrangement
-*/
-
       __attribute__((always_inline)) void fillDirect(T b, index_type j) {
         assert(b < nbins());
         auto w = cms::sycltools::atomic_fetch_sub<Counter,
@@ -282,7 +270,6 @@ CLEAN the mess and go back to the old arrangement
         cms::sycltools::atomic_fetch_add<Counter,
                                          sycl::access::address_space::global_space,
                                          sycl::memory_scope::work_group>(&off[b], 1);
-        //atomicIncrement(off[b]);
       }
 
       __attribute__((always_inline)) void fill(T t, index_type j, uint32_t nh) {
@@ -290,7 +277,6 @@ CLEAN the mess and go back to the old arrangement
         assert(b < nbins());
         b += histOff(nh);
         assert(b < totbins());
-        // auto w = atomicDecrement(off[b]);
         auto w = cms::sycltools::atomic_fetch_sub<Counter,
                                                   sycl::access::address_space::global_space,
                                                   sycl::memory_scope::work_group>(&off[b], 1);

@@ -33,7 +33,7 @@ namespace cms::sycltools {
         // Different streams, need to synchronize
         if (not available) { 
           // Event not yet occurred, so need to add synchronization
-          // here. Sychronization is done by making the CUDA stream to
+          // here. Sychronization is done by making the SYCL stream to
           // wait for an event, so all subsequent work in the stream
           // will run only after the event has "occurred" (i.e. data
           // product became available).

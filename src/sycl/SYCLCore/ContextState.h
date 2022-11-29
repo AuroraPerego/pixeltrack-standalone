@@ -2,7 +2,7 @@
 #define HeterogeneousCore_SYCLCore_ContextState_h
 
 #include <memory>
-#include <optional> // needed in SYCL CUDA with llvm
+#include <optional> 
 
 #include <CL/sycl.hpp>
 
@@ -11,7 +11,7 @@ namespace cms {
     /**
      * The purpose of this class is to deliver the device and queue
      * information from ExternalWork's acquire() to producer() via a
-     * member/StreamCache variable.
+     * member variable.
      */
     class ContextState {
     public:

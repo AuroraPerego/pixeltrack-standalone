@@ -134,7 +134,7 @@ ONEAPI_ENV        := $(ONEAPI_BASE)/setvars.sh # --config="/eos/user/a/aperego/d
                                                # the config.txt file can be used to source only specific tools 
                                                # or a specific version of a tool of the oneAPI package
 SYCL_BASE         := $(ONEAPI_BASE)/compiler/$(ONEAPI_VERSION)/linux
-USER_ONEAPI_FLAGS := -fno-sycl-early-optimizations -fp-model=precise -fimf-arch-consistency=true -no-fma
+USER_ONEAPI_FLAGS := -fp-model=precise -fimf-arch-consistency=true -no-fma
 # math flags : -fp-model=precise -fimf-arch-consistency=true -no-fma
 # workaround for the unexpected intrinsic in ONEAPI 2022.2.0: -fno-sycl-early-optimizations
 export SYCL_CXX      := $(SYCL_BASE)/bin/dpcpp
@@ -150,7 +150,7 @@ USER_SYCLFLAGS := -std=c++17 -Wno-unused-const-variable
 export OCL_ICD_FILENAMES := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/runtime/intel/oclcpuexp_2022.14.8.0.04/x64/libintelocl.so
 
 export SYCL_CXX      := $(SYCL_BASE)/bin/clang++
-export SYCL_CXXFLAGS := -fsycl $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS) $(AOT_CUDA_FLAGS) # $(AOT_HIP_FLAGS)
+export SYCL_CXXFLAGS := -fsycl $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS) #$(AOT_CUDA_FLAGS) # $(AOT_HIP_FLAGS)
 # at the moment it's not possible to compile AOT for both CUDA and AMD together (and AMD is still a bit buggy on its own)
 
 endif

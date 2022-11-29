@@ -10,8 +10,6 @@
 #include <tbb/info.h>
 #include <tbb/task_arena.h>
 
-#include <CL/sycl.hpp>
-
 #include "SYCLCore/chooseDevice.h"
 #include "EventProcessor.h"
 #include "PosixClockGettime.h"
@@ -26,7 +24,7 @@ namespace {
         << " --numberOfThreads   Number of threads to use (default 1, use 0 to use all CPU cores)\n"
         << " --numberOfStreams   Number of concurrent events (default 0 = numberOfThreads)\n"
         << " --maxEvents         Number of events to process (default -1 for all events in the input file)\n"
-        << " --device            Specifies the device which should run the code (default all, options: host, cpu, gpu, acc)\n"
+        << " --device            Specifies the device which should run the code (default all, options: cpu, gpu)\n"
         << " --runForMinutes     Continue processing the set of 1000 events until this many minutes have passed "
            "(default -1 for disabled; conflicts with --maxEvents)\n"
         << " --data              Path to the 'data' directory (default 'data' in the directory of the executable)\n"

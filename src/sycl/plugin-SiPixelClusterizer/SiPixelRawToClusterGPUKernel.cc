@@ -7,7 +7,6 @@
 **/
 
 // C++ includes
-#include <cassert>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -24,6 +23,7 @@
 #include "SYCLDataFormats/gpuClusteringConstants.h"
 #include "SYCLCore/device_unique_ptr.h"
 #include "SYCLCore/host_unique_ptr.h"
+#include "SYCLCore/sycl_assert.h"
 #include "CondFormats/SiPixelFedCablingMapGPU.h"
 
 // local includes

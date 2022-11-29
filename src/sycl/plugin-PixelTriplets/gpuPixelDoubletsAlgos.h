@@ -117,7 +117,7 @@ namespace gpuPixelDoublets {
       assert(i >= offsets[inner]);
       assert(i < offsets[inner + 1]);
 
-      // found hit corresponding to our cuda thread, now do the job
+      // found hit corresponding to our sycl thread, now do the job
       auto mi = hh.detectorIndex(i);
       if (mi > 2000)
         continue;  // invalid

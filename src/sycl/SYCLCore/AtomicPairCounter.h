@@ -1,7 +1,6 @@
 #ifndef HeterogeneousCore_SYCLUtilities_interface_AtomicPairCounter_h
 #define HeterogeneousCore_SYCLUtilities_interface_AtomicPairCounter_h
 
-//#include <CL/sycl.hpp>
 #include <cstdint>
 #include <SYCLCore/syclAtomic.h>
 
@@ -40,9 +39,7 @@ namespace cms {
         c += incr;
         Atomic2 ret;
         
-        ret.ac = cms::sycltools::atomic_fetch_add<cms::sycltools::AtomicPairCounter::c_type,
-                                                  sycl::access::address_space::global_space,
-                                                  sycl::memory_scope::device>(&counter.ac, c);
+        ret.ac = cms::sycltools::atomic_fetch_add<cms::sycltools::AtomicPairCounter::c_type>(&counter.ac, c);
 
         return ret.counters;
       }

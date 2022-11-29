@@ -26,24 +26,24 @@ SiPixelDigisSYCL::SiPixelDigisSYCL(size_t maxFedWords, sycl::queue stream) {
 
 cms::sycltools::host::unique_ptr<uint16_t[]> SiPixelDigisSYCL::adcToHostAsync(sycl::queue stream) const {
   auto ret = cms::sycltools::make_host_unique<uint16_t[]>(nDigis(), stream);
-  stream.memcpy(ret.get(), adc_d.get(), nDigis() * sizeof(uint16_t)).wait();
+  stream.memcpy(ret.get(), adc_d.get(), nDigis() * sizeof(uint16_t));
   return ret;
 }
 
 cms::sycltools::host::unique_ptr<int32_t[]> SiPixelDigisSYCL::clusToHostAsync(sycl::queue stream) const {
   auto ret = cms::sycltools::make_host_unique<int32_t[]>(nDigis(), stream);
-  stream.memcpy(ret.get(), clus_d.get(), nDigis() * sizeof(int32_t)).wait();
+  stream.memcpy(ret.get(), clus_d.get(), nDigis() * sizeof(int32_t));
   return ret;
 }
 
 cms::sycltools::host::unique_ptr<uint32_t[]> SiPixelDigisSYCL::pdigiToHostAsync(sycl::queue stream) const {
   auto ret = cms::sycltools::make_host_unique<uint32_t[]>(nDigis(), stream);
-  stream.memcpy(ret.get(), pdigi_d.get(), nDigis() * sizeof(uint32_t)).wait();
+  stream.memcpy(ret.get(), pdigi_d.get(), nDigis() * sizeof(uint32_t));
   return ret;
 }
 
 cms::sycltools::host::unique_ptr<uint32_t[]> SiPixelDigisSYCL::rawIdArrToHostAsync(sycl::queue stream) const {
   auto ret = cms::sycltools::make_host_unique<uint32_t[]>(nDigis(), stream);
-  stream.memcpy(ret.get(), rawIdArr_d.get(), nDigis() * sizeof(uint32_t)).wait();
+  stream.memcpy(ret.get(), rawIdArr_d.get(), nDigis() * sizeof(uint32_t));
   return ret;
 }

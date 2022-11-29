@@ -3,8 +3,6 @@
 #ifndef HeterogeneousCore_SYCLUtilities_ScopedSetDevice_h
 #define HeterogeneousCore_SYCLUtilities_ScopedSetDevice_h
 
-//#include "SYCLCore/syclCheck.h"
-
 #include <CL/sycl.hpp>
 #include <vector>
 

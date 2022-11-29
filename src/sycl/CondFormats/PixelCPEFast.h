@@ -13,15 +13,12 @@ public:
   ~PixelCPEFast() = default;
 
   // The return value can only be used safely in kernels launched on
-  // the same cudaStream, or after cudaStreamSynchronize.
+  // the same queue, or after queue.wait()
   const pixelCPEforGPU::ParamsOnGPU *getGPUProductAsync(sycl::queue stream) const;
 
-  // pixelCPEforGPU::ParamsOnGPU const &getCPUProduct() const { return cpuData_; }
-
 private:
-  // allocate it with posix malloc to be ocmpatible with cpu wf
+  // allocate it with posix malloc to be compatible with cpu wf
   std::vector<pixelCPEforGPU::DetParams> m_detParamsGPU;
-  // std::vector<pixelCPEforGPU::DetParams, cms::sycltools::HostAllocator<pixelCPEforGPU::DetParams>> m_detParamsGPU;
   pixelCPEforGPU::CommonParams m_commonParamsGPU;
   pixelCPEforGPU::LayerGeometry m_layerGeometry;
   pixelCPEforGPU::AverageGeometry m_averageGeometry;

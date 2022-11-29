@@ -182,12 +182,7 @@ namespace pixelgpudetails {
     std::pair<SiPixelDigisSYCL, SiPixelClustersSYCL> getResults() {
       digis_d.setNModulesDigis(nModules_Clusters_h[0], nDigis);
       clusters_d.setNClusters(nModules_Clusters_h[1]);
-      // need to explicitly deallocate while the associated SYCL
-      // stream is still alive
-      //
-      // technically the statement above is not true anymore now that
-      // the SYCL streams are cached within the cms::cuda::StreamCache, but it is
-      // still better to release as early as possible
+
       nModules_Clusters_h.reset();
       return std::make_pair(std::move(digis_d), std::move(clusters_d));
     }

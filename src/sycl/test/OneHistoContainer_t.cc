@@ -64,8 +64,8 @@ void mykernel(T const *__restrict__ v,
   for (auto j = item.get_local_id(0); j < hist->size() - 1; j += item.get_local_range().get(0)) {
     auto p = hist->begin() + j;
     assert((*p) < N);
-    auto k1 = Hist::bin(v[*p]);
-    auto k2 = Hist::bin(v[*(p + 1)]);
+    [[maybe_unused]] auto k1 = Hist::bin(v[*p]);
+    [[maybe_unused]] auto k2 = Hist::bin(v[*(p + 1)]);
     assert(k2 >= k1);
   }
 
@@ -73,13 +73,13 @@ void mykernel(T const *__restrict__ v,
     auto p = hist->begin() + i;
     auto j = *p;
     auto b0 = Hist::bin(v[j]);
-    int tot = 0;
+    [[maybe_unused]] int tot = 0;
     auto ftest = [&](int k) {
       assert(k >= 0 && k < (int) N);
       ++tot;
     };
     forEachInWindow(*hist, v[j], v[j], ftest);
-    int rtot = hist->size(b0);
+    [[maybe_unused]] int rtot = hist->size(b0);
     assert(tot == rtot);
     tot = 0;
     auto vm = int(v[j]) - DELTA;

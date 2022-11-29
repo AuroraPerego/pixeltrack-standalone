@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 
-// CUDA includes
+// SYCL includes
 #include <CL/sycl.hpp>
 
 // CMSSW includes

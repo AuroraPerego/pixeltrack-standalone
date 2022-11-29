@@ -10,7 +10,7 @@
 // this is needed to get errors from templates
 
 namespace {
-  constexpr float micronsToCm = 1.0e-4;
+  [[maybe_unused]] constexpr float micronsToCm = 1.0e-4;
 }
 
 //-----------------------------------------------------------------------------

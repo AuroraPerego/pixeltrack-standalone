@@ -88,7 +88,7 @@ namespace cms {
       struct Item {
         mutable std::mutex m_mutex;
         mutable std::optional<sycl::event> m_event;          // guarded by m_mutex
-        // non-null if some thread is already filling (cudaStream_t is just a pointer)
+        // non-null if some thread is already filling 
         mutable std::optional<sycl::queue> m_fillingStream;  // guarded by m_mutex
         mutable std::atomic<bool> m_filled = false;          // easy check if data has been filled already or not
         mutable T m_data;                                    // guarded by m_mutex

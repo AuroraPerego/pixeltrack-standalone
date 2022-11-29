@@ -58,7 +58,7 @@ namespace cms {
           return T();  //undefined behaviour
       }
 
-      // thread-safe version of the vector, when used in a CUDA kernel
+      // thread-safe version of the vector, when used in a SYCL kernel
       int push_back(const T &element) {
         auto previousSize = cms::sycltools::atomic_fetch_add<int,
 	                                                           sycl::access::address_space::global_space,
@@ -78,51 +78,33 @@ namespace cms {
 
       template <class... Ts>
       int emplace_back(Ts &&... args) {
-        auto previousSize = cms::sycltools::atomic_fetch_add<int,
-	                                                           sycl::access::address_space::global_space,
-						                                                 sycl::memory_scope::device>
-						                                                 (&m_size, static_cast<int>(1));
+        auto previousSize = cms::sycltools::atomic_fetch_add<int>(&m_size, static_cast<int>(1));
         if (previousSize < m_capacity) {
           (new (&m_data[previousSize]) T(std::forward<Ts>(args)...));
           return previousSize;
         } else {
-          cms::sycltools::atomic_fetch_sub<int,
-	                                         sycl::access::address_space::global_space,
-	                                         sycl::memory_scope::device>
-	                                         (&m_size, static_cast<int>(1));
+          cms::sycltools::atomic_fetch_sub<int>(&m_size, static_cast<int>(1));
           return -1;
         }
       }
 
       // thread safe version of resize
       int extend(int size = 1) {
-        auto previousSize = cms::sycltools::atomic_fetch_add<int,
-	                                                           sycl::access::address_space::global_space,
-						                                                 sycl::memory_scope::device>
-						                                                 (&m_size, static_cast<int>(size));
+        auto previousSize = cms::sycltools::atomic_fetch_add<int>(&m_size, static_cast<int>(size));
         if (previousSize < m_capacity) {
           return previousSize;
         } else {
-          cms::sycltools::atomic_fetch_sub<int,
-	                                         sycl::access::address_space::global_space,
-	                                         sycl::memory_scope::device>
-	                                         (&m_size, static_cast<int>(1));
+          cms::sycltools::atomic_fetch_sub<int>(&m_size, static_cast<int>(1));
           return -1;
         }
       }
 
       int shrink(int size = 1) {
-        auto previousSize = cms::sycltools::atomic_fetch_sub<int,
-	                                                           sycl::access::address_space::global_space,
-	                                                           sycl::memory_scope::device>
-	                                                           (&m_size, static_cast<int>(1));
+        auto previousSize = cms::sycltools::atomic_fetch_sub<int>(&m_size, static_cast<int>(1));
         if (previousSize >= size) {
           return previousSize - size;
         } else {
-          cms::sycltools::atomic_fetch_add<int,
-	                                         sycl::access::address_space::global_space,
-	                                         sycl::memory_scope::device>
-	  		                                   (&m_size, static_cast<int>(size));
+          cms::sycltools::atomic_fetch_add<int>(&m_size, static_cast<int>(size));
           return -1;
         }
       }
