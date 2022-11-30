@@ -223,7 +223,8 @@ $(foreach test,$(TESTS_SERIAL_EXE),$(eval $(call RUNTEST_template,$(test),cpu)))
 $(foreach test,$(TESTS_TBB_EXE),$(eval $(call RUNTEST_template,$(test),cpu)))
 $(foreach test,$(TESTS_CUDA_EXE),$(eval $(call RUNTEST_template,$(test),nvidiagpu)))
 $(foreach test,$(TESTS_ROCM_EXE),$(eval $(call RUNTEST_template,$(test),amdgpu)))
-# FIXME_ run SYCL tests
+$(foreach test,$(TESTS_SYCL_CPU_EXE),$(eval $(call RUNTEST_template,$(test),cpu)))
+$(foreach test,$(TESTS_SYCL_GPU_EXE),$(eval $(call RUNTEST_template,$(test),intelgpu)))
 
 -include $(ALL_DEPENDS)
 
@@ -267,11 +268,11 @@ $$($(1)_ROCM_LIB): $$($(1)_ROCM_OBJ) $$(foreach dep,$(EXTERNAL_DEPENDS_H),$$($$(
 
 $$($(1)_SYCL_CPU_LIB): $$($(1)_SYCL_CPU_OBJ) $$(foreach dep,$(EXTERNAL_DEPENDS_H),$$($$(dep)_DEPS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LIB)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_CPU_LIB))
 	@[ -d $$(@D) ] || mkdir -p $$(@D)
-	$(SYCL_CXX) $$($(1)_SYCL_CPU_OBJ) $(LDFLAGS) $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_CPU_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
+	$(SYCL_CXX) $$($(1)_SYCL_CPU_OBJ) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_CPU_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
 
 $$($(1)_SYCL_GPU_LIB): $$($(1)_SYCL_GPU_OBJ) $$(foreach dep,$(EXTERNAL_DEPENDS_H),$$($$(dep)_DEPS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LIB)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_GPU_LIB))
 	@[ -d $$(@D) ] || mkdir -p $$(@D)
-	$(SYCL_CXX) $$($(1)_SYCL_GPU_OBJ) $(LDFLAGS) $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_GPU_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
+	$(SYCL_CXX) $$($(1)_SYCL_GPU_OBJ) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_GPU_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
 
 
 # Anything depending on Alpaka
