@@ -25,10 +25,12 @@ namespace cms::alpakatools {
     using Platform = alpaka::Pltf<Device>;
 
     ESProduct() : gpuDataPerDevice_(cms::alpakatools::devices<Platform>.size()) {
+#if !defined(ALPAKA_ACC_SYCL_ENABLED)	    
       for (size_t i = 0; i < gpuDataPerDevice_.size(); ++i) {
         gpuDataPerDevice_[i].m_event =
             cms::alpakatools::getEventCache<Event>().get(cms::alpakatools::devices<Platform>[i]);
       }
+#endif
     }
 
     ~ESProduct() = default;
