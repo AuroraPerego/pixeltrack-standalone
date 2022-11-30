@@ -88,6 +88,49 @@ namespace alpaka_rocm_async {
 #define ALPAKA_ACCELERATOR_NAMESPACE alpaka_rocm_async
 #endif  // ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND
 
+#ifdef ALPAKA_ACC_SYCL_PRESENT
+namespace alpaka_cpu_sycl {
+  using namespace alpaka_common;
+
+  using Platform = alpaka::PltfCpuSyclIntel;
+  using Device = alpaka::DevCpuSyclIntel;
+  using Queue = alpaka::QueueCpuSyclIntelNonBlocking;
+  using Event = alpaka::EventCpuSyclIntel;
+
+  template <typename TDim>
+  using Acc = alpaka::AccCpuSyclIntel<TDim, Idx>;
+  using Acc1D = Acc<Dim1D>;
+  using Acc2D = Acc<Dim2D>;
+  using Acc3D = Acc<Dim3D>;
+
+}  // namespace alpaka_cpu_sycl
+
+namespace alpaka_gpu_sycl {
+  using namespace alpaka_common;
+
+  using Platform = alpaka::PltfGpuSyclIntel;
+  using Device = alpaka::DevGpuSyclIntel;
+  using Queue = alpaka::QueueGpuSyclIntelNonBlocking;
+  using Event = alpaka::EventGpuSyclIntel;
+
+  template <typename TDim>
+  using Acc = alpaka::AccGpuSyclIntel<TDim, Idx>;
+  using Acc1D = Acc<Dim1D>;
+  using Acc2D = Acc<Dim2D>;
+  using Acc3D = Acc<Dim3D>;
+
+}  // namespace alpaka_gpu_sycl
+
+#endif  // ALPAKA_ACC_SYCL_PRESENT
+
+#ifdef ALPAKA_SYCL_ONEAPI_CPU
+#define ALPAKA_ACCELERATOR_NAMESPACE alpaka_cpu_sycl
+#endif  // ALPAKA_SYCL_ONEAPI_CPU
+
+#ifdef ALPAKA_SYCL_ONEAPI_GPU
+#define ALPAKA_ACCELERATOR_NAMESPACE alpaka_gpu_sycl
+#endif  // ALPAKA_SYCL_ONEAPI_GPU
+
 #ifdef ALPAKA_ACC_CPU_B_SEQ_T_SEQ_PRESENT
 namespace alpaka_serial_sync {
   using namespace alpaka_common;
