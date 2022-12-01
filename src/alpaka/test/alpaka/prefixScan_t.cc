@@ -55,7 +55,8 @@ struct testWarpPrefixScan {
   template <typename TAcc>
   ALPAKA_FN_ACC void operator()(const TAcc& acc, uint32_t size) const {
 #if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) && defined(__CUDA_ARCH__) || \
-    defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND) && defined(__HIP_DEVICE_COMPILE__)
+    defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND) && defined(__HIP_DEVICE_COMPILE__) || \
+    defined(ALPAKA_ACC_SYCL_ENABLED) && defined(__SYCL_DEVICE_ONLY__)
     assert(size <= 32);
     auto& c = alpaka::declareSharedVar<T[1024], __COUNTER__>(acc);
     auto& co = alpaka::declareSharedVar<T[1024], __COUNTER__>(acc);
@@ -67,16 +68,23 @@ struct testWarpPrefixScan {
     alpaka::syncBlockThreads(acc);
     auto laneId = blockThreadIdx & 0x1f;
 
+#if defined(__SYCL_DEVICE_ONLY__)
+    auto mask = acc.m_item.get_sub_group();
+    warpPrefixScan(laneId, c, co, i, mask);
+    warpPrefixScan(laneId, c, i, mask);
+#else
     warpPrefixScan(laneId, c, co, i, 0xffffffff);
     warpPrefixScan(laneId, c, i, 0xffffffff);
-
+#endif
     alpaka::syncBlockThreads(acc);
 
     assert(1 == c[0]);
     assert(1 == co[0]);
     if (i != 0) {
+#if !defined(ALPAKA_ACC_SYCL_ENABLED) //FIXME_
       if (c[i] != c[i - 1] + 1)
         printf(format_traits<T>::failed_msg, size, i, blockDimension, c[i], c[i - 1]);
+#endif
       assert(c[i] == c[i - 1] + 1);
       assert(c[i] == static_cast<T>(i + 1));
       assert(c[i] == co[i]);
@@ -117,7 +125,8 @@ int main() {
   Queue queue(device);
 
   // WARP PREFIXSCAN (OBVIOUSLY GPU-ONLY)
-#if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) || defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND)
+#if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) || defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND) || \
+    defined(ALPAKA_ACC_SYCL_ENABLED)
   std::cout << "warp level" << std::endl;
 
   const auto threadsPerBlockOrElementsPerThread = 32;

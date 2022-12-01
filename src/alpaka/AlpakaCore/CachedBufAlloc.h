@@ -169,8 +169,8 @@ namespace cms::alpakatools {
 
         auto& allocator = getDeviceCachingAllocator<alpaka::DevCpuSyclIntel, TQueue>(dev);
 
-        size_t width = alpaka::getWidth(extent);
-        size_t widthBytes = width * static_cast<TIdx>(sizeof(TElem));
+        // size_t width = alpaka::getWidth(extent);
+        // size_t widthBytes = width * static_cast<TIdx>(sizeof(TElem));
         // TODO implement pitch in SYCL
         // size_t pitchBytes = widthBytes;
         size_t size = alpaka::getExtentProduct(extent);
@@ -222,8 +222,8 @@ namespace cms::alpakatools {
 
         auto& allocator = getDeviceCachingAllocator<alpaka::DevGpuSyclIntel, TQueue>(dev);
 
-        size_t width = alpaka::getWidth(extent);
-        size_t widthBytes = width * static_cast<TIdx>(sizeof(TElem));
+        // size_t width = alpaka::getWidth(extent);
+        // size_t widthBytes = width * static_cast<TIdx>(sizeof(TElem));
         // TODO implement pitch in SYCL
         // size_t pitchBytes = widthBytes;
         size_t size = alpaka::getExtentProduct(extent);

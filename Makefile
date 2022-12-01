@@ -166,6 +166,8 @@ SYCL_BASE :=
 endif
 endif
 
+export SYCL_BASE
+
 # Input data definitions
 DATA_BASE := $(BASE_DIR)/data
 export DATA_DEPS := $(DATA_BASE)/data_ok

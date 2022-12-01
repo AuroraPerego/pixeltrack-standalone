@@ -21,10 +21,8 @@ namespace cms::alpakatools {
 #ifdef ALPAKA_ACC_GPU_HIP_PRESENT
   extern template void initialise<alpaka_rocm_async::Platform>();
 #endif
-#ifdef ALPAKA_SYCL_ONEAPI_CPU
+#ifdef ALPAKA_ACC_SYCL_PRESENT
   extern template void initialise<alpaka_cpu_sycl::Platform>();
-#endif
-#ifdef ALPAKA_SYCL_ONEAPI_GPU
   extern template void initialise<alpaka_gpu_sycl::Platform>();
 #endif
 }  // namespace cms::alpakatools

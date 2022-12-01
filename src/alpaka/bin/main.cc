@@ -38,6 +38,9 @@ namespace {
 #ifdef ALPAKA_ACC_GPU_HIP_PRESENT
         << "[--hip] "
 #endif
+#ifdef ALPAKA_ACC_SYCL_PRESENT
+        << "[--syclcpu] [--syclgpu]"
+#endif
         << "[--numberOfThreads NT] [--numberOfStreams NS] [--maxEvents ME] [--data PATH] "
            "[--transfer] [--validation] [--histogram]\n\n"
         << "Options\n"
@@ -52,6 +55,10 @@ namespace {
 #endif
 #ifdef ALPAKA_ACC_GPU_HIP_PRESENT
         << " --hip               Use ROCm/HIP backend\n"
+#endif
+#ifdef ALPAKA_ACC_SYCL_PRESENT
+        << "--syclcpu            Use SYCL Intel CPU backend\n"
+	<< "--syclgpu            Use SYCL Intel GPU backend\n"
 #endif
         << " --numberOfThreads   Number of threads to use (default 1, use 0 to use all CPU cores)\n"
         << " --numberOfStreams   Number of concurrent events (default 0 = numberOfThreads)\n"
@@ -158,6 +165,16 @@ int main(int argc, char** argv) {
       getOptionalArgument(args, i, weight);
       backends.insert_or_assign(Backend::HIP, weight);
 #endif
+#ifdef ALPAKA_ACC_SYCL_PRESENT
+    } else if (*i == "--syclcpu") {
+      float weight = 1.;
+      getOptionalArgument(args, i, weight);
+      backends.insert_or_assign(Backend::CPUSYCL, weight);
+   } else if (*i == "--syclgpu") {
+     float weight = 1.;
+     getOptionalArgument(args, i, weight);
+     backends.insert_or_assign(Backend::GPUSYCL, weight);
+#endif
     } else if (*i == "--numberOfThreads") {
       getArgument(args, i, numberOfThreads);
     } else if (*i == "--numberOfStreams") {
@@ -223,6 +240,14 @@ int main(int argc, char** argv) {
     cms::alpakatools::initialise<alpaka_rocm_async::Platform>();
   }
 #endif
+//#ifdef ALPAKA_ACC_SYCL_PRESENT
+  if (backends.find(Backend::CPUSYCL) != backends.end()) {
+    cms::alpakatools::initialise<alpaka_cpu_sycl::Platform>();
+  }
+ if (backends.find(Backend::GPUSYCL) != backends.end()) {
+   cms::alpakatools::initialise<alpaka_gpu_sycl::Platform>();
+ }
+//#endif
 
   // Initialize EventProcessor
   std::vector<std::string> esmodules;

@@ -198,24 +198,24 @@ namespace cms::alpakatools {
         cachedBlocks_.insert(std::make_pair(block.bin, block));
 
         if (debug_) {
-          std::ostringstream out;
-          out << "\t" << deviceType_ << " " << alpaka::getName(device_) << " returned " << block.bytes << " bytes at "
-              << ptr << " from associated queue " << block.queue->m_spQueueImpl.get() << " , event "
-              << block.event->m_spEventImpl.get() << " .\n\t\t " << cachedBlocks_.size() << " available blocks cached ("
-              << cachedBytes_.free << " bytes), " << liveBlocks_.size() << " live blocks (" << cachedBytes_.live
-              << " bytes) outstanding." << std::endl;
-          std::cout << out.str() << std::endl;
+//          std::ostringstream out; FIXME_ !!
+//          out << "\t" << deviceType_ << " " << alpaka::getName(device_) << " returned " << block.bytes << " bytes at "
+//              << ptr << " from associated queue " << block.queue->m_spQueueImpl.get() << " , event "
+//              << block.event->m_spEventImpl.get() << " .\n\t\t " << cachedBlocks_.size() << " available blocks cached ("
+//              << cachedBytes_.free << " bytes), " << liveBlocks_.size() << " live blocks (" << cachedBytes_.live
+//              << " bytes) outstanding." << std::endl;
+//          std::cout << out.str() << std::endl;
         }
       } else {
         // if the buffer is not recached, it is automatically freed when block goes out of scope
         if (debug_) {
-          std::ostringstream out;
-          out << "\t" << deviceType_ << " " << alpaka::getName(device_) << " freed " << block.bytes << " bytes at "
-              << ptr << " from associated queue " << block.queue->m_spQueueImpl.get() << ", event "
-              << block.event->m_spEventImpl.get() << " .\n\t\t " << cachedBlocks_.size() << " available blocks cached ("
-              << cachedBytes_.free << " bytes), " << liveBlocks_.size() << " live blocks (" << cachedBytes_.live
-              << " bytes) outstanding." << std::endl;
-          std::cout << out.str() << std::endl;
+//          std::ostringstream out;
+//          out << "\t" << deviceType_ << " " << alpaka::getName(device_) << " freed " << block.bytes << " bytes at "
+//              << ptr << " from associated queue " << block.queue->m_spQueueImpl.get() << ", event "
+//              << block.event->m_spEventImpl.get() << " .\n\t\t " << cachedBlocks_.size() << " available blocks cached ("
+//              << cachedBytes_.free << " bytes), " << liveBlocks_.size() << " live blocks (" << cachedBytes_.live
+//              << " bytes) outstanding." << std::endl;
+//          std::cout << out.str() << std::endl;
         }
       }
     }
@@ -298,13 +298,13 @@ namespace cms::alpakatools {
           cachedBytes_.requested += block.requested;
 
           if (debug_) {
-            std::ostringstream out;
-            out << "\t" << deviceType_ << " " << alpaka::getName(device_) << " reused cached block at "
-                << block.buffer->data() << " (" << block.bytes << " bytes) for queue "
-                << block.queue->m_spQueueImpl.get() << ", event " << block.event->m_spEventImpl.get()
-                << " (previously associated with stream " << iBlock->second.queue->m_spQueueImpl.get() << " , event "
-                << iBlock->second.event->m_spEventImpl.get() << ")." << std::endl;
-            std::cout << out.str() << std::endl;
+//            std::ostringstream out;
+//            out << "\t" << deviceType_ << " " << alpaka::getName(device_) << " reused cached block at "
+//                << block.buffer->data() << " (" << block.bytes << " bytes) for queue "
+//                << block.queue->m_spQueueImpl.get() << ", event " << block.event->m_spEventImpl.get()
+//                << " (previously associated with stream " << iBlock->second.queue->m_spQueueImpl.get() << " , event "
+//                << iBlock->second.event->m_spEventImpl.get() << ")." << std::endl;
+//            std::cout << out.str() << std::endl;
           }
 
           // remove the reused block from the list of cached blocks
@@ -321,8 +321,13 @@ namespace cms::alpakatools {
         // allocate device memory
         return alpaka::allocBuf<std::byte, size_t>(device_, bytes);
       } else if constexpr (std::is_same_v<Device, alpaka::DevCpu>) {
+#ifdef ALPAKA_ACC_SYCL_ENABLED
+        // FIXME_ implement alpaka allocMappedBuf for SYCL
+        return alpaka::allocBuf<std::byte, size_t>(device_, bytes);
+#else
         // allocate pinned host memory
         return alpaka::allocMappedBuf<std::byte, size_t>(device_, alpaka::getDev(queue), bytes);
+#endif
       } else {
         // unsupported combination
         static_assert(std::is_same_v<Device, alpaka::Dev<Queue>> or std::is_same_v<Device, alpaka::DevCpu>,
@@ -337,11 +342,11 @@ namespace cms::alpakatools {
       } catch (std::runtime_error const& e) {
         // the allocation attempt failed: free all cached blocks on the device and retry
         if (debug_) {
-          std::ostringstream out;
-          out << "\t" << deviceType_ << " " << alpaka::getName(device_) << " failed to allocate " << block.bytes
-              << " bytes for queue " << block.queue->m_spQueueImpl.get()
-              << ", retrying after freeing cached allocations" << std::endl;
-          std::cout << out.str() << std::endl;
+//          std::ostringstream out;
+//          out << "\t" << deviceType_ << " " << alpaka::getName(device_) << " failed to allocate " << block.bytes
+//              << " bytes for queue " << block.queue->m_spQueueImpl.get()
+//              << ", retrying after freeing cached allocations" << std::endl;
+//          std::cout << out.str() << std::endl;
         }
         // TODO implement a method that frees only up to block.bytes bytes
         freeAllCached();
@@ -362,11 +367,11 @@ namespace cms::alpakatools {
       }
 
       if (debug_) {
-        std::ostringstream out;
-        out << "\t" << deviceType_ << " " << alpaka::getName(device_) << " allocated new block at "
-            << block.buffer->data() << " (" << block.bytes << " bytes associated with queue "
-            << block.queue->m_spQueueImpl.get() << ", event " << block.event->m_spEventImpl.get() << "." << std::endl;
-        std::cout << out.str() << std::endl;
+//        std::ostringstream out;
+//        out << "\t" << deviceType_ << " " << alpaka::getName(device_) << " allocated new block at "
+//            << block.buffer->data() << " (" << block.bytes << " bytes associated with queue "
+//            << block.queue->m_spQueueImpl.get() << ", event " << block.event->m_spEventImpl.get() << "." << std::endl;
+//        std::cout << out.str() << std::endl;
       }
     }
 
@@ -378,12 +383,12 @@ namespace cms::alpakatools {
         cachedBytes_.free -= iBlock->second.bytes;
 
         if (debug_) {
-          std::ostringstream out;
-          out << "\t" << deviceType_ << " " << alpaka::getName(device_) << " freed " << iBlock->second.bytes
-              << " bytes.\n\t\t  " << (cachedBlocks_.size() - 1) << " available blocks cached (" << cachedBytes_.free
-              << " bytes), " << liveBlocks_.size() << " live blocks (" << cachedBytes_.live << " bytes) outstanding."
-              << std::endl;
-          std::cout << out.str() << std::endl;
+//          std::ostringstream out;
+//          out << "\t" << deviceType_ << " " << alpaka::getName(device_) << " freed " << iBlock->second.bytes
+//              << " bytes.\n\t\t  " << (cachedBlocks_.size() - 1) << " available blocks cached (" << cachedBytes_.free
+//              << " bytes), " << liveBlocks_.size() << " live blocks (" << cachedBytes_.live << " bytes) outstanding."
+//              << std::endl;
+//          std::cout << out.str() << std::endl;
         }
 
         cachedBlocks_.erase(iBlock);
