@@ -57,8 +57,8 @@ namespace {
         << " --hip               Use ROCm/HIP backend\n"
 #endif
 #ifdef ALPAKA_ACC_SYCL_PRESENT
-        << "--syclcpu            Use SYCL Intel CPU backend\n"
-	<< "--syclgpu            Use SYCL Intel GPU backend\n"
+        << " --syclcpu            Use SYCL Intel CPU backend\n"
+	<< " --syclgpu            Use SYCL Intel GPU backend\n"
 #endif
         << " --numberOfThreads   Number of threads to use (default 1, use 0 to use all CPU cores)\n"
         << " --numberOfStreams   Number of concurrent events (default 0 = numberOfThreads)\n"
@@ -352,5 +352,36 @@ int main(int argc, char** argv) {
   std::cout << "Processed " << maxEvents << " events in " << std::scientific << time << " seconds, throughput "
             << std::defaultfloat << (maxEvents / time) << " events/s, CPU usage per thread: " << std::fixed
             << std::setprecision(1) << (cpu / time / numberOfThreads * 100) << "%" << std::endl;
+
+  // Destroy initialised devices
+#ifdef ALPAKA_ACC_CPU_B_SEQ_T_SEQ_PRESENT
+  if (backends.find(Backend::SERIAL) != backends.end()) {
+    cms::alpakatools::resetDevices<alpaka_serial_sync::Platform>();
+  }
+#endif
+#ifdef ALPAKA_ACC_CPU_B_TBB_T_SEQ_PRESENT
+  if (backends.find(Backend::TBB) != backends.end()) {
+    cms::alpakatools::resetDevices<alpaka_tbb_async::Platform>();
+  }
+#endif
+#ifdef ALPAKA_ACC_GPU_CUDA_PRESENT
+  if (backends.find(Backend::CUDA) != backends.end()) {
+    cms::alpakatools::resetDevices<alpaka_cuda_async::Platform>();
+  }
+#endif
+#ifdef ALPAKA_ACC_GPU_HIP_PRESENT
+  if (backends.find(Backend::HIP) != backends.end()) {
+    cms::alpakatools::resetDevices<alpaka_rocm_async::Platform>();
+  }
+#endif
+#ifdef ALPAKA_ACC_SYCL_PRESENT
+  if (backends.find(Backend::CPUSYCL) != backends.end()) {
+    cms::alpakatools::resetDevices<alpaka_cpu_sycl::Platform>();
+  }
+  if (backends.find(Backend::GPUSYCL) != backends.end()) {
+    cms::alpakatools::resetDevices<alpaka_gpu_sycl::Platform>();
+  }
+#endif
+
   return EXIT_SUCCESS;
 }

@@ -124,6 +124,8 @@ AOT_HIP_FLAGS     := -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --of
 #                                       sign (e.g. gfx908:xnack+:sramecc-).
 #                                       May be specified more than once.
 
+USE_SYCL_ONEAPI := true
+
 ifdef USE_SYCL_ONEAPI
 ONEAPI_BASE       := /cvmfs/projects.cern.ch/intelsw/oneAPI/linux/x86_64/2022
 ONEAPI_VERSION    := 2022.2.0
