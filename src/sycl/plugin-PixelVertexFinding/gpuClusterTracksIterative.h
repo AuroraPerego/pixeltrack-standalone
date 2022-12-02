@@ -152,7 +152,7 @@ namespace gpuVertexFinder {
             cms::sycltools::atomic_fetch_min<int32_t>(&iv[i], (int32_t)old);
           };
           ++p;
-          for (; p < hist->end(be); ++p) // SYCL_BUG_ this line gives an error of un undefined intrinsic 
+          // for (; p < hist->end(be); ++p) // SYCL_BUG_ this line gives an error of un undefined intrinsic 
             loop(*p);
         }  // for i
       }
