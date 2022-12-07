@@ -146,8 +146,9 @@ namespace cms {
     class HistoContainer {
     public:
       using Counter = uint32_t;
-
-      using CountersOnly = HistoContainer<T, NBINS, 0, S, I, NHISTS>;
+	
+      // this was HistoContainer<T, NBINS, 0, S, I, NHISTS> but in SYCL zero-length arrays are not supported
+      using CountersOnly = HistoContainer<T, NBINS, 1, S, I, NHISTS>;
 
       using index_type = I;
       using UT = typename std::make_unsigned<T>::type;

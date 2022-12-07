@@ -66,7 +66,7 @@ namespace gpuVertexFinder {
 
     ~Producer() = default;
 
-    ZVertexHeterogeneous makeAsync(sycl::queue stream, TkSoA const* tksoa, float ptMin) const;
+    ZVertexHeterogeneous makeAsync(sycl::queue stream, TkSoA const* tksoa, float ptMin, bool isCpu) const;
 
   private:
     const bool oneKernel_;

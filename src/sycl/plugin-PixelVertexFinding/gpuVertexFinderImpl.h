@@ -117,7 +117,7 @@ void vertexFinderOneKernelCPU(gpuVertexFinder::ZVertices* pdata,
   }
 #endif
 
-ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa, float ptMin) const {
+ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa, float ptMin, bool isCpu) const {
     #ifdef VERTEX_DEBUG
         std::cout << "producing Vertices on GPU" << std::endl;
     #endif
@@ -163,7 +163,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
     if (oneKernel_) {
       // implemented only for density clustesrs
 #ifndef THREE_KERNELS
-       if (stream.get_device().is_cpu()){
+       if (isCpu){
     numberOfBlocks = 1;
     blockSize      = 32; // SYCL_BUG_ on GPU every size is ok, on CPU only 32 (i.e. the sub group size) will work
     stream.submit([&](sycl::handler &cgh) {
@@ -181,7 +181,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
    });
      stream.submit([&](sycl::handler &cgh) {
         auto pdata  = soa;
-        auto pws   = ws_d.get();
         cgh.single_task([=]() {
           auto& __restrict__ data = *pdata;
           float* ptv2 = data.ptv2;
@@ -403,7 +402,7 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
 #endif
       numberOfBlocks = 1;
       blockSize      = 256;
-      if (stream.get_device().is_cpu()){
+      if (isCpu){
       stream.submit([&](sycl::handler &cgh) {
         auto soa_kernel = soa;
         auto ws_kernel  = ws_d.get();
@@ -415,7 +414,6 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
     });
       stream.submit([&](sycl::handler &cgh) {
         auto pdata  = soa;
-        auto pws   = ws_d.get();
         cgh.single_task([=]() {
           auto& __restrict__ data = *pdata;
           float* ptv2 = data.ptv2;

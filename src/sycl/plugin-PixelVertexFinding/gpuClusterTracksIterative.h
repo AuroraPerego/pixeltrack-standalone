@@ -132,7 +132,7 @@ namespace gpuVertexFinder {
         for (auto k = item.get_local_id(0); k < hist->size(); k += item.get_local_range(0)) {
           auto p = hist->begin() + k;
           auto i = (*p);
-          auto be = std::min(Hist::bin(izt[i]) + 1, int(hist->nbins() - 1));
+          // auto be = std::min(Hist::bin(izt[i]) + 1, int(hist->nbins() - 1)); // commented due to the SYCL_BUG_ at line 155
           if (nn[i] < minT)
             continue;  // DBSCAN core rule
           auto loop = [&](uint32_t j) {
@@ -152,7 +152,7 @@ namespace gpuVertexFinder {
             cms::sycltools::atomic_fetch_min<int32_t>(&iv[i], (int32_t)old);
           };
           ++p;
-          for (; p < hist->end(be); ++p) // SYCL_BUG_ this line gives an error of un undefined intrinsic 
+          // for (; p < hist->end(be); ++p) // SYCL_BUG_ this line gives an error of un undefined intrinsic 
             loop(*p);
         }  // for i
       }

@@ -531,7 +531,8 @@ namespace pixelgpudetails {
                                                        bool useQualityInfo,
                                                        bool includeErrors,
                                                        bool debug,
-                                                       sycl::queue stream) {
+                                                       sycl::queue stream,
+						       bool isCpu) {
        nDigis = wordCounter;
    #ifdef GPU_DEBUG
        std::cout << "decoding " << wordCounter << " digis. Max is " << pixelgpudetails::MAX_FED_WORDS << std::endl;
@@ -658,7 +659,7 @@ namespace pixelgpudetails {
             constexpr uint32_t maxPixInModule = 4000;
             constexpr auto nbins = phase1PixelTopology::numColsInModule + 2;
             using Hist = cms::sycltools::HistoContainer<uint16_t, nbins, maxPixInModule, 9, uint16_t>;
-           if(stream.get_device().is_cpu()){ 
+           if(isCpu){ 
 		   threadsPerBlock = 32;
              stream.submit([&](sycl::handler &cgh) {
                     auto digis_x_kernel     = digis_d.c_xx();

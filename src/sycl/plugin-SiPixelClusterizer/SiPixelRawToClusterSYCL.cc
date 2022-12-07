@@ -47,6 +47,7 @@ private:
   const bool isRun2_;
   const bool includeErrors_;
   const bool useQuality_;
+  std::optional<bool> isCpu_;
 };
 
 SiPixelRawToClusterSYCL::SiPixelRawToClusterSYCL(edm::ProductRegistry& reg)
@@ -55,7 +56,7 @@ SiPixelRawToClusterSYCL::SiPixelRawToClusterSYCL(edm::ProductRegistry& reg)
       clusterPutToken_(reg.produces<cms::sycltools::Product<SiPixelClustersSYCL>>()),
       isRun2_(true),
       includeErrors_(true),
-      useQuality_(true) {
+      useQuality_(true){
   if (includeErrors_) {
     digiErrorPutToken_ = reg.produces<cms::sycltools::Product<SiPixelDigiErrorsSYCL>>();
   }
@@ -67,6 +68,9 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
                                       const edm::EventSetup& iSetup,
                                       edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
   cms::sycltools::ScopedContextAcquire ctx{iEvent.streamID(), std::move(waitingTaskHolder), ctxState_};
+
+  if(!isCpu_)
+    isCpu_ = ctx.stream().get_device().is_cpu();  
 
   auto const& hgpuMap = iSetup.get<SiPixelFedCablingMapGPUWrapper>();
   if (hgpuMap.hasQuality() != useQuality_) {
@@ -158,7 +162,8 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
                              useQuality_,
                              includeErrors_,
                              false,  // debug
-                             ctx.stream());
+                             ctx.stream(),
+			     *isCpu_);
 }
 
 void SiPixelRawToClusterSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
