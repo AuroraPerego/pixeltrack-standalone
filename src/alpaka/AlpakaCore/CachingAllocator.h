@@ -325,8 +325,9 @@ namespace cms::alpakatools {
         // FIXME_ implement alpaka allocMappedBuf for SYCL
         return alpaka::allocBuf<std::byte, size_t>(device_, bytes);
 #else
-        // allocate pinned host memory
-        return alpaka::allocMappedBuf<std::byte, size_t>(device_, alpaka::getDev(queue), bytes);
+	// allocate pinned host memory accessible by the queue's platform 
+	return alpaka::allocMappedBuf<alpaka::Pltf<alpaka::Dev<Queue>>, std::byte, size_t>(device_, bytes);        
+        //return alpaka::allocMappedBuf<std::byte, size_t>(device_, alpaka::getDev(queue), bytes);
 #endif
       } else {
         // unsupported combination

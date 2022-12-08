@@ -240,14 +240,14 @@ int main(int argc, char** argv) {
     cms::alpakatools::initialise<alpaka_rocm_async::Platform>();
   }
 #endif
-//#ifdef ALPAKA_ACC_SYCL_PRESENT
+#ifdef ALPAKA_ACC_SYCL_PRESENT
   if (backends.find(Backend::CPUSYCL) != backends.end()) {
     cms::alpakatools::initialise<alpaka_cpu_sycl::Platform>();
   }
  if (backends.find(Backend::GPUSYCL) != backends.end()) {
    cms::alpakatools::initialise<alpaka_gpu_sycl::Platform>();
  }
-//#endif
+#endif
 
   // Initialize EventProcessor
   std::vector<std::string> esmodules;

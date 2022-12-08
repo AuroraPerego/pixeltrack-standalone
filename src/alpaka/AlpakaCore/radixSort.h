@@ -113,7 +113,7 @@ namespace cms::alpakatools {
         auto laneId = idx & 0x1f;
 
         for (int offset = 1; offset < 32; offset <<= 1) {
-#if defined(__CUDA_ARCH__)
+#if defined(__CUDA_ARCH__) && !defined(__SYCL_DEVICE_ONLY__)
           auto y = __shfl_up_sync(0xffffffff, x, offset);
 #elif defined(__HIP_DEVICE_COMPILE__)
           auto y = __shfl_up(x, offset);

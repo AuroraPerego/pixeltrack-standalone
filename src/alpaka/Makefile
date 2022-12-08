@@ -10,6 +10,7 @@ test_cpu: $(TARGET)
 	@echo "Testing $(TARGET)"
 	$(TARGET) --maxEvents 2 --serial
 	$(TARGET) --maxEvents 2 --tbb
+	$(TARGET) --maxEvents 2 --syclcpu
 	@echo "Succeeded"
 test_nvidiagpu: $(TARGET)
 	@echo
@@ -22,9 +23,8 @@ test_amdgpu: $(TARGET)
 	$(TARGET) --maxEvents 2 --hip
 	@echo "Succeeded"
 test_intelgpu:
-	@echo
 	@echo "Testing $(TARGET)"
-	$(TARGET) --maxEvents 2 --hip
+	$(TARGET) --maxEvents 2 --syclgpu
 	@echo "Succeeded"
 test_auto:
 .PHONY: test_cpu test_nvidiagpu test_amdgpu test_intelgpu test_auto
@@ -256,19 +256,19 @@ $$($(1)_LIB): $$($(1)_OBJ) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_DEPS)) 
 
 $$($(1)_SERIAL_LIB): $$($(1)_SERIAL_OBJ) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_DEPS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LIB)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SERIAL_LIB))
 	@[ -d $$(@D) ] || mkdir -p $$(@D)
-	$(SYCL_CXX) $$($(1)_SERIAL_OBJ) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SERIAL_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
+	$(CXX) $$($(1)_SERIAL_OBJ) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SERIAL_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
 
 $$($(1)_TBB_LIB): $$($(1)_TBB_OBJ) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_DEPS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LIB)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_TBB_LIB))
 	@[ -d $$(@D) ] || mkdir -p $$(@D)
-	$(SYCL_CXX) $$($(1)_TBB_OBJ) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_TBB_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
+	$(CXX) $$($(1)_TBB_OBJ) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_TBB_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
 
 $$($(1)_CUDA_LIB): $$($(1)_CUDA_OBJ) $$($(1)_CUDADLINK) $$(foreach dep,$(EXTERNAL_DEPENDS_H),$$($$(dep)_DEPS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LIB)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_CUDA_LIB))
 	@[ -d $$(@D) ] || mkdir -p $$(@D)
-	$(SYCL_CXX) $$($(1)_CUDA_OBJ) $$($(1)_CUDADLINK) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_CUDA_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
+	$(CXX) $$($(1)_CUDA_OBJ) $$($(1)_CUDADLINK) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_CUDA_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
 
 $$($(1)_ROCM_LIB): $$($(1)_ROCM_OBJ) $$(foreach dep,$(EXTERNAL_DEPENDS_H),$$($$(dep)_DEPS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LIB)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_ROCM_LIB))
 	@[ -d $$(@D) ] || mkdir -p $$(@D)
-	$(SYCL_CXX) $$($(1)_ROCM_OBJ) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_ROCM_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
+	$(CXX) $$($(1)_ROCM_OBJ) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_ROCM_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
 
 $$($(1)_SYCL_CPU_LIB): $$($(1)_SYCL_CPU_OBJ) $$(foreach dep,$(EXTERNAL_DEPENDS_H),$$($$(dep)_DEPS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LIB)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_CPU_LIB))
 	@[ -d $$(@D) ] || mkdir -p $$(@D)
@@ -276,7 +276,7 @@ $$($(1)_SYCL_CPU_LIB): $$($(1)_SYCL_CPU_OBJ) $$(foreach dep,$(EXTERNAL_DEPENDS_H
 
 $$($(1)_SYCL_GPU_LIB): $$($(1)_SYCL_GPU_OBJ) $$(foreach dep,$(EXTERNAL_DEPENDS_H),$$($$(dep)_DEPS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LIB)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_GPU_LIB))
 	@[ -d $$(@D) ] || mkdir -p $$(@D)
-	$(SYCL_CXX) $(SYCL_CXXFLAGS) $($(1)_SYCL_GPU_OBJ) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_GPU_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
+	$(SYCL_CXX) $(SYCL_CXXFLAGS) $$($(1)_SYCL_GPU_OBJ) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_GPU_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
 
 
 # Anything depending on Alpaka
@@ -404,7 +404,7 @@ endif
 ifdef SYCL_BASE
 $(OBJ_DIR)/$(TARGET_NAME)/test/alpaka/%.cc.syclcpu.o: $(SRC_DIR)/$(TARGET_NAME)/test/alpaka/%.cc
 	@[ -d $(@D) ] || mkdir -p $(@D)
-	$(SYCL_CXX) $(SYCL_CXXFLAGS) $(SYCL_TEST_CXXFLAGS) $(MY_CXXFLAGS) -DALPAKA_ACC_SYCL_ENABLED -DALPAKA_SYCL_BACKEND_ONEAPI -DALPAKA_SYCL_ONEAPI_CPU -UALPAKA_HOST_ONLY $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_CXXFLAGS)) -c $< -o $@ -MMD
+	$(SYCL_CXX) $(SYCL_CXXFLAGS) $(SYCL_TEST_CXXFLAGS) $(MY_CXXFLAGS) -DALPAKA_ACC_SYCL_ENABLED -DALPAKA_SYCL_BACKEND_ONEAPI -DALPAKA_SYCL_ONEAPI_CPU -UALPAKA_HOST_ONLY $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_SYCL_CXXFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_CXXFLAGS)) -c $< -o $@ -MMD
 
 $(TEST_DIR)/$(TARGET_NAME)/%.syclcpu: $(OBJ_DIR)/$(TARGET_NAME)/test/alpaka/%.cc.syclcpu.o | $(LIBS)
 	@[ -d $(@D) ] || mkdir -p $(@D)
@@ -415,7 +415,7 @@ endif
 ifdef SYCL_BASE
 $(OBJ_DIR)/$(TARGET_NAME)/test/alpaka/%.cc.syclgpu.o: $(SRC_DIR)/$(TARGET_NAME)/test/alpaka/%.cc
 	@[ -d $(@D) ] || mkdir -p $(@D)
-	$(SYCL_CXX) $(SYCL_CXXFLAGS) $(SYCL_TEST_CXXFLAGS) $(MY_CXXFLAGS) -DALPAKA_ACC_SYCL_ENABLED -DALPAKA_SYCL_BACKEND_ONEAPI -DALPAKA_SYCL_ONEAPI_GPU -UALPAKA_HOST_ONLY $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_CXXFLAGS)) -c $< -o $@ -MMD
+	$(SYCL_CXX) $(SYCL_CXXFLAGS) $(SYCL_TEST_CXXFLAGS) $(MY_CXXFLAGS) -DALPAKA_ACC_SYCL_ENABLED -DALPAKA_SYCL_BACKEND_ONEAPI -DALPAKA_SYCL_ONEAPI_GPU -UALPAKA_HOST_ONLY $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_SYCL_CXXFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_CXXFLAGS)) -c $< -o $@ -MMD
 
 $(TEST_DIR)/$(TARGET_NAME)/%.syclgpu: $(OBJ_DIR)/$(TARGET_NAME)/test/alpaka/%.cc.syclgpu.o | $(LIBS)
 	@[ -d $(@D) ] || mkdir -p $(@D)

@@ -9,6 +9,17 @@
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
   namespace Rfit {
 
+#if defined(ALPAKA_ACC_SYCL_ENABLED)
+  using sycl::abs;
+  using sycl::atan;
+  using sycl::atan2;
+  using sycl::cos;
+  using sycl::sin;
+  using sycl::sqrt;
+#else
+   using std::abs;
+#endif
+
     /*!  Compute the Radiation length in the uniform hypothesis
  *
  * The Pixel detector, barrel and forward, is considered as an omogeneous
@@ -39,7 +50,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       u_int n = length_values.rows();
       rad_lengths(0) = length_values(0) * XX_0_inv;
       for (u_int j = 1; j < n; ++j) {
-        rad_lengths(j) = std::abs(length_values(j) - length_values(j - 1)) * XX_0_inv;
+        rad_lengths(j) = abs(length_values(j) - length_values(j - 1)) * XX_0_inv;
       }
     }
 
@@ -97,7 +108,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       for (u_int k = 0; k < n; ++k) {
         for (u_int l = k; l < n; ++l) {
           for (u_int i = 0; i < std::min(k, l); ++i) {
-            tmp(k + n, l + n) += std::abs(S_values(k) - S_values(i)) * std::abs(S_values(l) - S_values(i)) * sig2_S(i);
+            tmp(k + n, l + n) += abs(S_values(k) - S_values(i)) * abs(S_values(l) - S_values(i)) * sig2_S(i);
           }
           tmp(l + n, k + n) = tmp(k + n, l + n);
         }
@@ -143,7 +154,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         const double cross = cross2D(-o, p);
         const double dot = (-o).dot(p);
         const double atan2_ = atan2(cross, dot);
-        s_values(i) = std::abs(atan2_ * fast_fit(2));
+        s_values(i) = abs(atan2_ * fast_fit(2));
       }
       computeRadLenUniformMaterial(s_values * sqrt(1. + 1. / (fast_fit(3) * fast_fit(3))), rad_lengths);
       MatrixNd<N> scatter_cov_rad = MatrixNd<N>::Zero();
