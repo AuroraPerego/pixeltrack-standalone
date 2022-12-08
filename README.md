@@ -440,6 +440,7 @@ available but only the first one has to be selected. To select a cpu `--device c
 - `opencl:gpu:0` or `level_zero:gpu:0`, or just `--device gpu` (in this case both backends will be used) 
 - `cuda` to target NVIDIA GPU (CUDA\_VISIBLE\_DEVICES works as well)
 - `hip` to target AMD GPU
+To select more than one device, list them separated with a comma (e.g. `--device cpu,gpu`)
 
 ##### Memory allocation strategy
 
