@@ -104,8 +104,8 @@ endif
 LLVM_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Werror=format-contains-nul -Wno-non-template-friend -Werror=return-local-addr -Werror=unused-but-set-variable
 
 # flags to compile AOT:
-INTEL_AOT_FLAGS   := -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device 0x020a"
-AOT_CUDA_FLAGS    := -fsycl-targets=nvptx64-nvidia-cuda -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings
+AOT_INTEL_FLAGS   := -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device 0x020a"
+AOT_CUDA_FLAGS    := -fsycl-targets=spir64_x86_64#,nvptx64-nvidia-cuda -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings
 AOT_HIP_FLAGS     := -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx900 --rocm-path=$(ROCM_BASE) -Wno-linker-warnings 
 
 # INTEL flags: compile AOT for all the CPUs and for the GPU on olice-05
@@ -124,8 +124,6 @@ AOT_HIP_FLAGS     := -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --of
 #                                       sign (e.g. gfx908:xnack+:sramecc-).
 #                                       May be specified more than once.
 
-USE_SYCL_ONEAPI := true
-
 ifdef USE_SYCL_ONEAPI
 ONEAPI_BASE       := /cvmfs/projects.cern.ch/intelsw/oneAPI/linux/x86_64/2022
 ONEAPI_VERSION    := 2022.2.0
@@ -140,12 +138,12 @@ USER_ONEAPI_FLAGS := -fp-model=precise -fimf-arch-consistency=true -no-fma
 # math flags : -fp-model=precise -fimf-arch-consistency=true -no-fma
 # workaround for the unexpected intrinsic in ONEAPI 2022.2.0: -fno-sycl-early-optimizations
 export SYCL_CXX      := $(SYCL_BASE)/bin/dpcpp
-export SYCL_CXXFLAGS := -fsycl -Wsycl-strict $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_ONEAPI_FLAGS) $(INTEL_AOT_FLAGS)
+export SYCL_CXXFLAGS := -fsycl -Wsycl-strict $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_ONEAPI_FLAGS) $(AOT_INTEL_FLAGS)
 endif
 
 else
 # use llvm 
-SYCL_BASE      := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09
+SYCL_BASE      := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/nightly/20221208
 USER_SYCLFLAGS := -std=c++17 -Wno-unused-const-variable
 
 # make CPUs visible
