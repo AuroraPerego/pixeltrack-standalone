@@ -175,7 +175,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
         results->stateAtBS.copyFromCircle(
             circle_fit[local_idx].par, circle_fit[local_idx].cov, line_fit.par, line_fit.cov, 1.f / float(B), tkid);
+#if defined(ALPAKA_ACC_SYCL_ENABLED)  
+        results->pt(tkid) = B / sycl::abs(circle_fit[local_idx].par(2));
+#else
         results->pt(tkid) = B / std::abs(circle_fit[local_idx].par(2));
+#endif
         results->eta(tkid) = asinhf(line_fit.par(0));
         results->chi2(tkid) = (circle_fit[local_idx].chi2 + line_fit.chi2) / (2 * N - 5);
 
