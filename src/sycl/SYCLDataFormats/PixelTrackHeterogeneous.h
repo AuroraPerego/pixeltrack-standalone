@@ -20,7 +20,6 @@ public:
   using HitContainer = cms::sycltools::OneToManyAssoc<hindex_type, S, 5 * S>;
 
   // Always check quality is at least loose!
-  // CUDA does not support enums  in __lgc ...
   eigenSoA::ScalarSoA<uint8_t, S> m_quality;
   constexpr Quality quality(int32_t i) const { return (Quality)(m_quality(i)); }
   constexpr Quality &quality(int32_t i) { return (Quality &)(m_quality(i)); }

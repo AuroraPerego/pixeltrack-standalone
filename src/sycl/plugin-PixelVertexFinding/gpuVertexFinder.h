@@ -4,8 +4,10 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "SYCLDataFormats/ZVertexHeterogeneous.h"
 #include "SYCLDataFormats/PixelTrackHeterogeneous.h"
+#include "SYCLDataFormats/ZVertexSoA.h"
+
+using ZVertexHeterogeneous = HeterogeneousSoA<ZVertexSoA>;
 
 namespace gpuVertexFinder {
 
@@ -44,33 +46,21 @@ namespace gpuVertexFinder {
     using WorkSpace = gpuVertexFinder::WorkSpace;
     using TkSoA = pixelTrack::TrackSoA;
 
-    Producer(bool oneKernel,
-             bool useDensity,
-             bool useDBSCAN,
-             bool useIterative,
-             int iminT,      // min number of neighbours to be "core"
+    Producer(int iminT,      // min number of neighbours to be "core"
              float ieps,     // max absolute distance to cluster
              float ierrmax,  // max error to be "seed"
              float ichi2max  // max normalized distance to cluster
              )
-        : oneKernel_(oneKernel && !(useDBSCAN || useIterative)),
-          useDensity_(useDensity),
-          useDBSCAN_(useDBSCAN),
-          useIterative_(useIterative),
-          minT(iminT),
+        : minT(iminT),
           eps(ieps),
           errmax(ierrmax),
           chi2max(ichi2max) {}
 
     ~Producer() = default;
 
-    ZVertexHeterogeneous makeAsync(sycl::queue stream, TkSoA const* tksoa, float ptMin) const;
+    ZVertexHeterogeneous makeAsync(sycl::queue stream, TkSoA const* tksoa, float ptMin, bool isCpu) const;
 
   private:
-    const bool oneKernel_;
-    const bool useDensity_;
-    const bool useDBSCAN_;
-    const bool useIterative_;
 
     int minT;       // min number of neighbours to be "core"
     float eps;      // max absolute distance to cluster

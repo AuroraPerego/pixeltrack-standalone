@@ -101,11 +101,13 @@ endif
 # Intel oneAPI
 SYCL_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Wno-non-template-friend -Werror=format-contains-nul -Werror=return-local-addr -Werror=unused-but-set-variable
 
+ USE_SYCL_LLVM := true
+
 ifdef USE_SYCL_LLVM
 # export PATH=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09/bin:$PATH
 # export LD_LIBRARY_PATH=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09/lib:$LD_LIBRARY_PATH
 # export OCL_ICD_FILENAMES=/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/runtime/intel/oclcpuexp_2022.14.8.0.04/x64/libintelocl.so
-SYCL_BASE     := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09
+SYCL_BASE     := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/nightly/20221209
 USER_SYCLFLAGS := -std=c++17 #-fsycl-targets=nvptx64-nvidia-cuda
 export SYCL_CXX      := $(SYCL_BASE)/bin/clang++
 export SYCL_CXXFLAGS := -fsycl $(filter-out $(SYCL_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
@@ -139,11 +141,6 @@ else
 SYCL_BASE :=
 endif
 endif
-
-# Input data definitions
-DATA_BASE := $(BASE_DIR)/data
-export DATA_DEPS := $(DATA_BASE)/data_ok
-DATA_TAR_GZ := $(DATA_BASE)/data.tar.gz
 
 # External definitions
 EXTERNAL_BASE := $(BASE_DIR)/external
@@ -430,10 +427,12 @@ endif
 # check if oneAPI environment file exists
 ifneq ($(wildcard $(ONEAPI_ENV)),)
 	@echo 'source $(ONEAPI_ENV)'                                            >> $@
+else
+	@echo 'export OCL_ICD_FILENAMES=$(OCL_ICD_FILENAMES)'                   >> $@
 endif
 
 define TARGET_template
-$(1): $$(foreach dep,$$($(1)_EXTERNAL_DEPENDS),$$($$(dep)_DEPS)) | $(DATA_DEPS)
+$(1): $$(foreach dep,$$($(1)_EXTERNAL_DEPENDS),$$($$(dep)_DEPS))
 	+$(MAKE) -C src/$(1)
 
 test_$(1): test_$(1)_cpu test_$(1)_auto
@@ -498,23 +497,11 @@ clean:
 distclean: | clean
 	rm -fR $(EXTERNAL_BASE) .original_env
 
-dataclean:
-	rm -fR $(DATA_BASE)/*.tar.gz $(DATA_BASE)/*.bin $(DATA_BASE)/data_ok
-
 define CLEAN_template
 clean_$(1):
 	rm -fR $(LIB_DIR)/$(1) $(OBJ_DIR)/$(1) $(TEST_DIR)/$(1) $(1)
 endef
 $(foreach target,$(TARGETS_ALL),$(eval $(call CLEAN_template,$(target))))
-
-# Data rules
-$(DATA_DEPS): $(DATA_TAR_GZ) | $(DATA_BASE)/md5.txt
-	cd $(DATA_BASE) && tar zxf $(DATA_TAR_GZ)
-	cd $(DATA_BASE) && md5sum *.bin | diff -u md5.txt -
-	touch $(DATA_DEPS)
-
-$(DATA_TAR_GZ): | $(DATA_BASE)/url.txt
-	curl -L -s -S $(shell cat $(DATA_BASE)/url.txt) -o $@
 
 # External rules
 $(EXTERNAL_BASE):
@@ -549,7 +536,7 @@ $(EIGEN_BASE):
 	# from Eigen master branch as of 2021.08.18
 	git clone https://gitlab.com/AuroraPerego/eigen.git $@
 	# include all Patatrack updates
-	cd $@ && git reset --hard a652c3a08a5ea1507c6f002e7d4e9180825ca7a8
+	cd $@ && git reset --hard 38ce06ca554b2e8aed2e60d190e71768a528dc39 
 # Boost
 .PHONY: external_boost
 external_boost: $(BOOST_BASE)
