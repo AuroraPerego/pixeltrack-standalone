@@ -3,24 +3,24 @@ export BASE_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 # Compiler
 export CC  := gcc
 export CXX := g++
-CXX_MAJOR:=$(shell $(CXX) -dM -E -x c++ - < /dev/null | awk '/__GNUC__/ { print $$3; }')
-CXX_MINOR:=$(shell $(CXX) -dM -E -x c++ - < /dev/null | awk '/__GNUC_MINOR__/ { print $$3; }')
-CXX_VERSION:=$(shell echo $$(( $(CXX_MAJOR) * 100 + $(CXX_MINOR) )) )
-
-CXX_REQUIRED_MAJOR:=8
-CXX_REQUIRED_MINOR:=0
-CXX_REQUIRED_VERSION:=$(shell echo $$(( $(CXX_REQUIRED_MAJOR) * 100 + $(CXX_REQUIRED_MINOR) )) )
-
-CXX_SUPPORTED:=$(shell [ $(CXX_VERSION) -ge $(CXX_REQUIRED_VERSION) ] && echo true || echo false)
-ifeq ($(CXX_SUPPORTED),false)
-$(error This program requires GCC $(CXX_REQUIRED_MAJOR).$(CXX_REQUIRED_MINOR) or later, but the current compiler is GCC $(CXX_MAJOR).$(CXX_MINOR))
-endif
-
-# special case: issue a warning for GCC 10.3
-# Do not prevent from using it, because the version bundled with CMSSW has been patched
-ifeq ($(CXX_VERSION),1003)
-$(warning GCC 10.3 is known to have issues compiled CUDA code, please consider using a different compiler)
-endif
+#CXX_MAJOR:=$(shell $(CXX) -dM -E -x c++ - < /dev/null | awk '/__GNUC__/ { print $$3; }')
+#CXX_MINOR:=$(shell $(CXX) -dM -E -x c++ - < /dev/null | awk '/__GNUC_MINOR__/ { print $$3; }')
+#CXX_VERSION:=$(shell echo $$(( $(CXX_MAJOR) * 100 + $(CXX_MINOR) )) )
+#
+#CXX_REQUIRED_MAJOR:=8
+#CXX_REQUIRED_MINOR:=0
+#CXX_REQUIRED_VERSION:=$(shell echo $$(( $(CXX_REQUIRED_MAJOR) * 100 + $(CXX_REQUIRED_MINOR) )) )
+#
+#CXX_SUPPORTED:=$(shell [ $(CXX_VERSION) -ge $(CXX_REQUIRED_VERSION) ] && echo true || echo false)
+#ifeq ($(CXX_SUPPORTED),false)
+#$(error This program requires GCC $(CXX_REQUIRED_MAJOR).$(CXX_REQUIRED_MINOR) or later, but the current compiler is GCC $(CXX_MAJOR).$(CXX_MINOR))
+#endif
+#
+## special case: issue a warning for GCC 10.3
+## Do not prevent from using it, because the version bundled with CMSSW has been patched
+#ifeq ($(CXX_VERSION),1003)
+#$(warning GCC 10.3 is known to have issues compiled CUDA code, please consider using a different compiler)
+#endif
 
 # Build flags
 USER_CXXFLAGS :=
@@ -53,10 +53,10 @@ export TEST_DIR := $(BASE_DIR)/test
 
 # System external definitions
 # CUDA
-CUDA_BASE := /usr/local/cuda
+CUDA_BASE := /usr/local/cuda-11.5.0
 ifeq ($(wildcard $(CUDA_BASE)),)
 # CUDA platform not found
-CUDA_BASE :=
+CUDA_BASE := 
 else
 # CUDA platform at $(CUDA_BASE)
 CUDA_LIBDIR := $(CUDA_BASE)/lib64
@@ -64,19 +64,14 @@ USER_CUDAFLAGS :=
 export CUDA_BASE
 export CUDA_DEPS := $(CUDA_LIBDIR)/libcudart.so
 export CUDA_ARCH := 35 50 60 70
-export CUDA_CXXFLAGS := -I$(CUDA_BASE)/include
+export CUDA_CXXFLAGS := -I$(CUDA_BASE)/include 
 export CUDA_TEST_CXXFLAGS := -DGPU_DEBUG
-export CUDA_LDFLAGS := -L$(CUDA_LIBDIR) -lcudart -lcudadevrt
-export CUDA_NVCC := $(CUDA_BASE)/bin/nvcc
-define CUFLAGS_template
-$(2)NVCC_FLAGS := $$(foreach ARCH,$(1),-gencode arch=compute_$$(ARCH),code=[sm_$$(ARCH),compute_$$(ARCH)]) -Wno-deprecated-gpu-targets -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored --expt-relaxed-constexpr --expt-extended-lambda --generate-line-info --source-in-ptx --display-error-number --threads $$(words $(1)) --cudart=shared
-$(2)NVCC_COMMON := -std=c++17 -O3 -g $$($(2)NVCC_FLAGS) -ccbin $(CXX) --compiler-options '$(HOST_CXXFLAGS) $(USER_CXXFLAGS)'
-$(2)CUDA_CUFLAGS := -dc $$($(2)NVCC_COMMON) $(USER_CUDAFLAGS)
-$(2)CUDA_DLINKFLAGS := -dlink $$($(2)NVCC_COMMON)
-endef
-$(eval $(call CUFLAGS_template,$(CUDA_ARCH),))
-export CUDA_CUFLAGS
-export CUDA_DLINKFLAGS
+export CUDA_LDFLAGS := -L$(CUDA_LIBDIR) -lcudart -ldl -lrt -pthread
+export CUDA_NVCC := clang++-14 
+#/cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/nightly/20221214/bin/clang++# -x cuda
+NVCC_FLAGS := -include $(BASE_DIR)/src/cuda/CUDACore/noinline.h -Wno-deprecated-declarations  -fPIC
+NVCC_COMMON := -std=c++17 -O3 -g $(NVCC_FLAGS) 
+export CUDA_CUFLAGS := $(NVCC_COMMON) $(USER_CUDAFLAGS)
 endif
 
 # NVIDIA HPC SDK
@@ -114,6 +109,74 @@ export ROCM_LDFLAGS := -L$(ROCM_LIBDIR) -lamdhip64
 export ROCM_TEST_CXXFLAGS := -DGPU_DEBUG
 endif
 
+# Intel oneAPI
+
+# Compiler flags supported by GCC but not by the LLVM-based compilers (clang, hipcc, dpcpp, etc.)
+LLVM_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Werror=format-contains-nul -Wno-non-template-friend -Werror=return-local-addr -Werror=unused-but-set-variable
+
+# flags to compile AOT:
+INTEL_AOT_FLAGS   := -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device 0x020a"
+AOT_CUDA_FLAGS    := -fsycl-targets=nvptx64-nvidia-cuda -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings
+AOT_HIP_FLAGS     := -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx900 --rocm-path=$(ROCM_BASE) -Wno-linker-warnings 
+
+# INTEL flags: compile AOT for all the CPUs and for the GPU on olice-05
+# CUDA flags : compile AOT for for NVIDIA GPUs
+# HIP flags  : compile AOT for architectures with ID gfx900 (e.g. the Radeon PRO WX 9100)
+
+# -Wno-linker-warnings will not be needed be needed anymore with https://github.com/intel/llvm/pull/7245
+# -fno-bundle-offload-arch              Specify that the offload bundler should not identify a bundle with specific arch.
+#                                       For example, the bundle for `nvptx64-nvidia-cuda-sm_80` uses the bundle tag
+#                                       `nvptx64-nvidia-cuda` when used. This allows .o files to contain .bc bundles
+#                                       that are unspecific to a particular arch version.
+#
+# --offload-arch=sm_60                  CUDA offloading device architecture (e.g. sm_35), or HIP offloading target ID in
+# --offload-arch=sm_70                  the form of a device architecture followed by target ID features delimited by a
+# --offload-arch=sm_75                  colon. Each target ID feature is a pre-defined string followed by a plus or minus
+#                                       sign (e.g. gfx908:xnack+:sramecc-).
+#                                       May be specified more than once.
+
+ifdef USE_SYCL_ONEAPI
+ONEAPI_BASE       := /cvmfs/projects.cern.ch/intelsw/oneAPI/linux/x86_64/2022
+ONEAPI_VERSION    := 2022.2.0
+TBB_BASE          := $(ONEAPI_BASE)/tbb/latest
+TBB_LIBDIR        := $(TBB_BASE)/lib/intel64/gcc4.8
+ifneq ($(wildcard $(ONEAPI_BASE)),)
+ONEAPI_ENV        := $(ONEAPI_BASE)/setvars.sh # --config="/eos/user/a/aperego/dev/pixeltrack-standalone/config.txt"
+                                               # the config.txt file can be used to source only specific tools 
+                                               # or a specific version of a tool of the oneAPI package
+SYCL_BASE         := $(ONEAPI_BASE)/compiler/$(ONEAPI_VERSION)/linux
+USER_ONEAPI_FLAGS := -fp-model=precise -fimf-arch-consistency=true -no-fma
+# math flags : -fp-model=precise -fimf-arch-consistency=true -no-fma
+# workaround for the unexpected intrinsic in ONEAPI 2022.2.0: -fno-sycl-early-optimizations
+export SYCL_CXX      := $(SYCL_BASE)/bin/dpcpp
+export SYCL_CXXFLAGS := -fsycl -Wsycl-strict $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_ONEAPI_FLAGS) $(INTEL_AOT_FLAGS)
+endif
+
+else
+# use llvm 
+SYCL_BASE      :=# /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/nightly/20221214
+USER_SYCLFLAGS := -std=c++17 -Wno-unused-const-variable
+
+# make CPUs visible
+export OCL_ICD_FILENAMES := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/runtime/intel/oclcpuexp_2022.14.8.0.04/x64/libintelocl.so
+
+export SYCL_CXX      := $(SYCL_BASE)/bin/clang++
+export SYCL_CXXFLAGS := -fsycl $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS) #$(AOT_CUDA_FLAGS) # $(AOT_HIP_FLAGS)
+# at the moment it's not possible to compile AOT for both CUDA and AMD together (and AMD is still a bit buggy on its own)
+
+endif
+
+# check if libraries are under lib or lib64
+ifdef SYCL_BASE
+ifneq ($(wildcard $(SYCL_BASE)/lib/libsycl.so),)
+SYCL_LIBDIR := $(SYCL_BASE)/lib
+else ifneq ($(wildcard $(SYCL_BASE)/lib64/libsycl.so),)
+SYCL_LIBDIR := $(SYCL_BASE)/lib64
+else
+SYCL_BASE :=
+endif
+endif
+
 # Input data definitions
 DATA_BASE := $(BASE_DIR)/data
 export DATA_DEPS := $(DATA_BASE)/data_ok
@@ -138,7 +201,8 @@ TBB_CMAKEFLAGS := -DCMAKE_INSTALL_PREFIX=$(TBB_BASE) \
 export TBB_DEPS := $(TBB_LIB)
 export TBB_CXXFLAGS := -isystem $(TBB_BASE)/include -DTBB_SUPPRESS_DEPRECATED_MESSAGES -DTBB_PREVIEW_NUMA_SUPPORT -DTBB_PREVIEW_TASK_GROUP_EXTENSIONS
 export TBB_LDFLAGS := -L$(TBB_LIBDIR) -ltbb
-export TBB_NVCC_CXXFLAGS :=
+export TBB_NVCC_CXXFLAGS := $(foreach ARCH,$(CUDA_ARCH), --cuda-gpu-arch=sm_$(ARCH)) 
+export TBB_SYCL_CXXFLAGS :=
 # The libstdc++ library used by the devtools on RHEL 7 / CentOS 7 requires a workaround because
 # some STL containers do not support the allocator traits, even when using more recent compilers
 ifneq ($(shell [ -f /etc/redhat-release ] && grep -q 'release 7' /etc/redhat-release && which $(CXX) | grep devtoolset),)
@@ -151,7 +215,8 @@ export EIGEN_DEPS := $(EIGEN_BASE)
 export EIGEN_CXXFLAGS := -isystem $(EIGEN_BASE) -DEIGEN_DONT_PARALLELIZE
 export EIGEN_LDFLAGS :=
 export EIGEN_NVCXX_CXXFLAGS := -DEIGEN_USE_GPU -DEIGEN_UNROLLING_LIMIT=64
-export EIGEN_NVCC_CXXFLAGS := --diag-suppress 20014
+export EIGEN_NVCC_CXXFLAGS := #--diag-suppress 20014
+export EIGEN_SYCL_CXXFLAGS := -DEIGEN_USE_SYCL # -DEIGEN_NO_CUDA
 
 BOOST_BASE := /usr
 # Minimum required version of Boost, e.g. 1.78.0

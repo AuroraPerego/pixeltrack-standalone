@@ -278,7 +278,7 @@ public:
   // trying to free the track building process from hardcoded layers, leaving
   // the visit of the graph based on the neighborhood connections between cells.
   template <int DEPTH>
-  __device__ inline void find_ntuplets(Hits const& hh,
+__host__   __device__ inline void find_ntuplets(Hits const& hh,
                                        GPUCACell* __restrict__ cells,
                                        CellTracksVector& cellTracks,
                                        HitContainer& foundNtuplets,
@@ -349,7 +349,7 @@ private:
 };
 
 template <>
-__device__ inline void GPUCACell::find_ntuplets<0>(Hits const& hh,
+__host__ __device__ inline void GPUCACell::find_ntuplets<0>(Hits const& hh,
                                                    GPUCACell* __restrict__ cells,
                                                    CellTracksVector& cellTracks,
                                                    HitContainer& foundNtuplets,
