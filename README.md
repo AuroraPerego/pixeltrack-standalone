@@ -164,43 +164,46 @@ CUDA: 11.5.0
 - [Separate Compilation and Linking of CUDA C++ Device Code with nvcc, nvlink and clang](https://github.com/fwyzard/cuda-linking)
 - [Makefile below](https://stackoverflow.com/questions/67070926/struggling-with-cuda-clang-and-llvm-ir-and-getting-cuda-failure-invalid-dev)
 
-Not tested yet:
 ```bash
-BIN_FILE=axpy
+BIN_FILE=test
 SRC_FILE=$(BIN_FILE).cu
 
-main: $(BIN_FILE)
+test: $(BIN_FILE)
+
+CUDA_BASE := /usr/local/cuda-11.5.0
+CUDA_BIN  := $(CUDA_BASE)/bin
+CUDA_LIB  := $(CUDA_BASE)/lib64
+CUDA_ARCH := 61
 
 # Host Side
 $(BIN_FILE).ll: $(SRC_FILE) $(BIN_FILE).fatbin
-    clang++ -stdlib=libc++ -Wall -Werror $(BIN_FILE).cu -march=ppc64le --cuda-host-only -relocatable-pch \
-        -Xclang -fcuda-include-gpubinary -Xclang $(BIN_FILE).fatbin -S -g -c -emit-llvm
+        clang++ -Wall -Werror $(BIN_FILE).cu -march=x86-64 --cuda-host-only --cuda-path=$(CUDA_BASE) -relocatable-pch -Xclang -fcuda-include-gpubinary -Xclang $(BIN_FILE).fatbin -S -g -c -emit-llvm
 
 $(BIN_FILE).o: $(BIN_FILE).ll
-    llc -march=ppc64le $(BIN_FILE).ll -o $(BIN_FILE).s
-    clang++ -c -Wall $(BIN_FILE).s -o $(BIN_FILE).o
+        llc -march=x86-64 $(BIN_FILE).ll -o $(BIN_FILE).s
+        clang++ -c -Wall --cuda-path=$(CUDA_BASE) $(BIN_FILE).s -o $(BIN_FILE).o
 
 # GPU Side
-$(BIN_FILE)-cuda-nvptx64-nvidia-cuda-sm_70.ll: $(SRC_FILE)
-    clang++ -x cuda -stdlib=libc++ -Wall -Werror $(BIN_FILE).cu --cuda-device-only \
-        --cuda-gpu-arch=sm_70 -S -g -emit-llvm
+$(BIN_FILE)-cuda-nvptx64-nvidia-cuda-sm_$(CUDA_ARCH).ll: $(SRC_FILE)
+        clang++ -x cuda --cuda-path=$(CUDA_BASE) -Wall -Werror $(BIN_FILE).cu --cuda-device-only --cuda-gpu-arch=sm_$(CUDA_ARCH) -S -g -emit-llvm
 
-$(BIN_FILE).ptx: $(BIN_FILE)-cuda-nvptx64-nvidia-cuda-sm_70.ll
-    llc -march=nvptx64 -mcpu=sm_70 -mattr=+ptx64 $(BIN_FILE)-cuda-nvptx64-nvidia-cuda-sm_70.ll -o $(BIN_FILE).ptx
+$(BIN_FILE).ptx: $(BIN_FILE)-cuda-nvptx64-nvidia-cuda-sm_$(CUDA_ARCH).ll
+        llc -march=nvptx64 -mcpu=sm_$(CUDA_ARCH) -mattr=+ptx64 $(BIN_FILE)-cuda-nvptx64-nvidia-cuda-sm_$(CUDA_ARCH).ll -o $(BIN_FILE).ptx
 
 $(BIN_FILE).ptx.o: $(BIN_FILE).ptx
-    ptxas -m64 --gpu-name=sm_70 $(BIN_FILE).ptx -o $(BIN_FILE).ptx.o
+        $(CUDA_BIN)/ptxas -m64 --gpu-name=sm_$(CUDA_ARCH) $(BIN_FILE).ptx -o $(BIN_FILE).ptx.o
 
 $(BIN_FILE).fatbin: $(BIN_FILE).ptx.o
-    fatbinary --64 --create $(BIN_FILE).fatbin --image=profile=sm_70,file=$(BIN_FILE).ptx.o \
-        --image=profile=compute_70,file=$(BIN_FILE).ptx -link
+        $(CUDA_BIN)/fatbinary --64 --create $(BIN_FILE).fatbin --image=profile=sm_$(CUDA_ARCH),file=$(BIN_FILE).ptx.o --image=profile=compute_$(CUDA_ARCH),file=$(BIN_FILE).ptx -link
 
 $(BIN_FILE)_dlink.o: $(BIN_FILE).fatbin
-    nvcc $(BIN_FILE).fatbin -gencode arch=compute_70,code=sm_70 \
-        -dlink -o $(BIN_FILE)_dlink.o -lcudart -lcudart_static -lcudadevrt
+        $(CUDA_BIN)/nvcc $(BIN_FILE).fatbin -gencode arch=compute_$(CUDA_ARCH),code=sm_$(CUDA_ARCH) -dlink -o $(BIN_FILE)_dlink.o -lcudart -lcudart_static -lcudadevrt
 
 # Link both object files together (either nvcc or clang works here):
 $(BIN_FILE): $(BIN_FILE).o $(BIN_FILE)_dlink.o
-    #nvcc $(BIN_FILE).o $(BIN_FILE)_dlink.o -o $(BIN_FILE) -arch=sm_70 -lc++
-    clang++ -stdlib=libc++ $(BIN_FILE).o $(BIN_FILE)_dlink.o -o $(BIN_FILE) -lcuda -lcudart -lcudadevrt -L/path-to-gcc-lib/ 
+        #$(CUDA_BIN)/nvcc $(BIN_FILE).o $(BIN_FILE)_dlink.o -o $(BIN_FILE) -arch=sm_$(CUDA_ARCH)
+        clang++ --cuda-path=$(CUDA_BASE) $(BIN_FILE).o $(BIN_FILE)_dlink.o -o $(BIN_FILE) -lcuda -lcudart -lcudadevrt -L$(CUDA_LIB)
+
+clean:
+        rm -fR $(BIN_FILE).fatbin $(BIN_FILE).ll $(BIN_FILE).o $(BIN_FILE).ptx $(BIN_FILE).ptx.o $(BIN_FILE).s $(BIN_FILE)_dlink.o $(BIN_FILE)-cuda-nvptx64-nvidia-cuda-sm_$(CUDA_ARCH).ll $(BIN_FILE)
 ```
