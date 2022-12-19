@@ -22,7 +22,7 @@
 // #define GPU_DEBUG
 
 namespace gpuPixelDoublets {
-  
+
   using sycl::abs;
   using CellNeighbors = CAConstants::CellNeighbors;
   using CellTracks = CAConstants::CellTracks;
@@ -30,23 +30,23 @@ namespace gpuPixelDoublets {
   using CellTracksVector = CAConstants::CellTracksVector;
 
   __attribute__((always_inline)) void doubletsFromHisto(uint8_t const* __restrict__ layerPairs,
-                                       uint32_t nPairs,
-                                       GPUCACell* cells,
-                                       uint32_t* nCells,
-                                       CellNeighborsVector* cellNeighbors,
-                                       CellTracksVector* cellTracks,
-                                       TrackingRecHit2DSOAView const& __restrict__ hh,
-                                       GPUCACell::OuterHitOfCell* isOuterHitOfCell,
-                                       int16_t const* __restrict__ phicuts,
-                                       float const* __restrict__ minz,
-                                       float const* __restrict__ maxz,
-                                       float const* __restrict__ maxr,
-                                       bool ideal_cond,
-                                       bool doClusterCut,
-                                       bool doZ0Cut,
-                                       bool doPtCut,
-                                       uint32_t maxNumOfDoublets,
-                                       sycl::nd_item<3> item) {
+                                                        uint32_t nPairs,
+                                                        GPUCACell* cells,
+                                                        uint32_t* nCells,
+                                                        CellNeighborsVector* cellNeighbors,
+                                                        CellTracksVector* cellTracks,
+                                                        TrackingRecHit2DSOAView const& __restrict__ hh,
+                                                        GPUCACell::OuterHitOfCell* isOuterHitOfCell,
+                                                        int16_t const* __restrict__ phicuts,
+                                                        float const* __restrict__ minz,
+                                                        float const* __restrict__ maxz,
+                                                        float const* __restrict__ maxr,
+                                                        bool ideal_cond,
+                                                        bool doClusterCut,
+                                                        bool doZ0Cut,
+                                                        bool doPtCut,
+                                                        uint32_t maxNumOfDoublets,
+                                                        sycl::nd_item<3> item) {
     // ysize cuts (z in the barrel)  times 8
     // these are used if doClusterCut is true
     constexpr int minYsizeB1 = 36;
@@ -80,13 +80,13 @@ namespace gpuPixelDoublets {
     assert(nPairs <= nPairsMax);
     uint32_t innerLayerCumulativeSize[nPairsMax];
     // const uint32_t* const ntot = innerLayerCumulativeSize + nPairs - 1; // THIS DOESN'T WORK
-    
+
     innerLayerCumulativeSize[0] = layerSize(layerPairs[0]);
     for (uint32_t i = 1; i < nPairs; ++i) {
       innerLayerCumulativeSize[i] = innerLayerCumulativeSize[i - 1] + layerSize(layerPairs[2 * i]);
     }
-    const uint32_t ntot = innerLayerCumulativeSize[nPairs - 1]; // THIS WORKS
-  
+    const uint32_t ntot = innerLayerCumulativeSize[nPairs - 1];  // THIS WORKS
+
     // x runs faster
     auto idy = item.get_group(1) * item.get_local_range().get(1) + item.get_local_id(1);
     auto first = item.get_local_id(2);
@@ -94,7 +94,7 @@ namespace gpuPixelDoublets {
 
     uint32_t pairLayerId = 0;  // cannot go backward
 
-     for (auto j = idy; j < ntot; j += item.get_local_range().get(1) * item.get_group_range(1)) {
+    for (auto j = idy; j < ntot; j += item.get_local_range().get(1) * item.get_group_range(1)) {
       while (j >= innerLayerCumulativeSize[pairLayerId++])
         ;
       --pairLayerId;  // move to lower_bound ??
@@ -144,7 +144,7 @@ namespace gpuPixelDoublets {
 
         if (inner == 0 && outer > 3)  // B1 and F1
           if (mes > 0 && mes < minYsizeB1)
-            continue;    // only long cluster  (5*8)
+            continue;                 // only long cluster  (5*8)
         if (inner == 1 && outer > 3)  // B2 and F1
           if (mes > 0 && mes < minYsizeB2)
             continue;
@@ -212,17 +212,17 @@ namespace gpuPixelDoublets {
         auto const* __restrict__ e = hist.end(kk + hoff);
         p += first;
         for (; p < e; p += stride) {
-          auto oi = *(p); 
+          auto oi = *(p);
           assert(oi >= offsets[outer]);
           assert(oi < offsets[outer + 1]);
           auto mo = hh.detectorIndex(oi);
           if (mo > 2000)
-            continue;   //    invalid
+            continue;  //    invalid
 
           if (doZ0Cut && z0cutoff(oi))
             continue;
           auto mop = hh.iphi(oi);
-          uint16_t idphi = abs(static_cast<int16_t>(mep-mop)); // different from the original CUDA version
+          uint16_t idphi = abs(static_cast<int16_t>(mep - mop));  // different from the original CUDA version
           if (idphi > iphicut)
             continue;
 

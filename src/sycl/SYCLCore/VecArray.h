@@ -27,7 +27,7 @@ namespace cms {
       }
 
       template <class... Ts>
-      constexpr int emplace_back_unsafe(Ts &&... args) {
+      constexpr int emplace_back_unsafe(Ts &&...args) {
         auto previousSize = m_size;
         m_size++;
         if (previousSize < maxSize) {
@@ -59,7 +59,7 @@ namespace cms {
       }
 
       template <class... Ts>
-      int emplace_back(Ts &&... args) {
+      int emplace_back(Ts &&...args) {
         auto previousSize = cms::sycltools::atomic_fetch_add<int>(&m_size, static_cast<int>(1));
         if (previousSize < maxSize) {
           (new (&m_data[previousSize]) T(std::forward<Ts>(args)...));

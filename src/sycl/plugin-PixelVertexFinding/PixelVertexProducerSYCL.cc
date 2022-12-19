@@ -47,13 +47,12 @@ PixelVertexProducerSYCL::PixelVertexProducerSYCL(edm::ProductRegistry& reg)
 }
 
 void PixelVertexProducerSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
-
   auto const& ptracks = iEvent.get(tokenGPUTrack_);
 
   cms::sycltools::ScopedContextProduce ctx{ptracks};
   auto const* tracks = ctx.get(ptracks).get();
 
-  if(!isCpu_)
+  if (!isCpu_)
     isCpu_ = ctx.stream().get_device().is_cpu();
 
   assert(tracks);

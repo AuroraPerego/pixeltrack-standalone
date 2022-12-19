@@ -17,12 +17,12 @@
 namespace gpuPixelRecHits {
 
   void getHits(pixelCPEforGPU::ParamsOnGPU const* __restrict__ cpeParams,
-                          BeamSpotPOD const* __restrict__ bs,
-                          SiPixelDigisSYCL::DeviceConstView const* __restrict__ pdigis,
-                          int numElements,
-                          SiPixelClustersSYCL::DeviceConstView const* __restrict__ pclusters,
-                          TrackingRecHit2DSOAView* phits,
-                          sycl::nd_item<1> item) {
+               BeamSpotPOD const* __restrict__ bs,
+               SiPixelDigisSYCL::DeviceConstView const* __restrict__ pdigis,
+               int numElements,
+               SiPixelClustersSYCL::DeviceConstView const* __restrict__ pclusters,
+               TrackingRecHit2DSOAView* phits,
+               sycl::nd_item<1> item) {
     // FIXME
     // the compiler seems NOT to optimize loads from views (even in a simple test case)
     // The whole gimnastic here of copying or not is a pure heuristic exercise that seems to produce the fastest code with the above signature
@@ -132,22 +132,14 @@ namespace gpuPixelRecHits {
         cl -= startClus;
         assert(cl >= 0);
         assert(cl < MaxHitsInIter);
-        cms::sycltools::atomic_fetch_min<uint32_t,
-                                         sycl::access::address_space::local_space,
-                                         sycl::memory_scope::device>
-                                         ((uint32_t*)&clusParams->minRow[cl], (uint32_t)x);
-        cms::sycltools::atomic_fetch_max<uint32_t,
-                                         sycl::access::address_space::local_space,
-                                         sycl::memory_scope::device>
-                                         ((uint32_t*)&clusParams->maxRow[cl], (uint32_t)x);
-        cms::sycltools::atomic_fetch_min<uint32_t,
-                                         sycl::access::address_space::local_space,
-                                         sycl::memory_scope::device>
-                                         ((uint32_t*)&clusParams->minCol[cl], (uint32_t)y);
-        cms::sycltools::atomic_fetch_max<uint32_t,
-                                         sycl::access::address_space::local_space,
-                                         sycl::memory_scope::device>
-                                         ((uint32_t*)&clusParams->maxCol[cl], (uint32_t)y);
+        cms::sycltools::atomic_fetch_min<uint32_t, sycl::access::address_space::local_space, sycl::memory_scope::device>(
+            (uint32_t*)&clusParams->minRow[cl], (uint32_t)x);
+        cms::sycltools::atomic_fetch_max<uint32_t, sycl::access::address_space::local_space, sycl::memory_scope::device>(
+            (uint32_t*)&clusParams->maxRow[cl], (uint32_t)x);
+        cms::sycltools::atomic_fetch_min<uint32_t, sycl::access::address_space::local_space, sycl::memory_scope::device>(
+            (uint32_t*)&clusParams->minCol[cl], (uint32_t)y);
+        cms::sycltools::atomic_fetch_max<uint32_t, sycl::access::address_space::local_space, sycl::memory_scope::device>(
+            (uint32_t*)&clusParams->maxCol[cl], (uint32_t)y);
       }
       sycl::group_barrier(item.get_group());
 
@@ -169,22 +161,27 @@ namespace gpuPixelRecHits {
         auto x = digis.xx(i);
         auto y = digis.yy(i);
         auto ch = sycl::min(digis.adc(i), pixmx);
-        cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(&clusParams->charge[cl], (int)ch);
+        cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(
+            &clusParams->charge[cl], (int)ch);
         if (clusParams->minRow[cl] == x)
-          cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(&clusParams->Q_f_X[cl], (int)ch);
+          cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(
+              &clusParams->Q_f_X[cl], (int)ch);
         if (clusParams->maxRow[cl] == x)
-          cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(&clusParams->Q_l_X[cl], (int)ch);
+          cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(
+              &clusParams->Q_l_X[cl], (int)ch);
         if (clusParams->minCol[cl] == y)
-          cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(&clusParams->Q_f_Y[cl], (int)ch);
+          cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(
+              &clusParams->Q_f_Y[cl], (int)ch);
         if (clusParams->maxCol[cl] == y)
-          cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(&clusParams->Q_l_Y[cl], (int)ch);
+          cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::local_space, sycl::memory_scope::device>(
+              &clusParams->Q_l_Y[cl], (int)ch);
         // sycl::group_barrier(item.get_group());
         // printf("maxRow[%d]= %d\n", cl, clusParams->maxRow[cl]);
       }
 
       sycl::group_barrier(item.get_group());
 
-      // next one cluster per thread... 
+      // next one cluster per thread...
 
       first = clusters.clusModuleStart(me) + startClus;
 
@@ -196,13 +193,13 @@ namespace gpuPixelRecHits {
           break;  // overflow...
         assert(h < hits.nHits());
         assert(h < clusters.clusModuleStart(me + 1));
-        
+
         // printf("maxRow[%d]= %d\n", ic, clusParams->maxRow[ic]);
         pixelCPEforGPU::position(cpeParams->commonParams(), cpeParams->detParams(me), *clusParams, ic);
         pixelCPEforGPU::errorFromDB(cpeParams->commonParams(), cpeParams->detParams(me), *clusParams, ic);
 
         // store it
-        assert(h>=0);
+        assert(h >= 0);
         hits.charge(h) = clusParams->charge[ic];
 
         hits.detectorIndex(h) = me;
@@ -223,15 +220,15 @@ namespace gpuPixelRecHits {
         cpeParams->detParams(me).frame.toGlobal(xl, yl, xg, yg, zg);
         // here correct for the beamspot...
 
-        // if (item.get_local_id(0) == 0) 
+        // if (item.get_local_id(0) == 0)
         // printf("%f %f %f %f %f\n", xl, yl, xg, yg, zg);
         xg -= bs->x;
         yg -= bs->y;
         zg -= bs->z;
-  
-        // if (item.get_local_id(0) == 0) 
+
+        // if (item.get_local_id(0) == 0)
         //   printf("%f %f \n", bs->z, zg);
-  
+
         hits.xGlobal(h) = xg;
         hits.yGlobal(h) = yg;
         hits.zGlobal(h) = zg;

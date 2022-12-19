@@ -18,13 +18,15 @@ namespace {
   void print_help(std::string const& name) {
     std::cout
         << name
-        << ": [--numberOfThreads NT] [--numberOfStreams NS] [--maxEvents ME] [--device DV] [--data PATH] [--transfer] [--validation] "
+        << ": [--numberOfThreads NT] [--numberOfStreams NS] [--maxEvents ME] [--device DV] [--data PATH] [--transfer] "
+           "[--validation] "
            "[--histogram] [--empty]\n\n"
         << "Options\n"
         << " --numberOfThreads   Number of threads to use (default 1, use 0 to use all CPU cores)\n"
         << " --numberOfStreams   Number of concurrent events (default 0 = numberOfThreads)\n"
         << " --maxEvents         Number of events to process (default -1 for all events in the input file)\n"
-        << " --device            Specifies the device which should run the code (default all, options: cpu, gpu, cuda, hip, backend:device:tile (e.g.opencl:gpu:0)..)\n"
+        << " --device            Specifies the device which should run the code (default all, options: cpu, gpu, cuda, "
+           "hip, backend:device:tile (e.g.opencl:gpu:0)..)\n"
         << " --runForMinutes     Continue processing the set of 1000 events until this many minutes have passed "
            "(default -1 for disabled; conflicts with --maxEvents)\n"
         << " --data              Path to the 'data' directory (default 'data' in the directory of the executable)\n"
@@ -113,8 +115,12 @@ int main(int argc, char** argv) try {
   std::vector<std::string> edmodules;
   std::vector<std::string> esmodules;
   if (not empty) {
-    edmodules = {"BeamSpotToSYCL", "SiPixelRawToClusterSYCL", "SiPixelRecHitSYCL", "CAHitNtupletSYCL", "PixelVertexProducerSYCL"};
-    esmodules = {"BeamSpotESProducer", "SiPixelFedCablingMapGPUWrapperESProducer", "SiPixelGainCalibrationForHLTGPUESProducer", "PixelCPEFastESProducer"};
+    edmodules = {
+        "BeamSpotToSYCL", "SiPixelRawToClusterSYCL", "SiPixelRecHitSYCL", "CAHitNtupletSYCL", "PixelVertexProducerSYCL"};
+    esmodules = {"BeamSpotESProducer",
+                 "SiPixelFedCablingMapGPUWrapperESProducer",
+                 "SiPixelGainCalibrationForHLTGPUESProducer",
+                 "PixelCPEFastESProducer"};
     if (transfer) {
       auto capos = std::find(edmodules.begin(), edmodules.end(), "CAHitNtupletSYCL");
       assert(capos != edmodules.end());

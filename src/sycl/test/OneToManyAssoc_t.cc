@@ -23,10 +23,7 @@ using Multiplicity = cms::sycltools::OneToManyAssoc<uint16_t, 8, MaxTk>;
 using TK = std::array<uint16_t, 4>;
 using cms::sycltools::AtomicPairCounter;
 
-void countMultiLocal(TK const* __restrict__ tk,
-                     Multiplicity* __restrict__ assoc,
-                     int32_t n,
-                     sycl::nd_item<1> item){
+void countMultiLocal(TK const* __restrict__ tk, Multiplicity* __restrict__ assoc, int32_t n, sycl::nd_item<1> item) {
   int first = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
   for (int i = first; i < n; i += item.get_group_range(0) * item.get_local_range().get(0)) {
     auto localbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<Multiplicity::CountersOnly>(item.get_group());
@@ -49,8 +46,7 @@ void countMulti(TK const* __restrict__ tk, Multiplicity* __restrict__ assoc, int
 
 void verifyMulti(Multiplicity* __restrict__ m1, Multiplicity* __restrict__ m2, sycl::nd_item<1> item) {
   auto first = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
-  for (auto i = first; i < Multiplicity::totbins();
-       i += item.get_group_range(0) * item.get_local_range().get(0))
+  for (auto i = first; i < Multiplicity::totbins(); i += item.get_group_range(0) * item.get_local_range().get(0))
     assert(m1->off[i] == m2->off[i]);
 }
 
@@ -80,9 +76,7 @@ void fill(TK const* __restrict__ tk, Assoc* __restrict__ assoc, int32_t n, sycl:
   }
 }
 
-void verify(Assoc* __restrict__ assoc) {
-  assert(assoc->size() < Assoc::capacity());
-}
+void verify(Assoc* __restrict__ assoc) { assert(assoc->size() < Assoc::capacity()); }
 
 template <typename Assoc>
 void fillBulk(
@@ -97,7 +91,7 @@ void fillBulk(
 template <typename Assoc>
 void verifyBulk(Assoc const* __restrict__ assoc, AtomicPairCounter const* apc) {
   if (apc->get().m >= Assoc::nbins())
-    printf("Overflow %d %d\n", apc->get().m, Assoc::nbins()); 
+    printf("Overflow %d %d\n", apc->get().m, Assoc::nbins());
   assert(assoc->size() < Assoc::capacity());
 }
 
@@ -152,8 +146,8 @@ int main(int argc, char** argv) {
   cms::sycltools::enumerateDevices(true);
   sycl::device device = cms::sycltools::chooseDevice(0);
   sycl::queue queue = sycl::queue(device, sycl::property::queue::in_order());
-  std::cout << "OneToMany offload to " << device.get_info<cl::sycl::info::device::name>()
-	    << " on backend " << device.get_backend() << std::endl;
+  std::cout << "OneToMany offload to " << device.get_info<cl::sycl::info::device::name>() << " on backend "
+            << device.get_backend() << std::endl;
 
   auto v_d = cms::sycltools::make_device_unique<std::array<uint16_t, 4>[]>(N, queue);
   assert(v_d.get());
@@ -180,8 +174,7 @@ int main(int argc, char** argv) {
   queue.submit([&](sycl::handler& cgh) {
     auto a_d_get = a_d.get();
 
-    cgh.parallel_for(sycl::nd_range(sycl::range(1), sycl::range(1)),
-                     [=](sycl::nd_item<1> item) { verify(a_d_get); });
+    cgh.parallel_for(sycl::nd_range(sycl::range(1), sycl::range(1)), [=](sycl::nd_item<1> item) { verify(a_d_get); });
   });
   queue.submit([&](sycl::handler& cgh) {
     auto v_d_get = v_d.get();
@@ -232,7 +225,6 @@ int main(int argc, char** argv) {
                      [=](sycl::nd_item<1> item) { cms::sycltools::finalizeBulk(dc_d, a_d_get, item); });
   });
   queue.submit([&](sycl::handler& cgh) {
-
     auto a_d_get = a_d.get();
 
     cgh.parallel_for(sycl::nd_range(sycl::range(1), sycl::range(1)),
@@ -296,21 +288,18 @@ int main(int argc, char** argv) {
                      [=](sycl::nd_item<1> item) { countMulti(v_d_get, m1_d_get, N, item); });
   });
   queue.submit([&](sycl::handler& cgh) {
-
     auto v_d_get = v_d.get();
     auto m2_d_get = m2_d.get();
 
-    cgh.parallel_for(
-        sycl::nd_range(sycl::range(nBlocks * nThreads), sycl::range(nThreads)),
-        [=](sycl::nd_item<1> item) { countMultiLocal(v_d_get, m2_d_get, N, item); });
+    cgh.parallel_for(sycl::nd_range(sycl::range(nBlocks * nThreads), sycl::range(nThreads)),
+                     [=](sycl::nd_item<1> item) { countMultiLocal(v_d_get, m2_d_get, N, item); });
   });
   queue.submit([&](sycl::handler& cgh) {
     auto m1_d_get = m1_d.get();
     auto m2_d_get = m2_d.get();
 
-    cgh.parallel_for(
-        sycl::nd_range(sycl::range(Multiplicity::totbins()), sycl::range(Multiplicity::totbins())),
-        [=](sycl::nd_item<1> item) { verifyMulti(m1_d_get, m2_d_get, item); });
+    cgh.parallel_for(sycl::nd_range(sycl::range(Multiplicity::totbins()), sycl::range(Multiplicity::totbins())),
+                     [=](sycl::nd_item<1> item) { verifyMulti(m1_d_get, m2_d_get, item); });
   });
 
   cms::sycltools::launchFinalize(m1_d.get(), queue);
@@ -319,9 +308,8 @@ int main(int argc, char** argv) {
     auto m1_d_get = m1_d.get();
     auto m2_d_get = m2_d.get();
 
-    cgh.parallel_for(
-        sycl::nd_range(sycl::range(Multiplicity::totbins()), sycl::range(Multiplicity::totbins())),
-        [=](sycl::nd_item<1> item) { verifyMulti(m1_d_get, m2_d_get, item); });
+    cgh.parallel_for(sycl::nd_range(sycl::range(Multiplicity::totbins()), sycl::range(Multiplicity::totbins())),
+                     [=](sycl::nd_item<1> item) { verifyMulti(m1_d_get, m2_d_get, item); });
   });
 
   queue.wait_and_throw();

@@ -45,7 +45,7 @@ private:
   // a union wan't do it, a variant will not be more efficienct
   cms::sycltools::device::unique_ptr<T> dm_ptr;  //!
   cms::sycltools::host::unique_ptr<T> hm_ptr;    //!
-  std::unique_ptr<T> std_ptr;               //!
+  std::unique_ptr<T> std_ptr;                    //!
 };
 
 #endif

@@ -48,25 +48,24 @@ namespace pixelgpudetails {
     std::cout << "launching getHits kernel for " << blocks << " blocks" << std::endl;
 #endif
     if (blocks)  // protect from empty events
-      stream.submit([&](sycl::handler &cgh) {
-        auto cpeParams_kernel = cpeParams; 
-        auto bs_d_kernel = bs_d.data(); 
-        auto digis_view_kernel = digis_d.view(); 
-        auto digis_n_kernel = digis_d.nDigis(); 
-        auto clusters_d_kernel = clusters_d.view(); 
-        auto hits_d_kernel= hits_d.view();
-        cgh.parallel_for<class getHits_Kernel>
-          (sycl::nd_range<1>(blocks * threadsPerBlock, threadsPerBlock),
-          [=](sycl::nd_item<1> item){ 
-              gpuPixelRecHits::getHits(cpeParams_kernel, 
-                                       bs_d_kernel, 
-                                       digis_view_kernel, 
-                                       digis_n_kernel, 
-                                       clusters_d_kernel, 
-                                       hits_d_kernel,
-                                       item);  
+      stream.submit([&](sycl::handler& cgh) {
+        auto cpeParams_kernel = cpeParams;
+        auto bs_d_kernel = bs_d.data();
+        auto digis_view_kernel = digis_d.view();
+        auto digis_n_kernel = digis_d.nDigis();
+        auto clusters_d_kernel = clusters_d.view();
+        auto hits_d_kernel = hits_d.view();
+        cgh.parallel_for<class getHits_Kernel>(sycl::nd_range<1>(blocks * threadsPerBlock, threadsPerBlock),
+                                               [=](sycl::nd_item<1> item) {
+                                                 gpuPixelRecHits::getHits(cpeParams_kernel,
+                                                                          bs_d_kernel,
+                                                                          digis_view_kernel,
+                                                                          digis_n_kernel,
+                                                                          clusters_d_kernel,
+                                                                          hits_d_kernel,
+                                                                          item);
+                                               });
       });
-    });
 
 #ifdef GPU_DEBUG
     stream.wait();
@@ -75,23 +74,23 @@ namespace pixelgpudetails {
     // assuming full warp of threads is better than a smaller number...
     if (nHits) {
 #ifdef GPU_DEBUG
-    std::cout << "launching setHitsLayerStart kernel for 32 blocks" << std::endl;
+      std::cout << "launching setHitsLayerStart kernel for 32 blocks" << std::endl;
 #endif
-      stream.submit([&](sycl::handler &cgh) {
-        auto cpeParams_kernel = cpeParams; 
-        auto hits_d_kernel = hits_d.hitsLayerStart(); 
-        auto clusters_d_kernel = clusters_d.clusModuleStart(); 
-        cgh.parallel_for<class setHitsLayerStart_Kernel>(sycl::nd_range<1>(32, 32),
-          [=](sycl::nd_item<1> item){
-              setHitsLayerStart(clusters_d_kernel, cpeParams_kernel, hits_d_kernel, item);
-    	    });
+      stream.submit([&](sycl::handler& cgh) {
+        auto cpeParams_kernel = cpeParams;
+        auto hits_d_kernel = hits_d.hitsLayerStart();
+        auto clusters_d_kernel = clusters_d.clusModuleStart();
+        cgh.parallel_for<class setHitsLayerStart_Kernel>(sycl::nd_range<1>(32, 32), [=](sycl::nd_item<1> item) {
+          setHitsLayerStart(clusters_d_kernel, cpeParams_kernel, hits_d_kernel, item);
+        });
       });
     }
     if (nHits) {
 #ifdef GPU_DEBUG
-    std::cout << "launching fillManyFromVector kernel" << std::endl;
+      std::cout << "launching fillManyFromVector kernel" << std::endl;
 #endif
-      cms::sycltools::fillManyFromVector(hits_d.phiBinner(), 10, hits_d.iphi(), hits_d.hitsLayerStart(), nHits, 256, stream);
+      cms::sycltools::fillManyFromVector(
+          hits_d.phiBinner(), 10, hits_d.iphi(), hits_d.hitsLayerStart(), nHits, 256, stream);
     }
 
 #ifdef GPU_DEBUG

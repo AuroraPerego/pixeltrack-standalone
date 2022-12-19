@@ -22,24 +22,23 @@
 #include "plugin-PixelVertexFinding/gpuSplitVertices.h"
 
 #ifdef ONE_KERNEL
-  void vertexFinderOneKernel(gpuVertexFinder::ZVertices* pdata,
-                             gpuVertexFinder::WorkSpace* pws,
-                             int minT,      // min number of neighbours to be "seed"
-                             float eps,     // max absolute distance to cluster
-                             float errmax,  // max error to be "seed"
-                             float chi2max,  // max normalized distance to cluster
-                             sycl::nd_item<1> item
-  ) {
-    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item); 
-    sycl::group_barrier(item.get_group());
-    fitVertices(pdata, pws, 50., item);
-    sycl::group_barrier(item.get_group());
-    splitVertices(pdata, pws, 9.f, item);
-    sycl::group_barrier(item.get_group());
-    fitVertices(pdata, pws, 5000., item);
-    sycl::group_barrier(item.get_group());
-    sortByPt2(pdata, pws, item);
-  }
+void vertexFinderOneKernel(gpuVertexFinder::ZVertices* pdata,
+                           gpuVertexFinder::WorkSpace* pws,
+                           int minT,       // min number of neighbours to be "seed"
+                           float eps,      // max absolute distance to cluster
+                           float errmax,   // max error to be "seed"
+                           float chi2max,  // max normalized distance to cluster
+                           sycl::nd_item<1> item) {
+  clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item);
+  sycl::group_barrier(item.get_group());
+  fitVertices(pdata, pws, 50., item);
+  sycl::group_barrier(item.get_group());
+  splitVertices(pdata, pws, 9.f, item);
+  sycl::group_barrier(item.get_group());
+  fitVertices(pdata, pws, 5000., item);
+  sycl::group_barrier(item.get_group());
+  sortByPt2(pdata, pws, item);
+}
 #endif
 
 struct Event {
@@ -117,8 +116,8 @@ int main(int argc, char** argv) {
   sycl::device device = cms::sycltools::chooseDevice(0);
   sycl::queue queue = sycl::queue(device, sycl::property::queue::in_order());
 
-  std::cout << "VertexFinder offload to " << device.get_info<cl::sycl::info::device::name>()
-              << " on backend " << device.get_backend() << std::endl;
+  std::cout << "VertexFinder offload to " << device.get_info<cl::sycl::info::device::name>() << " on backend "
+            << device.get_backend() << std::endl;
 
   auto onGPU_d = cms::sycltools::make_device_unique<gpuVertexFinder::ZVertices[]>(1, queue);
   auto ws_d = cms::sycltools::make_device_unique<gpuVertexFinder::WorkSpace[]>(1, queue);
@@ -134,16 +133,13 @@ int main(int argc, char** argv) {
       auto kk = i / 4;  // M param
 
       gen(ev);
-      
-    queue.submit([&](sycl::handler &cgh) {
-      auto soa_kernel = onGPU_d.get();
-      auto ws_kernel   = ws_d.get();
-      cgh.parallel_for<class init_vertex_Kernel_t>(
-          sycl::nd_range<1>(sycl::range<1>(1), sycl::range<1>(1)),
-          [=](sycl::nd_item<1> item){ 
-                init(soa_kernel, ws_kernel);
+
+      queue.submit([&](sycl::handler& cgh) {
+        auto soa_kernel = onGPU_d.get();
+        auto ws_kernel = ws_d.get();
+        cgh.parallel_for<class init_vertex_Kernel_t>(sycl::nd_range<1>(sycl::range<1>(1), sycl::range<1>(1)),
+                                                     [=](sycl::nd_item<1> item) { init(soa_kernel, ws_kernel); });
       });
-    });
 
       std::cout << "v,t size " << ev.zvert.size() << ' ' << ev.ztrack.size() << std::endl;
       auto nt = ev.ztrack.size();
@@ -165,75 +161,68 @@ int main(int argc, char** argv) {
         par = {{0.7f * eps, 0.01f, 9.0f}};
 
       uint32_t nv = 0;
-    
-    queue.submit([&](sycl::handler &cgh) {
-      auto soa_kernel = onGPU_d.get();
-      auto ws_kernel   = ws_d.get();
-      cgh.parallel_for<class print_Kernel_1>(
-          sycl::nd_range<1>(sycl::range<1>(1), sycl::range<1>(1)),
-          [=](sycl::nd_item<1> item){ 
-                print(soa_kernel, ws_kernel);
-      });
-    });
 
-     queue.wait_and_throw();
+      queue.submit([&](sycl::handler& cgh) {
+        auto soa_kernel = onGPU_d.get();
+        auto ws_kernel = ws_d.get();
+        cgh.parallel_for<class print_Kernel_1>(sycl::nd_range<1>(sycl::range<1>(1), sycl::range<1>(1)),
+                                               [=](sycl::nd_item<1> item) { print(soa_kernel, ws_kernel); });
+      });
+
+      queue.wait_and_throw();
 
       auto numberOfBlocks = 1;
-      auto blockSize      = 512 + 256;
+      auto blockSize = 512 + 256;
 #ifdef ONE_KERNEL
-      queue.submit([&](sycl::handler &cgh) {
-      auto soa_kernel  = onGPU_d.get();
-      auto ws_kernel   = ws_d.get();
-      auto minT_kernel = kk;
-      auto eps_kernel  = par[0];
-      auto errmax_kernel = par[1];
-      auto chi2max_kernel = par[2];
-      cgh.parallel_for<class vertexFinder_one_Kernel_t>(
-          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item)[[intel::reqd_sub_group_size(32)]]{ 
-	            vertexFinderOneKernel(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);
-      });
-    });
-#else
-      queue.submit([&](sycl::handler &cgh) {
-      auto soa_kernel  = onGPU_d.get();
-      auto ws_kernel   = ws_d.get();
-      auto minT_kernel = kk;
-      auto eps_kernel  = par[0];
-      auto errmax_kernel = par[1];
-      auto chi2max_kernel = par[2];
-      cgh.parallel_for<class clusterizer_Kernel_t>(
-          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item)[[intel::reqd_sub_group_size(32)]]{ 
-	            CLUSTERIZE(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);
-      });
-    });
-#endif
-      
-      queue.submit([&](sycl::handler &cgh) {
-      auto soa_kernel = onGPU_d.get();
-      auto ws_kernel   = ws_d.get();
-      cgh.parallel_for<class print_Kernel_2>(
-          sycl::nd_range<1>(sycl::range<1>(1), sycl::range<1>(1)),
-          [=](sycl::nd_item<1> item){ 
-                print(soa_kernel, ws_kernel);
-      });
-    });
-
-    queue.wait_and_throw();
-
-    queue.submit([&](sycl::handler &cgh) {
+      queue.submit([&](sycl::handler& cgh) {
         auto soa_kernel = onGPU_d.get();
-        auto ws_kernel  = ws_d.get();
-      cgh.parallel_for<class fitVertices_Kernel_t1>(
-          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { 
-                fitVerticesKernel(soa_kernel, ws_kernel, 50., item);
+        auto ws_kernel = ws_d.get();
+        auto minT_kernel = kk;
+        auto eps_kernel = par[0];
+        auto errmax_kernel = par[1];
+        auto chi2max_kernel = par[2];
+        cgh.parallel_for<class vertexFinder_one_Kernel_t>(
+            sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+            [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
+              vertexFinderOneKernel(
+                  soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);
+            });
       });
-    });
+#else
+      queue.submit([&](sycl::handler& cgh) {
+        auto soa_kernel = onGPU_d.get();
+        auto ws_kernel = ws_d.get();
+        auto minT_kernel = kk;
+        auto eps_kernel = par[0];
+        auto errmax_kernel = par[1];
+        auto chi2max_kernel = par[2];
+        cgh.parallel_for<class clusterizer_Kernel_t>(
+            sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+            [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
+              CLUSTERIZE(soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);
+            });
+      });
+#endif
+
+      queue.submit([&](sycl::handler& cgh) {
+        auto soa_kernel = onGPU_d.get();
+        auto ws_kernel = ws_d.get();
+        cgh.parallel_for<class print_Kernel_2>(sycl::nd_range<1>(sycl::range<1>(1), sycl::range<1>(1)),
+                                               [=](sycl::nd_item<1> item) { print(soa_kernel, ws_kernel); });
+      });
+
+      queue.wait_and_throw();
+
+      queue.submit([&](sycl::handler& cgh) {
+        auto soa_kernel = onGPU_d.get();
+        auto ws_kernel = ws_d.get();
+        cgh.parallel_for<class fitVertices_Kernel_t1>(
+            sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+            [=](sycl::nd_item<1> item)
+                [[intel::reqd_sub_group_size(32)]] { fitVerticesKernel(soa_kernel, ws_kernel, 50., item); });
+      });
 
       queue.memcpy(&nv, LOC_ONGPU(nvFinal), sizeof(uint32_t));
-
 
       if (nv == 0) {
         std::cout << "NO VERTICES???" << std::endl;
@@ -261,10 +250,8 @@ int main(int argc, char** argv) {
       nn = hnn;
       ind = hind;
 
-
       queue.memcpy(nn, LOC_ONGPU(ndof), nv * sizeof(int32_t));
       queue.memcpy(chi2, LOC_ONGPU(chi2), nv * sizeof(float));
-
 
       for (auto j = 0U; j < nv; ++j)
         if (nn[j] > 0)
@@ -274,19 +261,17 @@ int main(int argc, char** argv) {
         std::cout << "after fit nv, min max chi2 " << nv << " " << *mx.first << ' ' << *mx.second << std::endl;
       }
 
-      queue.submit([&](sycl::handler &cgh) {
+      queue.submit([&](sycl::handler& cgh) {
         auto soa_kernel = onGPU_d.get();
-        auto ws_kernel  = ws_d.get();
-      cgh.parallel_for<class fitVertices_Kernel_t2>(
-          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { 
-                fitVerticesKernel(soa_kernel, ws_kernel, 50., item);
+        auto ws_kernel = ws_d.get();
+        cgh.parallel_for<class fitVertices_Kernel_t2>(
+            sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+            [=](sycl::nd_item<1> item)
+                [[intel::reqd_sub_group_size(32)]] { fitVerticesKernel(soa_kernel, ws_kernel, 50., item); });
       });
-    });
       queue.memcpy(&nv, LOC_ONGPU(nvFinal), sizeof(uint32_t));
       queue.memcpy(nn, LOC_ONGPU(ndof), nv * sizeof(int32_t));
       queue.memcpy(chi2, LOC_ONGPU(chi2), nv * sizeof(float));
-
 
       for (auto j = 0U; j < nv; ++j)
         if (nn[j] > 0)
@@ -298,47 +283,44 @@ int main(int argc, char** argv) {
 
       // one vertex per block!!!
       numberOfBlocks = 1024;
-      blockSize      = 64;
-      queue.submit([&](sycl::handler &cgh) {
-      auto soa_kernel = onGPU_d.get();
-      auto ws_kernel  = ws_d.get();
-      cgh.parallel_for<class splitVertices_Kernel_t>(
-          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { 
+      blockSize = 64;
+      queue.submit([&](sycl::handler& cgh) {
+        auto soa_kernel = onGPU_d.get();
+        auto ws_kernel = ws_d.get();
+        cgh.parallel_for<class splitVertices_Kernel_t>(
+            sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+            [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
               gpuVertexFinder::splitVerticesKernel(soa_kernel, ws_kernel, 9.f, item);
+            });
       });
-    });
       queue.memcpy(&nv, LOC_WS(nvIntermediate), sizeof(uint32_t));
 
       std::cout << "after split " << nv << std::endl;
       numberOfBlocks = 1;
-      blockSize      = 1024 - 256;
-      queue.submit([&](sycl::handler &cgh) {
+      blockSize = 1024 - 256;
+      queue.submit([&](sycl::handler& cgh) {
         auto soa_kernel = onGPU_d.get();
-        auto ws_kernel  = ws_d.get();
-      cgh.parallel_for<class fitVertices_Kernel_t3>(
-          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { 
-                fitVerticesKernel(soa_kernel, ws_kernel, 5000., item);
-
+        auto ws_kernel = ws_d.get();
+        cgh.parallel_for<class fitVertices_Kernel_t3>(
+            sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+            [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
+              fitVerticesKernel(soa_kernel, ws_kernel, 5000., item);
+            });
       });
-    });
 
-    numberOfBlocks = 1;
-    blockSize      = 256;
-    queue.submit([&](sycl::handler &cgh) {
+      numberOfBlocks = 1;
+      blockSize = 256;
+      queue.submit([&](sycl::handler& cgh) {
         auto soa_kernel = onGPU_d.get();
-        auto ws_kernel  = ws_d.get();
-        blockSize      = 256;
+        auto ws_kernel = ws_d.get();
+        blockSize = 256;
         cgh.parallel_for<class sortByPt2_Kernel_t>(
-          sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { 
-              sortByPt2Kernel(soa_kernel, ws_kernel, item);
+            sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+            [=](sycl::nd_item<1> item)
+                [[intel::reqd_sub_group_size(32)]] { sortByPt2Kernel(soa_kernel, ws_kernel, item); });
       });
-    });
 
       queue.memcpy(&nv, LOC_ONGPU(nvFinal), sizeof(uint32_t));
-
 
       if (nv == 0) {
         std::cout << "NO VERTICES???" << std::endl;

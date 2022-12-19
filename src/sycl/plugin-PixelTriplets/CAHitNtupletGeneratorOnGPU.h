@@ -49,7 +49,7 @@ private:
 
   Params m_params;
 
-  cms::sycltools::device::unique_ptr<Counters> m_counters; 
+  cms::sycltools::device::unique_ptr<Counters> m_counters;
   // In CUDA it is initialized as a raw pointer and then assigned in the constructor
   // In SYCL we need the queue, so we have to:
   // 1) declare it as a unique_ptr to be able to do make_device_unique and to use the DeviceDeleter in cms::sycltools::device::impl

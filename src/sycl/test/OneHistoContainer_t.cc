@@ -14,9 +14,7 @@
 using namespace cms::sycltools;
 
 template <typename T, int NBINS, int S, int DELTA>
-void mykernel(T const *__restrict__ v,
-              uint32_t N,
-              sycl::nd_item<1> item) {
+void mykernel(T const* __restrict__ v, uint32_t N, sycl::nd_item<1> item) {
   assert(v);
   assert(N == 12000);
 
@@ -25,11 +23,11 @@ void mykernel(T const *__restrict__ v,
 
   using Hist = HistoContainer<T, NBINS, 12000, S, uint16_t>;
   using counter = typename Hist::Counter;
-  
+
   auto wsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<counter[32]>(item.get_group());
   counter* ws = (counter*)wsbuff.get();
   auto histbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<Hist>(item.get_group());
-  Hist* hist = (Hist *)histbuff.get();
+  Hist* hist = (Hist*)histbuff.get();
 
   for (auto j = item.get_local_id(0); j < Hist::totbins(); j += item.get_local_range().get(0)) {
     hist->off[j] = 0;
@@ -49,7 +47,7 @@ void mykernel(T const *__restrict__ v,
   assert(N == hist->size());
   for (auto j = item.get_local_id(0); j < Hist::nbins(); j += item.get_local_range().get(0))
     assert(hist->off[j] <= hist->off[j + 1]);
-    sycl::group_barrier(item.get_group());
+  sycl::group_barrier(item.get_group());
 
   if (item.get_local_id(0) < 32)
     ws[item.get_local_id(0)] = 0;  // used by prefix scan...
@@ -75,7 +73,7 @@ void mykernel(T const *__restrict__ v,
     auto b0 = Hist::bin(v[j]);
     [[maybe_unused]] int tot = 0;
     auto ftest = [&](int k) {
-      assert(k >= 0 && k < (int) N);
+      assert(k >= 0 && k < (int)N);
       ++tot;
     };
     forEachInWindow(*hist, v[j], v[j], ftest);
@@ -134,12 +132,11 @@ void go(sycl::queue queue) {
 
     int max_work_group_size = queue.get_device().get_info<sycl::info::device::max_work_group_size>();
     int nthreads = std::min(256, max_work_group_size);
-    queue.submit([&](sycl::handler &cgh) {
+    queue.submit([&](sycl::handler& cgh) {
       auto v_d_get = v_d.get();
 
-      cgh.parallel_for(sycl::nd_range<1>(sycl::range(nthreads), sycl::range(nthreads)), [=](sycl::nd_item<1> item) {
-        mykernel<T, NBINS, S, DELTA>(v_d_get, N, item);
-      });
+      cgh.parallel_for(sycl::nd_range<1>(sycl::range(nthreads), sycl::range(nthreads)),
+                       [=](sycl::nd_item<1> item) { mykernel<T, NBINS, S, DELTA>(v_d_get, N, item); });
     });
 
     queue.wait_and_throw();
@@ -154,8 +151,8 @@ int main(int argc, char** argv) {
   sycl::device device = cms::sycltools::chooseDevice(0);
   sycl::queue queue = sycl::queue(device, sycl::property::queue::in_order());
 
-  std::cout << "HistoContainer offload to " << device.get_info<cl::sycl::info::device::name>()
-              << " on backend " << device.get_backend() << std::endl;
+  std::cout << "HistoContainer offload to " << device.get_info<cl::sycl::info::device::name>() << " on backend "
+            << device.get_backend() << std::endl;
 
   std::cout << "test <int16_t>" << std::endl;
   go<int16_t>(queue);

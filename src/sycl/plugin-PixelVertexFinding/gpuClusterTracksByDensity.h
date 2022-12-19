@@ -17,7 +17,7 @@
 namespace gpuVertexFinder {
 
   using sycl::abs;
-  
+
   using Hist = cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
 
   // this algo does not really scale as it works in a single block...
@@ -26,13 +26,12 @@ namespace gpuVertexFinder {
   // based on Rodrighez&Laio algo
   //
   __attribute__((always_inline)) void clusterTracksByDensity(gpuVertexFinder::ZVertices* pdata,
-                                            gpuVertexFinder::WorkSpace* pws,
-                                            int minT,      // min number of neighbours to be "seed"
-                                            float eps,     // max absolute distance to cluster
-                                            float errmax,  // max error to be "seed"
-                                            float chi2max,  // max normalized distance to cluster
-                                            sycl::nd_item<1> item
-  ) {
+                                                             gpuVertexFinder::WorkSpace* pws,
+                                                             int minT,       // min number of neighbours to be "seed"
+                                                             float eps,      // max absolute distance to cluster
+                                                             float errmax,   // max error to be "seed"
+                                                             float chi2max,  // max normalized distance to cluster
+                                                             sycl::nd_item<1> item) {
     using namespace gpuVertexFinder;
 
 #ifdef VERTEX_DEBUG
@@ -42,18 +41,18 @@ namespace gpuVertexFinder {
 
     auto er2mx = errmax * errmax;
 
-    auto& __restrict__ data = *pdata;                       // info on tracks
-    auto& __restrict__ ws = *pws;                           // info on vertices
-    auto nt = ws.ntrks;                                     // number of tracks (uint32_t)
-    float const* __restrict__ zt = ws.zt;                   // z coord of the tracks at bs
-    float const* __restrict__ ezt2 = ws.ezt2;               // squared error on the z coord
+    auto& __restrict__ data = *pdata;          // info on tracks
+    auto& __restrict__ ws = *pws;              // info on vertices
+    auto nt = ws.ntrks;                        // number of tracks (uint32_t)
+    float const* __restrict__ zt = ws.zt;      // z coord of the tracks at bs
+    float const* __restrict__ ezt2 = ws.ezt2;  // squared error on the z coord
 
-    uint32_t& nvFinal = data.nvFinal;                       // final number of vertices
-    uint32_t& nvIntermediate = ws.nvIntermediate;           // intermediate number of vertices
+    uint32_t& nvFinal = data.nvFinal;              // final number of vertices
+    uint32_t& nvIntermediate = ws.nvIntermediate;  // intermediate number of vertices
 
-    uint8_t* __restrict__ izt = ws.izt;                     // z coord of input tracks as an integer
-    int32_t* __restrict__ nn = data.ndof;                   // number of degrees of freedom / nearest neighbours of the vertices
-    int32_t* __restrict__ iv = ws.iv;                       // index of the vertex each track is associated to
+    uint8_t* __restrict__ izt = ws.izt;    // z coord of input tracks as an integer
+    int32_t* __restrict__ nn = data.ndof;  // number of degrees of freedom / nearest neighbours of the vertices
+    int32_t* __restrict__ iv = ws.iv;      // index of the vertex each track is associated to
 
     assert(pdata);
     assert(zt);
@@ -62,7 +61,7 @@ namespace gpuVertexFinder {
     Hist::Counter* hws = (Hist::Counter*)hwsbuff.get();
     auto histbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<Hist>(item.get_group());
     Hist* hist = (Hist*)histbuff.get();
-    
+
     for (auto j = item.get_local_id(0); j < Hist::totbins(); j += item.get_local_range(0)) {
       hist->off[j] = 0;
     }
@@ -78,7 +77,7 @@ namespace gpuVertexFinder {
     // fill hist  (bin shall be wider than "eps")
     // here the z coord of each track is turned into an integer from 0 to 255
     // and used to increment the counts of the hist
-    // iv[i] depend on the order tracks have been found and 
+    // iv[i] depend on the order tracks have been found and
     // the values are not the same if the program is executed multiple times
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       assert(i < ZVertices::MAXTRACKS);
@@ -207,9 +206,8 @@ namespace gpuVertexFinder {
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] == int(i)) {
         if (nn[i] >= minT) {
-          auto old = cms::sycltools::atomic_fetch_add<unsigned int, 
-                                                      cl::sycl::access::address_space::local_space>
-                                                      (foundClusters, (unsigned int)1);
+          auto old = cms::sycltools::atomic_fetch_add<unsigned int, cl::sycl::access::address_space::local_space>(
+              foundClusters, (unsigned int)1);
           iv[i] = -(old + 1);
         } else {  // noise
           iv[i] = -9998;
@@ -217,7 +215,7 @@ namespace gpuVertexFinder {
       }
     }
     sycl::group_barrier(item.get_group());
- 
+
     assert(*foundClusters < ZVertices::MAXVTX);
 
     // propagate the negative id to all the tracks in the cluster.
@@ -228,7 +226,7 @@ namespace gpuVertexFinder {
       }
     }
     sycl::group_barrier(item.get_group());
-    
+
     // adjust the cluster id to be a positive value starting from 0
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       iv[i] = -iv[i] - 1;
@@ -237,19 +235,18 @@ namespace gpuVertexFinder {
     nvIntermediate = nvFinal = *foundClusters;
 
 #ifdef VERTEX_DEBUG
-  if (item.get_local_id(0) == 0)
-    printf("found %d proto vertices\n", *foundClusters);
+    if (item.get_local_id(0) == 0)
+      printf("found %d proto vertices\n", *foundClusters);
 #endif
   }
 
   void clusterTracksByDensityKernel(gpuVertexFinder::ZVertices* pdata,
                                     gpuVertexFinder::WorkSpace* pws,
-                                    int minT,      // min number of neighbours to be "seed"
-                                    float eps,     // max absolute distance to cluster
-                                    float errmax,  // max error to be "seed"
+                                    int minT,       // min number of neighbours to be "seed"
+                                    float eps,      // max absolute distance to cluster
+                                    float errmax,   // max error to be "seed"
                                     float chi2max,  // max normalized distance to cluster
-                                    sycl::nd_item<1> item
-  ) {
+                                    sycl::nd_item<1> item) {
     clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item);
   }
 

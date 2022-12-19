@@ -45,12 +45,12 @@ public:
   GPUCACell() = default;
 
   __attribute__((always_inline)) void init(CellNeighborsVector& cellNeighbors,
-                          CellTracksVector& cellTracks,
-                          Hits const& hh,
-                          int layerPairId,
-                          int doubletId,
-                          hindex_type innerHitId,
-                          hindex_type outerHitId) {
+                                           CellTracksVector& cellTracks,
+                                           Hits const& hh,
+                                           int layerPairId,
+                                           int doubletId,
+                                           hindex_type innerHitId,
+                                           hindex_type outerHitId) {
     theInnerHitId = innerHitId;
     theOuterHitId = outerHitId;
     theDoubletId = doubletId;
@@ -69,18 +69,16 @@ public:
   }
 
   __attribute__((always_inline)) int addOuterNeighbor(CellNeighbors::value_t t, CellNeighborsVector& cellNeighbors) {
-
     // use smart cache
     if (outerNeighbors().empty()) {
       auto i = cellNeighbors.extend();  // maybe waisted....
       if (i > 0) {
         cellNeighbors[i].reset();
         sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
-	
-	      auto zero = (ptrAsInt)(&cellNeighbors[0]);
-	      cms::sycltools::atomic_compare_exchange_strong<ptrAsInt>((ptrAsInt*)(&theOuterNeighbors),
-			  					                                                zero,
-			  					                                                (ptrAsInt)(&cellNeighbors[i]));
+
+        auto zero = (ptrAsInt)(&cellNeighbors[0]);
+        cms::sycltools::atomic_compare_exchange_strong<ptrAsInt>(
+            (ptrAsInt*)(&theOuterNeighbors), zero, (ptrAsInt)(&cellNeighbors[i]));
       } else
         return -1;
     }
@@ -95,11 +93,10 @@ public:
         cellTracks[i].reset();
         sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
 
-      auto zero = (ptrAsInt)(&cellTracks[0]);
-	    cms::sycltools::atomic_compare_exchange_strong<ptrAsInt>((ptrAsInt*)(&theTracks),
-								                                                zero,
-								                                                (ptrAsInt)(&cellTracks[i]));
-	    // if fails we cannot give "i" back...
+        auto zero = (ptrAsInt)(&cellTracks[0]);
+        cms::sycltools::atomic_compare_exchange_strong<ptrAsInt>(
+            (ptrAsInt*)(&theTracks), zero, (ptrAsInt)(&cellTracks[i]));
+        // if fails we cannot give "i" back...
       } else
         return -1;
     }
@@ -125,19 +122,23 @@ public:
   __attribute__((always_inline)) auto get_inner_iphi(Hits const& hh) const { return hh.iphi(theInnerHitId); }
   __attribute__((always_inline)) auto get_outer_iphi(Hits const& hh) const { return hh.iphi(theOuterHitId); }
 
-  __attribute__((always_inline)) float get_inner_detIndex(Hits const& hh) const { return hh.detectorIndex(theInnerHitId); }
-  __attribute__((always_inline)) float get_outer_detIndex(Hits const& hh) const { return hh.detectorIndex(theOuterHitId); }
+  __attribute__((always_inline)) float get_inner_detIndex(Hits const& hh) const {
+    return hh.detectorIndex(theInnerHitId);
+  }
+  __attribute__((always_inline)) float get_outer_detIndex(Hits const& hh) const {
+    return hh.detectorIndex(theOuterHitId);
+  }
 
   constexpr unsigned int get_inner_hit_id() const { return theInnerHitId; }
   constexpr unsigned int get_outer_hit_id() const { return theOuterHitId; }
 
   void print_cell() const {
-      printf("printing cell: %d, on layerPair: %d, innerHitId: %d, outerHitId: %d \n",
-           theDoubletId, //In SYCL this value is random and cannot be use to compare results
+    printf("printing cell: %d, on layerPair: %d, innerHitId: %d, outerHitId: %d \n",
+           theDoubletId,  //In SYCL this value is random and cannot be use to compare results
            theLayerPairId,
            theInnerHitId,
            theOuterHitId);
-  } 
+  }
 
   bool check_alignment(Hits const& hh,
                        GPUCACell const& otherCell,
@@ -182,7 +183,7 @@ public:
     float distance_13_squared = radius_diff * radius_diff + (z1 - zo) * (z1 - zo);
 
     float pMin = ptmin * sycl::sqrt(distance_13_squared);  // this needs to be divided by
-                                                          // radius_diff later
+                                                           // radius_diff later
 
     float tan_12_13_half_mul_distance_13_squared = fabs(z1 * (ri - ro) + zi * (ro - r1) + zo * (r1 - ri));
     return tan_12_13_half_mul_distance_13_squared * pMin <= thetaCut * distance_13_squared * radius_diff;
@@ -205,18 +206,18 @@ public:
 
     if (eq.curvature() > maxCurv)
       return false;
-  
+
     return abs(eq.dca0()) < region_origin_radius_plus_tolerance * abs(eq.curvature());
   }
 
   __attribute__((always_inline)) static bool dcaCutH(float x1,
-                                    float y1,
-                                    float x2,
-                                    float y2,
-                                    float x3,
-                                    float y3,
-                                    const float region_origin_radius_plus_tolerance,
-                                    const float maxCurv) {
+                                                     float y1,
+                                                     float x2,
+                                                     float y2,
+                                                     float x3,
+                                                     float y3,
+                                                     const float region_origin_radius_plus_tolerance,
+                                                     const float maxCurv) {
     CircleEq<float> eq(x1, y1, x2, y2, x3, y3);
 
     if (eq.curvature() > maxCurv)
@@ -300,8 +301,8 @@ public:
     bool last = true;
     for (int j = 0; j < outerNeighbors().size(); ++j) {
       auto otherCell = outerNeighbors()[j];
-      if (cells[otherCell].theDoubletId < 0 || DEPTH == 1) // || DEPTH == 1 added to make it compile on GPU
-        continue;  // killed by earlyFishbone
+      if (cells[otherCell].theDoubletId < 0 || DEPTH == 1)  // || DEPTH == 1 added to make it compile on GPU
+        continue;                                           // killed by earlyFishbone
       last = false;
       cells[otherCell].find_ntuplets<DEPTH - 1>(
           hh, cells, cellTracks, foundNtuplets, apc, quality, tmpNtuplet, minHitsPerNtuplet, startAt0);
@@ -351,17 +352,17 @@ private:
 
 template <>
 inline void GPUCACell::find_ntuplets<0>(Hits const& hh,
-                                                   GPUCACell* __restrict__ cells,
-                                                   CellTracksVector& cellTracks,
-                                                   HitContainer& foundNtuplets,
-                                                   cms::sycltools::AtomicPairCounter& apc,
-                                                   Quality* __restrict__ quality,
-                                                   TmpTuple& tmpNtuplet,
-                                                   const unsigned int minHitsPerNtuplet,
-                                                   bool startAt0) const {
-    printf("ERROR: GPUCACell::find_ntuplets reached full depth!\n");
+                                        GPUCACell* __restrict__ cells,
+                                        CellTracksVector& cellTracks,
+                                        HitContainer& foundNtuplets,
+                                        cms::sycltools::AtomicPairCounter& apc,
+                                        Quality* __restrict__ quality,
+                                        TmpTuple& tmpNtuplet,
+                                        const unsigned int minHitsPerNtuplet,
+                                        bool startAt0) const {
+  printf("ERROR: GPUCACell::find_ntuplets reached full depth!\n");
 
-    abort(); // was __trap() in CUDA
+  abort();  // was __trap() in CUDA
 }
 
 #endif  // RecoPixelVertexing_PixelTriplets_plugins_GPUCACell_h

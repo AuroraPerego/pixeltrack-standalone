@@ -35,7 +35,11 @@ namespace gpuClustering {
       return;
 
     if (item.get_local_id(0) == 0 && nclus > MaxNumClustersPerModules) {
-      printf("Warning too many clusters in module %d in block %d: %d > %d\n", thisModuleId, item.get_group(0), nclus, MaxNumClustersPerModules);
+      printf("Warning too many clusters in module %d in block %d: %d > %d\n",
+             thisModuleId,
+             item.get_group(0),
+             nclus,
+             MaxNumClustersPerModules);
     }
 
     auto first = firstPixel + item.get_local_id(0);
@@ -61,11 +65,14 @@ namespace gpuClustering {
         printf("start clusterizer for module %d in block %d\n", thisModuleId, item.get_group(0));
 #endif
 
-    auto chargebuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int32_t[MaxNumClustersPerModules]>(item.get_group());
+    auto chargebuff =
+        sycl::ext::oneapi::group_local_memory_for_overwrite<int32_t[MaxNumClustersPerModules]>(item.get_group());
     int32_t* charge = (int32_t*)chargebuff.get();
-    auto okbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint8_t[MaxNumClustersPerModules]>(item.get_group());
+    auto okbuff =
+        sycl::ext::oneapi::group_local_memory_for_overwrite<uint8_t[MaxNumClustersPerModules]>(item.get_group());
     uint8_t* ok = (uint8_t*)okbuff.get();
-    auto newclusIdbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint16_t[MaxNumClustersPerModules]>(item.get_group());
+    auto newclusIdbuff =
+        sycl::ext::oneapi::group_local_memory_for_overwrite<uint16_t[MaxNumClustersPerModules]>(item.get_group());
     uint16_t* newclusId = (uint16_t*)newclusIdbuff.get();
 
     assert(nclus <= MaxNumClustersPerModules);
@@ -79,10 +86,8 @@ namespace gpuClustering {
         continue;  // not valid
       if (id[i] != thisModuleId)
         break;  // end of module
-      cms::sycltools::atomic_fetch_add<int32_t,
-                                       sycl::access::address_space::local_space,
-                                       sycl::memory_scope::work_group>
-                                       (&charge[clusterId[i]], static_cast<int32_t>(adc[i]));
+      cms::sycltools::atomic_fetch_add<int32_t, sycl::access::address_space::local_space, sycl::memory_scope::work_group>(
+          &charge[clusterId[i]], static_cast<int32_t>(adc[i]));
     }
     sycl::group_barrier(item.get_group());
 

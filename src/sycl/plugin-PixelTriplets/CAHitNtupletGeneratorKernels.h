@@ -135,7 +135,6 @@ namespace cAHitNtupletGenerator {
 
 class CAHitNtupletGeneratorKernels {
 public:
-
   using QualityCuts = cAHitNtupletGenerator::QualityCuts;
   using Params = cAHitNtupletGenerator::Params;
   using Counters = cAHitNtupletGenerator::Counters;
@@ -145,7 +144,7 @@ public:
 
   using HitsView = TrackingRecHit2DSOAView;
   using HitsOnGPU = TrackingRecHit2DSOAView;
-  using HitsOnCPU = TrackingRecHit2DSYCL; 
+  using HitsOnCPU = TrackingRecHit2DSYCL;
 
   using HitToTuple = CAConstants::HitToTuple;
   using TupleMultiplicity = CAConstants::TupleMultiplicity;
@@ -171,7 +170,7 @@ public:
 
   static void printCounters(Counters const* counters, sycl::queue stream);
   Counters* counters_ = nullptr;
- 
+
 private:
   // workspace
 

@@ -12,7 +12,7 @@
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
-#endif // GPU_DEBUG
-#endif //__SYCL_DEVICE_ONLY__
+#endif  // GPU_DEBUG
+#endif  //__SYCL_DEVICE_ONLY__
 
 #include <cassert>

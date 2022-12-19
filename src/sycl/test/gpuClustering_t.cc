@@ -18,7 +18,7 @@
 
 using namespace gpuClustering;
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   std::string devices(argv[1]);
   setenv("SYCL_DEVICE_FILTER", devices.c_str(), true);
 
@@ -26,8 +26,8 @@ int main(int argc, char** argv) {
   sycl::device device = cms::sycltools::chooseDevice(0);
   sycl::queue queue = sycl::queue(device, sycl::property::queue::in_order());
 
-  std::cout << "gpuClustering offload to " << device.get_info<cl::sycl::info::device::name>()
-              << " on backend " << device.get_backend() << std::endl;
+  std::cout << "gpuClustering offload to " << device.get_info<cl::sycl::info::device::name>() << " on backend "
+            << device.get_backend() << std::endl;
 
   int numElements = 256 * 2000;
   // these in reality are already on GPU
@@ -254,72 +254,73 @@ int main(int argc, char** argv) {
       auto d_moduleStart_get = d_moduleStart.get();
       auto d_clus_get = d_clus.get();
 
-      cgh.parallel_for<class countModules_kernel>(
-          sycl::nd_range<1>(blocksPerGrid * threadsPerBlock, threadsPerBlock),
-          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { countModules(d_id_get, d_moduleStart_get, d_clus_get, n, item); });
+      cgh.parallel_for<class countModules_kernel>(sycl::nd_range<1>(blocksPerGrid * threadsPerBlock, threadsPerBlock),
+                                                  [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
+                                                    countModules(d_id_get, d_moduleStart_get, d_clus_get, n, item);
+                                                  });
     });
 
     blocksPerGrid = MaxNumModules;  //nModules;
 
-    if (device.is_cpu()){
+    if (device.is_cpu()) {
       threadsPerBlock = 32;
       blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock;
     }
-    
+
     std::cout << "SYCL findModules kernel launch with " << blocksPerGrid << " blocks of " << threadsPerBlock
               << " threads\n";
     queue.memset(d_clusInModule.get(), 0, MaxNumModules * sizeof(uint32_t)).wait();
 
- if(queue.get_device().is_cpu()){
-	 threadsPerBlock = 32;
-    queue.submit([&](sycl::handler &cgh) {
-      auto d_id_get = d_id.get();
-      auto d_x_get = d_x.get();
-      auto d_y_get = d_y.get();
-      auto d_moduleStart_get = d_moduleStart.get();
-      auto d_clusInModule_get = d_clusInModule.get();
-      auto d_moduleId_get = d_moduleId.get();
-      auto d_clus_get = d_clus.get();
+    if (queue.get_device().is_cpu()) {
+      threadsPerBlock = 32;
+      queue.submit([&](sycl::handler &cgh) {
+        auto d_id_get = d_id.get();
+        auto d_x_get = d_x.get();
+        auto d_y_get = d_y.get();
+        auto d_moduleStart_get = d_moduleStart.get();
+        auto d_clusInModule_get = d_clusInModule.get();
+        auto d_moduleId_get = d_moduleId.get();
+        auto d_clus_get = d_clus.get();
 
-      cgh.parallel_for<class findClusCPU_kernel_t>(
-          sycl::nd_range<1>(blocksPerGrid * threadsPerBlock, threadsPerBlock),
-          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
-            findClusCPU(d_id_get,
-                     d_x_get,
-                     d_y_get,
-                     d_moduleStart_get,
-                     d_clusInModule_get,
-                     d_moduleId_get,
-                     d_clus_get,
-                     n,
-                     item);
-          });
-    });
- }else{
-    queue.submit([&](sycl::handler &cgh) {
-      auto d_id_get = d_id.get();
-      auto d_x_get = d_x.get();
-      auto d_y_get = d_y.get();
-      auto d_moduleStart_get = d_moduleStart.get();
-      auto d_clusInModule_get = d_clusInModule.get();
-      auto d_moduleId_get = d_moduleId.get();
-      auto d_clus_get = d_clus.get();
+        cgh.parallel_for<class findClusCPU_kernel_t>(
+            sycl::nd_range<1>(blocksPerGrid * threadsPerBlock, threadsPerBlock),
+            [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
+              findClusCPU(d_id_get,
+                          d_x_get,
+                          d_y_get,
+                          d_moduleStart_get,
+                          d_clusInModule_get,
+                          d_moduleId_get,
+                          d_clus_get,
+                          n,
+                          item);
+            });
+      });
+    } else {
+      queue.submit([&](sycl::handler &cgh) {
+        auto d_id_get = d_id.get();
+        auto d_x_get = d_x.get();
+        auto d_y_get = d_y.get();
+        auto d_moduleStart_get = d_moduleStart.get();
+        auto d_clusInModule_get = d_clusInModule.get();
+        auto d_moduleId_get = d_moduleId.get();
+        auto d_clus_get = d_clus.get();
 
-      cgh.parallel_for<class findClusGPU_kernel_t>(
-          sycl::nd_range<1>(blocksPerGrid * threadsPerBlock, threadsPerBlock),
-          [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
-            findClusGPU(d_id_get,
-                     d_x_get,
-                     d_y_get,
-                     d_moduleStart_get,
-                     d_clusInModule_get,
-                     d_moduleId_get,
-                     d_clus_get,
-                     n,
-                     item);
-          });
-    });
- }
+        cgh.parallel_for<class findClusGPU_kernel_t>(
+            sycl::nd_range<1>(blocksPerGrid * threadsPerBlock, threadsPerBlock),
+            [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
+              findClusGPU(d_id_get,
+                          d_x_get,
+                          d_y_get,
+                          d_moduleStart_get,
+                          d_clusInModule_get,
+                          d_moduleId_get,
+                          d_clus_get,
+                          n,
+                          item);
+            });
+      });
+    }
     queue.wait_and_throw();
     queue.memcpy(&nModules, d_moduleStart.get(), sizeof(uint32_t)).wait();
 
@@ -347,14 +348,8 @@ int main(int argc, char** argv) {
       cgh.parallel_for<class clusterChargeCut_kernel>(
           sycl::nd_range<1>(blocksPerGrid * threadsPerBlock, threadsPerBlock),
           [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
-            clusterChargeCut(d_id_get,
-                             d_adc_get,
-                             d_moduleStart_get,
-                             d_clusInModule_get,
-                             d_moduleId_get,
-                             d_clus_get,
-                             n,
-                             item);
+            clusterChargeCut(
+                d_id_get, d_adc_get, d_moduleStart_get, d_clusInModule_get, d_moduleId_get, d_clus_get, n, item);
           });
     });
 

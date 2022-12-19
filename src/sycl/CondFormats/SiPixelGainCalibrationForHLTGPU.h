@@ -26,7 +26,6 @@ private:
 
     cms::sycltools::device::unique_ptr<SiPixelGainForHLTonGPU> gainForHLTonGPU;
     cms::sycltools::device::unique_ptr<SiPixelGainForHLTonGPU_DecodingStructure[]> gainDataOnGPU;
-    
   };
   cms::sycltools::ESProduct<GPUData> gpuData_;
 };

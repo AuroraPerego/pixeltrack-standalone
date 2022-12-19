@@ -87,10 +87,7 @@ namespace pixelgpudetails {
     using PackedDigiType = uint32_t;
 
     // Constructor: pre-computes masks and shifts from field widths
-    inline constexpr Packing(unsigned int row_w,
-                                                 unsigned int column_w,
-                                                 unsigned int time_w,
-                                                 unsigned int adc_w)
+    inline constexpr Packing(unsigned int row_w, unsigned int column_w, unsigned int time_w, unsigned int adc_w)
         : row_width(row_w),
           column_width(column_w),
           adc_width(adc_w),
@@ -178,7 +175,7 @@ namespace pixelgpudetails {
                            bool includeErrors,
                            bool debug,
                            sycl::queue stream,
-			   bool isCpu);
+                           bool isCpu);
 
     std::pair<SiPixelDigisSYCL, SiPixelClustersSYCL> getResults() {
       digis_d.setNModulesDigis(nModules_Clusters_h[0], nDigis);

@@ -73,12 +73,12 @@ namespace Rfit {
 
   template <typename V4, typename VNd1, typename VNd2, int N>
   inline auto Scatter_cov_line(Matrix2d const* cov_sz,
-                                                   const V4& fast_fit,
-                                                   VNd1 const& s_arcs,
-                                                   VNd2 const& z_values,
-                                                   const double theta,
-                                                   const double B,
-                                                   MatrixNd<N>& ret) {
+                               const V4& fast_fit,
+                               VNd1 const& s_arcs,
+                               VNd2 const& z_values,
+                               const double theta,
+                               const double B,
+                               MatrixNd<N>& ret) {
 #ifdef RFIT_DEBUG
     Rfit::printIt(&s_arcs, "Scatter_cov_line - s_arcs: ");
 #endif
@@ -133,10 +133,7 @@ namespace Rfit {
     negligible).
  */
   template <typename M2xN, typename V4, int N>
-  inline MatrixNd<N> Scatter_cov_rad(const M2xN& p2D,
-                                                         const V4& fast_fit,
-                                                         VectorNd<N> const& rad,
-                                                         double B) {
+  inline MatrixNd<N> Scatter_cov_rad(const M2xN& p2D, const V4& fast_fit, VectorNd<N> const& rad, double B) {
     constexpr u_int n = N;
     double p_t = sycl::min(20., fast_fit(2) * B);  // limit pt to avoid too small error!!!
     double p_2 = p_t * p_t * (1. + 1. / (fast_fit(3) * fast_fit(3)));
@@ -181,9 +178,7 @@ namespace Rfit {
 */
 
   template <typename M2xN, int N>
-  inline Matrix2Nd<N> cov_radtocart(const M2xN& p2D,
-                                                        const MatrixNd<N>& cov_rad,
-                                                        const VectorNd<N>& rad) {
+  inline Matrix2Nd<N> cov_radtocart(const M2xN& p2D, const MatrixNd<N>& cov_rad, const VectorNd<N>& rad) {
 #ifdef RFIT_DEBUG
     printf("Address of p2D: %p\n", &p2D);
 #endif
@@ -218,9 +213,7 @@ namespace Rfit {
     \warning correlation between different point are not computed.
 */
   template <typename M2xN, int N>
-  inline VectorNd<N> cov_carttorad(const M2xN& p2D,
-                                                       const Matrix2Nd<N>& cov_cart,
-                                                       const VectorNd<N>& rad) {
+  inline VectorNd<N> cov_carttorad(const M2xN& p2D, const Matrix2Nd<N>& cov_cart, const VectorNd<N>& rad) {
     constexpr u_int n = N;
     VectorNd<N> cov_rad;
     const VectorNd<N> rad_inv2 = rad.cwiseInverse().array().square();
@@ -250,9 +243,9 @@ namespace Rfit {
 */
   template <typename M2xN, typename V4, int N>
   inline VectorNd<N> cov_carttorad_prefit(const M2xN& p2D,
-                                                              const Matrix2Nd<N>& cov_cart,
-                                                              V4& fast_fit,
-                                                              const VectorNd<N>& rad) {
+                                          const Matrix2Nd<N>& cov_cart,
+                                          V4& fast_fit,
+                                          const VectorNd<N>& rad) {
     constexpr u_int n = N;
     VectorNd<N> cov_rad;
     for (u_int i = 0; i < n; ++i) {
@@ -325,8 +318,8 @@ namespace Rfit {
     printf("min_eigen3D - enter\n");
 #endif
     Eigen::SelfAdjointEigenSolver<Matrix3d> solver(3);
-    solver.computeDirect(A); 
-    int min_index; 
+    solver.computeDirect(A);
+    int min_index;
     chi2 = solver.eigenvalues().minCoeff(&min_index);
 #ifdef RFIT_DEBUG
     printf("min_eigen3D - exit\n");
@@ -347,9 +340,9 @@ namespace Rfit {
 
   inline Vector3d min_eigen3D_fast(const Matrix3d& A) {
     Eigen::SelfAdjointEigenSolver<Matrix3f> solver(3);
-    solver.computeDirect(A.cast<float>()); 
+    solver.computeDirect(A.cast<float>());
     int min_index;
-    solver.eigenvalues().minCoeff(&min_index); 
+    solver.eigenvalues().minCoeff(&min_index);
     return solver.eigenvectors().col(min_index).cast<double>();
   }
 
@@ -367,7 +360,7 @@ namespace Rfit {
     Eigen::SelfAdjointEigenSolver<Matrix2d> solver(2);
     solver.computeDirect(A);
     int min_index;
-    chi2 = solver.eigenvalues().minCoeff(&min_index); 
+    chi2 = solver.eigenvalues().minCoeff(&min_index);
     return solver.eigenvectors().col(min_index);
   }
 
@@ -466,12 +459,11 @@ namespace Rfit {
 */
   template <typename M2xN, typename V4, int N>
   SYCL_EXTERNAL inline circle_fit Circle_fit(const M2xN& hits2D,
-                                                   const Matrix2Nd<N>& hits_cov2D,
-                                                   const V4& fast_fit,
-                                                   const VectorNd<N>& rad,
-                                                   const double B,
-                                                   const bool error) {
-                                                   
+                                             const Matrix2Nd<N>& hits_cov2D,
+                                             const V4& fast_fit,
+                                             const VectorNd<N>& rad,
+                                             const double B,
+                                             const bool error) {
 #ifdef RFIT_DEBUG
     printf("circle_fit - enter\n");
 #endif
@@ -614,7 +606,7 @@ namespace Rfit {
         //Eigen::Matrix<double, 1, 1> cm;
         Eigen::Matrix<double, 1, 1> cm2;
         //auto cm = mc.transpose() * V * mc;
-  //      const double c = cm(0, 0);
+        //      const double c = cm(0, 0);
         auto tmp = mc.transpose().lazyProduct(V);
         double c = tmp * mc;
         Matrix2Nd<N> Vcs;
@@ -724,7 +716,7 @@ namespace Rfit {
           if (b != a)
             E(b, a) = E(a, b);
         }
-    }
+      }
       printIt(&E, "circle_fit - E:");
 
       Eigen::Matrix<double, 3, 6> J2;  // Jacobian of min_eigen() (numerically computed)
@@ -769,7 +761,7 @@ namespace Rfit {
 
       auto tmp_Jq = Jq.transpose().lazyProduct(V);
       double aa = tmp_Jq * Jq;
-                
+
       Matrix3d cov_uvr = J3 * Cvc * J3.transpose() * sqr(s_inv)  // cov(X0,Y0,R)
                          + (par_uvr_ * par_uvr_.transpose()) * aa;
 
@@ -801,11 +793,11 @@ namespace Rfit {
 
   template <typename M3xN, typename M6xN, typename V4>
   inline line_fit Line_fit(const M3xN& hits,
-                                               const M6xN& hits_ge,
-                                               const circle_fit& circle,
-                                               const V4& fast_fit,
-                                               const double B,
-                                               const bool error) {
+                           const M6xN& hits_ge,
+                           const circle_fit& circle,
+                           const V4& fast_fit,
+                           const double B,
+                           const bool error) {
     constexpr uint32_t N = M3xN::ColsAtCompileTime;
     constexpr auto n = N;
     double theta = -circle.q * atan(fast_fit(3));
@@ -992,29 +984,29 @@ namespace Rfit {
                              const Eigen::Matrix<float, 6, N>& hits_ge,
                              const double B,
                              const bool error) {
-   constexpr u_int n = N;
-   VectorNd<4> rad = (hits.block(0, 0, 2, n).colwise().norm());
+    constexpr u_int n = N;
+    VectorNd<4> rad = (hits.block(0, 0, 2, n).colwise().norm());
 
-   // Fast_fit gives back (X0, Y0, R, theta) w/o errors, using only 3 points.
-   Vector4d fast_fit;
-   Fast_fit(hits, fast_fit);
-   Rfit::Matrix2Nd<N> hits_cov = MatrixXd::Zero(2 * n, 2 * n);
-   Rfit::loadCovariance2D(hits_ge, hits_cov);
-   circle_fit circle = Circle_fit(hits.block(0, 0, 2, n), hits_cov, fast_fit, rad, B, error);
-   line_fit line = Line_fit(hits, hits_ge, circle, fast_fit, B, error);
+    // Fast_fit gives back (X0, Y0, R, theta) w/o errors, using only 3 points.
+    Vector4d fast_fit;
+    Fast_fit(hits, fast_fit);
+    Rfit::Matrix2Nd<N> hits_cov = MatrixXd::Zero(2 * n, 2 * n);
+    Rfit::loadCovariance2D(hits_ge, hits_cov);
+    circle_fit circle = Circle_fit(hits.block(0, 0, 2, n), hits_cov, fast_fit, rad, B, error);
+    line_fit line = Line_fit(hits, hits_ge, circle, fast_fit, B, error);
 
-   par_uvrtopak(circle, B, error);
+    par_uvrtopak(circle, B, error);
 
     helix_fit helix;
-   helix.par << circle.par, line.par;
-   if (error) {
-     helix.cov = MatrixXd::Zero(5, 5);
-     helix.cov.block(0, 0, 3, 3) = circle.cov;
-     helix.cov.block(3, 3, 2, 2) = line.cov;
-   }
-   helix.q = circle.q;
-   helix.chi2_circle = circle.chi2;
-   helix.chi2_line = line.chi2;
+    helix.par << circle.par, line.par;
+    if (error) {
+      helix.cov = MatrixXd::Zero(5, 5);
+      helix.cov.block(0, 0, 3, 3) = circle.cov;
+      helix.cov.block(3, 3, 2, 2) = line.cov;
+    }
+    helix.q = circle.q;
+    helix.chi2_circle = circle.chi2;
+    helix.chi2_line = line.chi2;
 
     return helix;
   }

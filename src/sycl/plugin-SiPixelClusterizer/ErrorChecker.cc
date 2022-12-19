@@ -21,16 +21,16 @@ namespace {
   constexpr int PXID_shift = ADC_shift + ADC_bits;
   constexpr int DCOL_shift = PXID_shift + PXID_bits;
   constexpr int ROC_shift = DCOL_shift + DCOL_bits;
-  constexpr int LINK_shift = ROC_shift + ROC_bits;
-  constexpr int OMIT_ERR_shift = 20;
+  [[maybe_unused]] constexpr int LINK_shift = ROC_shift + ROC_bits;
+  [[maybe_unused]] constexpr int OMIT_ERR_shift = 20;
 
   constexpr uint32_t dummyDetId = 0xffffffff;
 
   constexpr ErrorChecker::Word64 CRC_mask = ~(~ErrorChecker::Word64(0) << CRC_bits);
-  constexpr ErrorChecker::Word32 ERROR_mask = ~(~ErrorChecker::Word32(0) << ROC_bits);
-  constexpr ErrorChecker::Word32 LINK_mask = ~(~ErrorChecker::Word32(0) << LINK_bits);
-  constexpr ErrorChecker::Word32 ROC_mask = ~(~ErrorChecker::Word32(0) << ROC_bits);
-  constexpr ErrorChecker::Word32 OMIT_ERR_mask = ~(~ErrorChecker::Word32(0) << OMIT_ERR_bits);
+  [[maybe_unused]] constexpr ErrorChecker::Word32 ERROR_mask = ~(~ErrorChecker::Word32(0) << ROC_bits);
+  [[maybe_unused]] constexpr ErrorChecker::Word32 LINK_mask = ~(~ErrorChecker::Word32(0) << LINK_bits);
+  [[maybe_unused]] constexpr ErrorChecker::Word32 ROC_mask = ~(~ErrorChecker::Word32(0) << ROC_bits);
+  [[maybe_unused]] constexpr ErrorChecker::Word32 OMIT_ERR_mask = ~(~ErrorChecker::Word32(0) << OMIT_ERR_bits);
 }  // namespace
 
 ErrorChecker::ErrorChecker() { includeErrors = false; }

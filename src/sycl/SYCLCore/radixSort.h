@@ -84,8 +84,7 @@ inline void reorderFloat(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t siz
 template <typename T,  // shall be interger
           int NS>      // number of significant bytes to use in sorting
 __attribute__((always_inline)) void radixSortImpl(
-    T const* __restrict__ a, uint16_t* ind, uint16_t* ind2, uint32_t size, 
-    sycl::nd_item<1> item) {
+    T const* __restrict__ a, uint16_t* ind, uint16_t* ind2, uint32_t size, sycl::nd_item<1> item) {
   constexpr int d = 8, w = 8 * sizeof(T);
   constexpr int sb = 1 << d;
   constexpr int ps = int(sizeof(T)) - NS;
@@ -97,7 +96,8 @@ __attribute__((always_inline)) void radixSortImpl(
   auto cubuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int32_t[sb]>(item.get_group());
   int32_t* cu = (int32_t*)cubuff.get();
 
-  // Broken...
+  // SYCL_BUG_ with accessors results are not updated unless printed 
+  // since it's not reasonable to print stuff, local variables are used instead of shread ones
   // auto ibsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int>(item.get_group());
   // int* ibs = (int*)ibsbuff.get();
   // auto pbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int>(item.get_group());
@@ -125,10 +125,8 @@ __attribute__((always_inline)) void radixSortImpl(
     // fill bins
     for (uint32_t i = item.get_local_id(0); i < size; i += item.get_local_range(0)) {
       auto bin = (a[j[i]] >> d * p) & (sb - 1);
-      cms::sycltools::atomic_fetch_add<int32_t,
-	                               sycl::access::address_space::local_space,
-				                         sycl::memory_scope::device>
-				                         (&c[bin], static_cast<int32_t>(1));
+      cms::sycltools::atomic_fetch_add<int32_t, sycl::access::address_space::local_space, sycl::memory_scope::device>(
+          &c[bin], static_cast<int32_t>(1));
     }
     sycl::group_barrier(item.get_group());
 
@@ -138,7 +136,7 @@ __attribute__((always_inline)) void radixSortImpl(
       int laneId = item.get_local_id(0) & 0x1f;
 #pragma unroll
       for (int offset = 1; offset < 32; offset <<= 1) {
-        auto y = sycl::shift_group_right(item.get_sub_group(), x, offset); 
+        auto y = sycl::shift_group_right(item.get_sub_group(), x, offset);
         if (laneId >= offset)
           x += y;
       }
@@ -171,29 +169,26 @@ __attribute__((always_inline)) void radixSortImpl(
         if (i >= 0) {
           bin = (a[j[i]] >> d * p) & (sb - 1);
           ct[item.get_local_id(0)] = bin;
-          cms::sycltools::atomic_fetch_max<int32_t,
-                                          sycl::access::address_space::local_space,
-                                          sycl::memory_scope::device>
-                                          (&cu[bin], static_cast<int32_t>(i));
+          cms::sycltools::atomic_fetch_max<int32_t, sycl::access::address_space::local_space, sycl::memory_scope::device>(
+              &cu[bin], static_cast<int32_t>(i));
         }
       }
 
-
       sycl::group_barrier(item.get_group());
-       if (item.get_local_id(0) < sb) {
-         if (i >= 0 && i == cu[bin])  // ensure to keep them in order
-           for (int ii = item.get_local_id(0); ii < sb; ++ii)
-             if (ct[ii] == bin) {
-               auto oi = ii - item.get_local_id(0);
-               // assert(i>=oi);if(i>=oi)
-                  k[--c[bin]] = j[i - oi];
+      if (item.get_local_id(0) < sb) {
+        if (i >= 0 && i == cu[bin])  // ensure to keep them in order
+          for (int ii = item.get_local_id(0); ii < sb; ++ii)
+            if (ct[ii] == bin) {
+              auto oi = ii - item.get_local_id(0);
+              // assert(i>=oi);if(i>=oi)
+              k[--c[bin]] = j[i - oi];
             }
       }
       sycl::group_barrier(item.get_group());
       if (bin >= 0)
         assert(c[bin] >= 0);
       ibs -= sb;
-      assert(ibs<0);
+      assert(ibs < 0);
     }
 
     /*
@@ -215,7 +210,7 @@ __attribute__((always_inline)) void radixSortImpl(
     k = t;
 
     ++p;
-    assert(p>ps);
+    assert(p > ps);
   }
 
   if ((w != 8) && (0 == (NS & 1)))
@@ -231,8 +226,8 @@ __attribute__((always_inline)) void radixSortImpl(
 template <typename T,
           int NS = sizeof(T),  // number of significant bytes to use in sorting
           typename std::enable_if<std::is_unsigned<T>::value, T>::type* = nullptr>
-__attribute__((always_inline)) void radixSort(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, 
-sycl::nd_item<1> item) {
+__attribute__((always_inline)) void radixSort(
+    T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, sycl::nd_item<1> item) {
   radixSortImpl<T, NS>(a, ind, ind2, size, item);
   dummyReorder<T>(a, ind, ind2, size, item);
 }
@@ -240,8 +235,8 @@ sycl::nd_item<1> item) {
 template <typename T,
           int NS = sizeof(T),  // number of significant bytes to use in sorting
           typename std::enable_if<std::is_integral<T>::value && std::is_signed<T>::value, T>::type* = nullptr>
-__attribute__((always_inline)) void radixSort(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, 
-sycl::nd_item<1> item) {
+__attribute__((always_inline)) void radixSort(
+    T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, sycl::nd_item<1> item) {
   radixSortImpl<T, NS>(a, ind, ind2, size, item);
   reorderSigned<T>(a, ind, ind2, size, item);
 }
@@ -249,8 +244,8 @@ sycl::nd_item<1> item) {
 template <typename T,
           int NS = sizeof(T),  // number of significant bytes to use in sorting
           typename std::enable_if<std::is_floating_point<T>::value, T>::type* = nullptr>
-__attribute__((always_inline)) void radixSort(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, 
-sycl::nd_item<1> item) {
+__attribute__((always_inline)) void radixSort(
+    T const* a, uint16_t* ind, uint16_t* ind2, uint32_t size, sycl::nd_item<1> item) {
   using I = int;
   radixSortImpl<I, NS>((I const*)(a), ind, ind2, size, item);
   reorderFloat<I>((I const*)(a), ind, ind2, size, item);
@@ -258,12 +253,12 @@ sycl::nd_item<1> item) {
 
 template <typename T, int NS = sizeof(T)>
 __attribute__((always_inline)) void radixSortMulti(T const* v,
-                                  uint16_t* index,
-                                  uint32_t const* offsets,
-                                  uint16_t* workspace,
-                                  sycl::nd_item<1> item,
-                                  uint16_t *ws) {    // ws in CUDA was: extern __shared__ uint16_t ws[]
-	                                             // pass an accessor here instead!
+                                                   uint16_t* index,
+                                                   uint32_t const* offsets,
+                                                   uint16_t* workspace,
+                                                   sycl::nd_item<1> item,
+                                                   uint16_t* ws) {  // ws in CUDA was: extern __shared__ uint16_t ws[]
+                                                                    // pass an accessor here instead!
 
   auto a = v + offsets[item.get_group(0)];
   auto ind = index + offsets[item.get_group(0)];
@@ -278,14 +273,22 @@ namespace cms {
   namespace sycltools {
 
     template <typename T, int NS = sizeof(T)>
-    void radixSortMultiWrapper(T const* v, uint16_t* index, uint32_t const* offsets, uint16_t* workspace,
-        sycl::nd_item<1> item, uint16_t *ws) {
+    void radixSortMultiWrapper(T const* v,
+                               uint16_t* index,
+                               uint32_t const* offsets,
+                               uint16_t* workspace,
+                               sycl::nd_item<1> item,
+                               uint16_t* ws) {
       radixSortMulti<T, NS>(v, index, offsets, workspace, item, ws);
     }
 
     template <typename T, int NS = sizeof(T)>
-    void radixSortMultiWrapper2(T const* v, uint16_t* index, uint32_t const* offsets, uint16_t* workspace,
-         sycl::nd_item<1> item, uint16_t *ws) {
+    void radixSortMultiWrapper2(T const* v,
+                                uint16_t* index,
+                                uint32_t const* offsets,
+                                uint16_t* workspace,
+                                sycl::nd_item<1> item,
+                                uint16_t* ws) {
       radixSortMulti<T, NS>(v, index, offsets, workspace, item, ws);
     }
 

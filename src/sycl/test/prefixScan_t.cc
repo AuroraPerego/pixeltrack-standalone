@@ -11,11 +11,11 @@
 template <typename T>
 void testPrefixScan(sycl::nd_item<1> item, uint32_t size) {
   auto wsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<T[32]>(item.get_group());
-  T* ws = (T*)wsbuff.get();
+  T *ws = (T *)wsbuff.get();
   auto cbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<T[1024]>(item.get_group());
-  T* c = (T*)cbuff.get();
+  T *c = (T *)cbuff.get();
   auto cobuff = sycl::ext::oneapi::group_local_memory_for_overwrite<T[1024]>(item.get_group());
-  T* co = (T*)cobuff.get();
+  T *co = (T *)cobuff.get();
 
   uint32_t first = item.get_local_id(0);
   for (auto i = first; i < size; i += item.get_local_range().get(0))
@@ -63,9 +63,9 @@ void testWarpPrefixScan(sycl::nd_item<1> item, uint32_t size) {
   assert(size <= 32);
 
   auto cbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<T[1024]>(item.get_group());
-  T* c = (T*)cbuff.get();
+  T *c = (T *)cbuff.get();
   auto cobuff = sycl::ext::oneapi::group_local_memory_for_overwrite<T[1024]>(item.get_group());
-  T* co = (T*)cobuff.get();
+  T *co = (T *)cobuff.get();
 
   uint32_t i = item.get_local_id(0);
   c[i] = 1;
@@ -89,7 +89,7 @@ void testWarpPrefixScan(sycl::nd_item<1> item, uint32_t size) {
   if (i != 0) {
     if (c[i] != c[i - 1] + (T)1)
       printf("failed size %d, i %d, thread %lu, c[i] %d c[i - 1] %d", size, i, item.get_local_range(0), c[i], c[i - 1]);
-    
+
     //assert(c[i] == c[i - 1] + 1);
     if (c[i] != c[i - 1] + (T)1) {
       printf("failed (testWarpPrefixScan): c[i] != c[i - 1] + 1\n");
@@ -129,7 +129,7 @@ void verify(sycl::nd_item<1> item, uint32_t const *v, uint32_t n) {
     printf("verify\n");
 }
 
-int main(int argc, char** argv) try {
+int main(int argc, char **argv) try {
   std::string devices(argv[1]);
   setenv("SYCL_DEVICE_FILTER", devices.c_str(), true);
 
@@ -137,8 +137,8 @@ int main(int argc, char** argv) try {
   sycl::device device = cms::sycltools::chooseDevice(0);
   sycl::queue queue = sycl::queue(device, sycl::property::queue::in_order());
 
-  std::cout << "Prefixscan offload to " << device.get_info<cl::sycl::info::device::name>()
-              << " on backend " << device.get_backend() << std::endl;
+  std::cout << "Prefixscan offload to " << device.get_info<cl::sycl::info::device::name>() << " on backend "
+            << device.get_backend() << std::endl;
 
   // query the device for the maximum workgroup size
   // FIXME the OpenCL CPU device reports a maximum workgroup size of 8192,
@@ -149,40 +149,34 @@ int main(int argc, char** argv) try {
   std::cout << "warp level" << std::endl;
   // std::cout << "warp 32" << std::endl;
   queue.submit([&](sycl::handler &cgh) {
-        // sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::target::local> c_acc(1024, cgh);
+    // sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::target::local> c_acc(1024, cgh);
     // sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::target::local> co_acc(1024, cgh);
 
     cgh.parallel_for<class testWarpPrefixScan_kernel_32>(
         sycl::nd_range<1>(sycl::range(32), sycl::range(32)),
-        [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
-          testWarpPrefixScan<int>(item, 32);
-        });
+        [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { testWarpPrefixScan<int>(item, 32); });
   });
   queue.wait_and_throw();
 
   // std::cout << "warp 16" << std::endl;
   queue.submit([&](sycl::handler &cgh) {
-        // sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::target::local> c_acc(1024, cgh);
+    // sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::target::local> c_acc(1024, cgh);
     // sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::target::local> co_acc(1024, cgh);
 
     cgh.parallel_for<class testWarpPrefixScan_kernel_16>(
         sycl::nd_range<1>(sycl::range(32), sycl::range(32)),
-        [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
-          testWarpPrefixScan<int>(item, 16);
-        });
+        [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { testWarpPrefixScan<int>(item, 16); });
   });
   queue.wait_and_throw();
 
   // std::cout << "warp 5" << std::endl;
   queue.submit([&](sycl::handler &cgh) {
-        // sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::target::local> c_acc(1024, cgh);
+    // sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::target::local> c_acc(1024, cgh);
     // sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::target::local> co_acc(1024, cgh);
 
     cgh.parallel_for<class testWarpPrefixScan_kernel_5>(
         sycl::nd_range<1>(sycl::range(32), sycl::range(32)),
-        [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
-          testWarpPrefixScan<int>(item, 5);
-        });
+        [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { testWarpPrefixScan<int>(item, 5); });
   });
   queue.wait_and_throw();
 
@@ -190,32 +184,24 @@ int main(int argc, char** argv) try {
   for (unsigned int bs = 32; bs <= 256; bs += 32) {
     for (unsigned int j = 1; j <= 256; ++j) {
       queue.submit([&](sycl::handler &cgh) {
-        
         // sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::target::local> ws_acc(32, cgh);
         // sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::target::local> c_acc(1024, cgh);
         // sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::target::local> co_acc(1024, cgh);
 
         cgh.parallel_for<class testPrefixScan_kernel_int>(
             sycl::nd_range<1>(sycl::range(bs), sycl::range(bs)),
-            [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
-              testPrefixScan<uint16_t>(
-                  item, j);
-            });
+            [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { testPrefixScan<uint16_t>(item, j); });
       });
       queue.wait_and_throw();
 
       queue.submit([&](sycl::handler &cgh) {
-        
         // sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::target::local> ws_acc(32, cgh);
         // sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::target::local> c_acc(1024, cgh);
         // sycl::accessor<float, 1, sycl::access_mode::read_write, sycl::target::local> co_acc(1024, cgh);
 
         cgh.parallel_for<class testPrefixScan_kernel_float>(
             sycl::nd_range<1>(sycl::range(bs), sycl::range(bs)),
-            [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
-              testPrefixScan<float>(
-                  item, j);
-            });
+            [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] { testPrefixScan<float>(item, j); });
       });
       queue.wait_and_throw();
     }
@@ -241,10 +227,8 @@ int main(int argc, char** argv) try {
     auto nblocks = (num_items + nthreads - 1) / nthreads;
 
     queue.submit([&](sycl::handler &cgh) {
-      
-      cgh.parallel_for<class init_kernel>
-                       (sycl::nd_range<1>(sycl::range(nblocks * nthreads), sycl::range(nthreads)),
-                       [=](sycl::nd_item<1> item) { init(item, d_in, 1, num_items); });
+      cgh.parallel_for<class init_kernel>(sycl::nd_range<1>(sycl::range(nblocks * nthreads), sycl::range(nthreads)),
+                                          [=](sycl::nd_item<1> item) { init(item, d_in, 1, num_items); });
     });
     queue.wait_and_throw();
 
@@ -256,28 +240,19 @@ int main(int argc, char** argv) try {
     std::cout << "  nthreads: " << nthreads << " nblocks " << nblocks << " numitems " << num_items << std::endl;
 
     queue.submit([&](sycl::handler &cgh) {
-      
       sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::target::local> psum_acc(4 * nblocks, cgh);
-   
+
       cgh.parallel_for<class multiBlockPrefixScan_kernel>(
           sycl::nd_range(sycl::range(nblocks * nthreads), sycl::range(nthreads)),
           [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
-          
-           cms::sycltools::multiBlockPrefixScan<uint32_t>(d_in,
-                                                          d_out,
-                                                          num_items,
-                                                          d_pc,
-                                                          item,
-                                                          psum_acc.get_pointer());
+            cms::sycltools::multiBlockPrefixScan<uint32_t>(d_in, d_out, num_items, d_pc, item, psum_acc.get_pointer());
           });
     });
     queue.wait_and_throw();
 
     queue.submit([&](sycl::handler &cgh) {
-      
-      cgh.parallel_for<class verify_kernel>
-                    (sycl::nd_range<1>(sycl::range(nblocks * nthreads), sycl::range(nthreads)),
-                       [=](sycl::nd_item<1> item) { verify(item, d_out, num_items); });
+      cgh.parallel_for<class verify_kernel>(sycl::nd_range<1>(sycl::range(nblocks * nthreads), sycl::range(nthreads)),
+                                            [=](sycl::nd_item<1> item) { verify(item, d_out, num_items); });
     });
     queue.wait_and_throw();
   }  // ksize

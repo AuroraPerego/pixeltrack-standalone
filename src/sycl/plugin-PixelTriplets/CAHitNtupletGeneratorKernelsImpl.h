@@ -9,7 +9,7 @@
 #include <cstdint>
 
 #include "SYCLCore/AtomicPairCounter.h"
-#include "SYCLCore/printf.h" 
+#include "SYCLCore/printf.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
 #include "CondFormats/pixelCPEforGPU.h"
@@ -58,16 +58,20 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
 
 #ifdef NTUPLE_DEBUG
   if (0 == first) {
-    printf("number of found cells %d, found tuples %d with total hits %d out of %d\n", *nCells, apc->get().m, apc->get().n, nHits);
+    printf("number of found cells %d, found tuples %d with total hits %d out of %d\n",
+           *nCells,
+           apc->get().m,
+           apc->get().n,
+           nHits);
     if (apc->get().m < CAConstants::maxNumberOfQuadruplets()) {
       assert(foundNtuplets->size(apc->get().m) == 0);
       assert(foundNtuplets->size() == apc->get().n);
     }
   }
 
-  for (int idx = first, nt = foundNtuplets->nbins(); idx < nt; 
+  for (int idx = first, nt = foundNtuplets->nbins(); idx < nt;
        idx += item.get_group_range(0) * item.get_local_range().get(0)) {
-    if (foundNtuplets->size(idx) > 5){
+    if (foundNtuplets->size(idx) > 5) {
       printf("ERROR %d, %d\n", idx, foundNtuplets->size(idx));
     }
     assert(foundNtuplets->size(idx) < 6);
@@ -87,35 +91,37 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
       printf("cellTracks overflow\n");
   }
 
-  for (int idx = first, nt = (*nCells); idx < nt;
-       idx += item.get_group_range(0) * item.get_local_range().get(0)) {
+  for (int idx = first, nt = (*nCells); idx < nt; idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     auto const &thisCell = cells[idx];
-    if (thisCell.outerNeighbors().full()) //++tooManyNeighbors[thisCell.theLayerPairId];
+    if (thisCell.outerNeighbors().full())  //++tooManyNeighbors[thisCell.theLayerPairId];
       printf("OuterNeighbors overflow %d in %d\n", idx, thisCell.theLayerPairId);
     if (thisCell.tracks().full())  //++tooManyTracks[thisCell.theLayerPairId];
       printf("Tracks overflow %d in %d\n", idx, thisCell.theLayerPairId);
     if (thisCell.theDoubletId < 0)
-      cms::sycltools::atomic_fetch_add<unsigned long long>((unsigned long long *)(&c.nKilledCells), (unsigned long long)1);
+      cms::sycltools::atomic_fetch_add<unsigned long long>((unsigned long long *)(&c.nKilledCells),
+                                                           (unsigned long long)1);
     if (0 == thisCell.theUsed)
-      cms::sycltools::atomic_fetch_add<unsigned long long>((unsigned long long *)(&c.nEmptyCells), (unsigned long long)1);
+      cms::sycltools::atomic_fetch_add<unsigned long long>((unsigned long long *)(&c.nEmptyCells),
+                                                           (unsigned long long)1);
     if (thisCell.tracks().empty())
-      cms::sycltools::atomic_fetch_add<unsigned long long>((unsigned long long *)(&c.nZeroTrackCells), (unsigned long long)1);
+      cms::sycltools::atomic_fetch_add<unsigned long long>((unsigned long long *)(&c.nZeroTrackCells),
+                                                           (unsigned long long)1);
   }
 
-  for (int idx = first, nt = nHits; idx < nt; 
-       idx += item.get_group_range(0) * item.get_local_range().get(0)) {
+  for (int idx = first, nt = nHits; idx < nt; idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     if (isOuterHitOfCell[idx].full())  // ++tooManyOuterHitOfCell;
       printf("OuterHitOfCell overflow %d\n", idx);
   }
 }
 
-void kernel_fishboneCleaner(GPUCACell const *cells, uint32_t const *__restrict__ nCells, Quality *quality,
+void kernel_fishboneCleaner(GPUCACell const *cells,
+                            uint32_t const *__restrict__ nCells,
+                            Quality *quality,
                             sycl::nd_item<1> item) {
   constexpr auto bad = trackQuality::bad;
 
   auto first = item.get_local_id(0) + item.get_group(0) * item.get_local_range().get(0);
-  for (int idx = first, nt = (*nCells); idx < nt;
-       idx += item.get_group_range(0) * item.get_local_range().get(0)) {
+  for (int idx = first, nt = (*nCells); idx < nt; idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     auto const &thisCell = cells[idx];
     if (thisCell.theDoubletId >= 0)
       continue;
@@ -136,8 +142,7 @@ void kernel_earlyDuplicateRemover(GPUCACell const *cells,
 
   assert(nCells);
   auto first = item.get_local_id(0) + item.get_group(0) * item.get_local_range().get(0);
-  for (int idx = first, nt = (*nCells); idx < nt;
-       idx += item.get_group_range(0) * item.get_local_range().get(0)) {
+  for (int idx = first, nt = (*nCells); idx < nt; idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     auto const &thisCell = cells[idx];
 
     if (thisCell.tracks().size() < 2)
@@ -172,8 +177,7 @@ void kernel_fastDuplicateRemover(GPUCACell const *__restrict__ cells,
   assert(nCells);
 
   auto first = item.get_local_id(0) + item.get_group(0) * item.get_local_range().get(0);
-  for (int idx = first, nt = (*nCells); idx < nt;
-       idx += item.get_group_range(0) * item.get_local_range().get(0)) {
+  for (int idx = first, nt = (*nCells); idx < nt; idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     auto const &thisCell = cells[idx];
     if (thisCell.tracks().size() < 2)
       continue;
@@ -246,7 +250,7 @@ void kernel_connect(cms::sycltools::AtomicPairCounter *apc1,
     auto zo = thisCell.get_outer_z(hh);
     auto isBarrel = thisCell.get_inner_detIndex(hh) < last_barrel_detIndex;
     for (int j = first; j < numberOfPossibleNeighbors; j += stride) {
-      auto otherCell = vi[j]; 
+      auto otherCell = vi[j];
       auto &oc = cells[otherCell];
       // if (cells[otherCell].theDoubletId < 0 ||
       //    cells[otherCell].theUsed>1 )
@@ -254,20 +258,22 @@ void kernel_connect(cms::sycltools::AtomicPairCounter *apc1,
       auto r1 = oc.get_inner_r(hh);
       auto z1 = oc.get_inner_z(hh);
       // auto isBarrel = oc.get_outer_detIndex(hh) < last_barrel_detIndex;
-      bool aligned = GPUCACell::areAlignedRZ(r1,
-                                             z1,
-                                             ri,
-                                             zi,
-                                             ro,
-                                             zo,
-                                             ptmin,
-                                             isBarrel ? CAThetaCutBarrel : CAThetaCutForward);  // 2.f*thetaCut); // FIXME tune cuts
+      bool aligned = GPUCACell::areAlignedRZ(
+          r1,
+          z1,
+          ri,
+          zi,
+          ro,
+          zo,
+          ptmin,
+          isBarrel ? CAThetaCutBarrel : CAThetaCutForward);  // 2.f*thetaCut); // FIXME tune cuts
       if (aligned &&
           thisCell.dcaCut(hh,
                           oc,
-                          oc.get_inner_detIndex(hh) < last_bpix1_detIndex ? dcaCutInnerTriplet : dcaCutOuterTriplet, //same, 0.15 or 0.25
+                          oc.get_inner_detIndex(hh) < last_bpix1_detIndex ? dcaCutInnerTriplet
+                                                                          : dcaCutOuterTriplet,  //same, 0.15 or 0.25
                           hardCurvCut)) {  // FIXME tune cuts -> 0.0328407224959
-        oc.addOuterNeighbor(cellIndex, *cellNeighbors); 
+        oc.addOuterNeighbor(cellIndex, *cellNeighbors);
         thisCell.theUsed |= 1;
         oc.theUsed |= 1;
       }
@@ -286,8 +292,7 @@ void kernel_find_ntuplets(GPUCACell::Hits const *__restrict__ hhp,
                           sycl::nd_item<1> item) {
   // recursive: not obvious to widen
   auto first = item.get_local_id(0) + item.get_group(0) * item.get_local_range().get(0);
-  for (int idx = first, nt = (*nCells); idx < nt;
-       idx += item.get_group_range(0) * item.get_local_range().get(0)) {
+  for (int idx = first, nt = (*nCells); idx < nt; idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     auto const &hh = *hhp;
     auto const &thisCell = cells[idx];
     if (thisCell.theDoubletId < 0)
@@ -299,7 +304,7 @@ void kernel_find_ntuplets(GPUCACell::Hits const *__restrict__ hhp,
       GPUCACell::TmpTuple stack;
       stack.reset();
       thisCell.find_ntuplets<6>(
-          hh, cells, *cellTracks, *foundNtuplets, *apc, quality, stack, minHitsPerNtuplet, pid < 3); 
+          hh, cells, *cellTracks, *foundNtuplets, *apc, quality, stack, minHitsPerNtuplet, pid < 3);
       assert(stack.empty());
     }
   }
@@ -311,8 +316,7 @@ void kernel_mark_used(GPUCACell::Hits const *__restrict__ hhp,
                       sycl::nd_item<1> item) {
   // auto const &hh = *hhp;
   auto first = item.get_local_id(0) + item.get_group(0) * item.get_local_range().get(0);
-  for (int idx = first, nt = (*nCells); idx < nt;
-       idx += item.get_group_range(0) * item.get_local_range().get(0)) {
+  for (int idx = first, nt = (*nCells); idx < nt; idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     auto &thisCell = cells[idx];
     if (!thisCell.tracks().empty())
       thisCell.theUsed |= 2;
@@ -365,8 +369,7 @@ void kernel_classifyTracks(HitContainer const *__restrict__ tuples,
                            Quality *__restrict__ quality,
                            sycl::nd_item<1> item) {
   int first = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
-  for (int it = first, nt = tuples->nbins(); it < nt;
-       it += item.get_group_range(0) * item.get_local_range().get(0)) {
+  for (int it = first, nt = tuples->nbins(); it < nt; it += item.get_group_range(0) * item.get_local_range().get(0)) {
     auto nhits = tuples->size(it);
     if (nhits == 0)
       break;  // guard
@@ -458,7 +461,7 @@ void kernel_countHitInTracks(HitContainer const *__restrict__ tuples,
     for (auto h = tuples->begin(idx); h != tuples->end(idx); ++h)
       hitToTuple->countDirect(*h);
   }
- }
+}
 
 void kernel_fillHitInTracks(HitContainer const *__restrict__ tuples,
                             Quality const *__restrict__ quality,
@@ -488,7 +491,7 @@ void kernel_fillHitDetIndices(HitContainer const *__restrict__ tuples,
   }
   // fill hit indices
   auto const &hh = *hhp;
-  [[maybe_unused]] auto nhits = hh.nHits(); // unused warning
+  [[maybe_unused]] auto nhits = hh.nHits();  // unused warning
   for (int idx = first, ntot = tuples->size(); idx < ntot;
        idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     assert(tuples->bins[idx] < nhits);
@@ -511,12 +514,15 @@ void kernel_doStatsForHitInTracks(CAHitNtupletGeneratorKernels::HitToTuple const
   }
 }
 
-void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
-                           HitContainer const *__restrict__ ptuples, //using HitContainer = cms::sycltools::OneToManyAssoc<hindex_type, S, 5 * S>; S=32 * 1024
-                           TkSoA const *__restrict__ ptracks,
-                           Quality *__restrict__ quality,
-                           CAHitNtupletGeneratorKernels::HitToTuple const *__restrict__ phitToTuple, //HistoContainer<uint32_t, MAXONES, MAXMANYS, sizeof(uint32_t) * 8, I, 1>; I = uint16_t, 48 * 1024, 24 * 1024 *4
-                           sycl::nd_item<1> item) {
+void kernel_tripletCleaner(
+    TrackingRecHit2DSOAView const *__restrict__ hhp,
+    HitContainer const
+        *__restrict__ ptuples,  //using HitContainer = cms::sycltools::OneToManyAssoc<hindex_type, S, 5 * S>; S=32 * 1024
+    TkSoA const *__restrict__ ptracks,
+    Quality *__restrict__ quality,
+    CAHitNtupletGeneratorKernels::HitToTuple const
+        *__restrict__ phitToTuple,  //HistoContainer<uint32_t, MAXONES, MAXMANYS, sizeof(uint32_t) * 8, I, 1>; I = uint16_t, 48 * 1024, 24 * 1024 *4
+    sycl::nd_item<1> item) {
   constexpr auto bad = trackQuality::bad;
   constexpr auto dup = trackQuality::dup;
   // constexpr auto loose = trackQuality::loose;
@@ -525,13 +531,12 @@ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
   auto const &foundNtuplets = *ptuples;
   auto const &tracks = *ptracks;
 
-  auto const & hh = *hhp;
+  auto const &hh = *hhp;
   // auto l1end = hh.hitsLayerStart_d[1];
 
   int first = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
-  
-  for (int idx = first, ntot = hh.nHits(); idx < ntot;
-       idx += item.get_group_range(0) * item.get_local_range().get(0)) {
+
+  for (int idx = first, ntot = hh.nHits(); idx < ntot; idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     if (hitToTuple.size(idx) < 2)
       continue;
 
@@ -544,7 +549,7 @@ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
       uint32_t nh = foundNtuplets.size(*it);
       maxNh = sycl::max(nh, maxNh);
     }
-    
+
     // kill all tracks shorter than maxHn (only triplets???)
     for (auto it = hitToTuple.begin(idx); it != hitToTuple.end(idx); ++it) {
       uint32_t nh = foundNtuplets.size(*it);
@@ -565,7 +570,7 @@ void kernel_tripletCleaner(TrackingRecHit2DSOAView const *__restrict__ hhp,
     }
     // mark duplicates
     for (auto ip = hitToTuple.begin(idx); ip != hitToTuple.end(idx); ++ip) {
-       auto const it = *ip;
+      auto const it = *ip;
       if (quality[it] != bad && it != im)
         quality[it] = dup;  //no race:  simple assignment of the same constant
     }
@@ -610,17 +615,21 @@ void kernel_print_found_ntuplets(TrackingRecHit2DSOAView const *__restrict__ hhp
 
 void kernel_printCounters(cAHitNtupletGenerator::Counters const *counters) {
   auto const &c = *counters;
-  printf("|| Counters      | nEvents | nHits | nCells | nTuples | nFitTacks | nGoodTracks | nUsedHits | nDupHits | nKilledCells | nEmptyCells | nZeroTrackCells ||\n");
-  printf("|| Counters      | %lld |    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|  %lld|  %lld||\n",
-         c.nEvents,
-         c.nHits,
-         c.nCells,
-         c.nTuples,
-         c.nFitTracks,
-         c.nGoodTracks,
-         c.nUsedHits,
-         c.nDupHits,
-         c.nKilledCells,
-         c.nEmptyCells,
-         c.nZeroTrackCells);
+  printf(
+      "|| Counters      | nEvents | nHits | nCells | nTuples | nFitTacks | nGoodTracks | nUsedHits | nDupHits | "
+      "nKilledCells | nEmptyCells | nZeroTrackCells ||\n");
+  printf(
+      "|| Counters      | %lld |    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|    %lld|  %lld|  "
+      "%lld||\n",
+      c.nEvents,
+      c.nHits,
+      c.nCells,
+      c.nTuples,
+      c.nFitTracks,
+      c.nGoodTracks,
+      c.nUsedHits,
+      c.nDupHits,
+      c.nKilledCells,
+      c.nEmptyCells,
+      c.nZeroTrackCells);
 }

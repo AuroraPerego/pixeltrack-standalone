@@ -56,7 +56,7 @@ SiPixelRawToClusterSYCL::SiPixelRawToClusterSYCL(edm::ProductRegistry& reg)
       clusterPutToken_(reg.produces<cms::sycltools::Product<SiPixelClustersSYCL>>()),
       isRun2_(true),
       includeErrors_(true),
-      useQuality_(true){
+      useQuality_(true) {
   if (includeErrors_) {
     digiErrorPutToken_ = reg.produces<cms::sycltools::Product<SiPixelDigiErrorsSYCL>>();
   }
@@ -69,8 +69,8 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
                                       edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
   cms::sycltools::ScopedContextAcquire ctx{iEvent.streamID(), std::move(waitingTaskHolder), ctxState_};
 
-  if(!isCpu_)
-    isCpu_ = ctx.stream().get_device().is_cpu();  
+  if (!isCpu_)
+    isCpu_ = ctx.stream().get_device().is_cpu();
 
   auto const& hgpuMap = iSetup.get<SiPixelFedCablingMapGPUWrapper>();
   if (hgpuMap.hasQuality() != useQuality_) {
@@ -78,12 +78,12 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
                              ") differs the one from SiPixelFedCablingMapGPUWrapper. Please fix your configuration.");
   }
   // get the GPU product already here so that the async transfer can begin
-  const auto* gpuMap = hgpuMap.getGPUProductAsync(ctx.stream()); 
+  const auto* gpuMap = hgpuMap.getGPUProductAsync(ctx.stream());
   const unsigned char* gpuModulesToUnpack = hgpuMap.getModToUnpAllAsync(ctx.stream());
 
   auto const& hgains = iSetup.get<SiPixelGainCalibrationForHLTGPU>();
   // get the GPU product already here so that the async transfer can begin
-  
+
   const auto* gpuGains = hgains.getGPUProductAsync(ctx.stream());
 
   auto const& fedIds_ = iSetup.get<SiPixelFedIds>().fedIds();
@@ -163,7 +163,7 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
                              includeErrors_,
                              false,  // debug
                              ctx.stream(),
-			     *isCpu_);
+                             *isCpu_);
 }
 
 void SiPixelRawToClusterSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {

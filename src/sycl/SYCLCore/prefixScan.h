@@ -1,14 +1,14 @@
 #ifndef HeterogeneousCore_SYCLUtilities_interface_prefixScan_h
 #define HeterogeneousCore_SYCLUtilities_interface_prefixScan_h
 
-
 #include <cstdint>
 #include <CL/sycl.hpp>
 #include "SYCLCore/syclAtomic.h"
 #include "SYCLCore/sycl_assert.h"
 
 template <typename T>
-void __attribute__((always_inline)) warpPrefixScan(T const* __restrict__ ci, T* __restrict__ co, uint32_t i, sycl::nd_item<1> item) {
+void __attribute__((always_inline))
+warpPrefixScan(T const* __restrict__ ci, T* __restrict__ co, uint32_t i, sycl::nd_item<1> item) {
   // ci and co may be the same
   auto x = ci[i];
   int laneId = item.get_local_id(0) & 0x1f;
@@ -39,16 +39,13 @@ namespace cms {
 
     // 1) limited to 32*32 elements....
     template <typename VT, typename T>
-    __attribute__((always_inline)) void blockPrefixScan(VT const* ci,
-                                       VT* co,
-                                       uint32_t size,
-                                       sycl::nd_item<1> item,
-				                               T* ws) {
+    __attribute__((always_inline)) void blockPrefixScan(
+        VT const* ci, VT* co, uint32_t size, sycl::nd_item<1> item, T* ws) {
       auto first = item.get_local_id(0);
-      
+
       //__ballot_sync in CUDA
       // size_t id = item.get_sub_group().get_local_linear_id();
-      // uint32_t local_val = (first < size ? 1u : 0u) << id;      
+      // uint32_t local_val = (first < size ? 1u : 0u) << id;
       // auto mask = sycl::reduce_over_group(item.get_sub_group(), local_val, sycl::plus<>());
       //end of __ballot_sync equivalent
 
@@ -58,25 +55,25 @@ namespace cms {
         auto warpId = i / 32;
         if (31 == laneId)
           ws[warpId] = co[i];
-          
+
         //__ballot_sync in CUDA
         // size_t id2 = item.get_sub_group().get_local_linear_id();
-        // uint32_t local_val2 = ((i + item.get_local_range(0)) < size ? 1u : 0u) << id2;          
+        // uint32_t local_val2 = ((i + item.get_local_range(0)) < size ? 1u : 0u) << id2;
         // mask = sycl::reduce_over_group(item.get_sub_group(), local_val2, sycl::plus<>());
         //end of __ballot_sync equivalent
       }
       // item.barrier(sycl::access::fence_space::local_space);
       sycl::group_barrier(item.get_group());
-      
+
       if (size <= 32)
         return;
-        
+
       if (item.get_local_id(0) < 32)
         warpPrefixScan(ws, item.get_local_id(0), item);
-        
+
       // item.barrier(sycl::access::fence_space::local_space);
       sycl::group_barrier(item.get_group());
-      
+
       for (auto i = first + 32; i < size; i += item.get_local_range(0)) {
         auto warpId = i / 32;
         co[i] += ws[warpId - 1];
@@ -89,16 +86,12 @@ namespace cms {
     // same as above (1), may remove
     // limited to 32*32 elements....
     template <typename T>
-    __attribute__((always_inline)) void blockPrefixScan(T* c,
-                                         uint32_t size,
-                                         sycl::nd_item<1> item,
-                                         T* ws) {
-    
+    __attribute__((always_inline)) void blockPrefixScan(T* c, uint32_t size, sycl::nd_item<1> item, T* ws) {
       auto first = item.get_local_id(0);
-                                         
+
       //__ballot_sync in CUDA
       // size_t id = item.get_sub_group().get_local_linear_id();
-      // uint32_t local_val = (first < size ? 1u : 0u) << id;      
+      // uint32_t local_val = (first < size ? 1u : 0u) << id;
       // auto mask = sycl::reduce_over_group(item.get_sub_group(), local_val, sycl::plus<>());
       //end of __ballot_sync equivalent
 
@@ -109,22 +102,22 @@ namespace cms {
         assert(warpId < 32);
         if (31 == laneId)
           ws[warpId] = c[i];
-          
-       //__ballot_sync in CUDA
+
+        //__ballot_sync in CUDA
         // size_t id2 = item.get_sub_group().get_local_linear_id();
-        // uint32_t local_val2 = ((i + item.get_local_range(0)) < size ? 1u : 0u) << id2;          
+        // uint32_t local_val2 = ((i + item.get_local_range(0)) < size ? 1u : 0u) << id2;
         // mask = sycl::reduce_over_group(item.get_sub_group(), local_val2, sycl::plus<>());
         //end of __ballot_sync equivalent
       }
       // item.barrier(sycl::access::fence_space::local_space);
       sycl::group_barrier(item.get_group());
-      
+
       if (size <= 32)
         return;
-        
+
       if (item.get_local_id(0) < 32)
         warpPrefixScan(ws, item.get_local_id(0), item);
-        
+
       // item.barrier(sycl::access::fence_space::local_space);
       sycl::group_barrier(item.get_group());
       for (auto i = first + 32; i < size; i += item.get_local_range(0)) {
@@ -142,11 +135,9 @@ namespace cms {
     //   return ret;
     // }
 
-
     // in principle not limited....
     template <typename T>
-    void multiBlockPrefixScan(T const* ici, T* ico, int32_t size, int32_t* pc, sycl::nd_item<1> item,
-                              T* psum) {
+    void multiBlockPrefixScan(T const* ici, T* ico, int32_t size, int32_t* pc, sycl::nd_item<1> item, T* psum) {
       volatile T const* ci = ici;
       volatile T* co = ico;
       auto wsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<T[32]>(item.get_group());
@@ -164,12 +155,10 @@ namespace cms {
       bool* isLastBlockDone = (bool*)isLastBlockDonebuff.get();
 
       if (0 == item.get_local_id(0)) {
-        sycl::atomic_fence(sycl::memory_order::acq_rel,
-                           sycl::memory_scope::device);
-        auto value =cms::sycltools::atomic_fetch_add<int32_t,
-                                                     sycl::access::address_space::global_space,
-                                                     sycl::memory_scope::device>
-                                                     (pc, static_cast<int32_t>(1));
+        sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+        auto value = cms::sycltools::atomic_fetch_add<int32_t,
+                                                      sycl::access::address_space::global_space,
+                                                      sycl::memory_scope::device>(pc, static_cast<int32_t>(1));
         *isLastBlockDone = (value == (int(item.get_group_range(0)) - 1));
       }
 
@@ -187,8 +176,7 @@ namespace cms {
       // auto psumbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<T[nblocks]>(item.get_group());
       // T* psum = (T*)psumbuff.get();
 
-      for (int i = item.get_local_id(0), ni = item.get_group_range(0); i < ni;
-           i += item.get_local_range(0)) {
+      for (int i = item.get_local_id(0), ni = item.get_group_range(0); i < ni; i += item.get_local_range(0)) {
         int32_t j = item.get_local_range(0) * i + item.get_local_range(0) - 1;
         psum[i] = (j < size) ? co[j] : T(0);
       }
@@ -198,8 +186,7 @@ namespace cms {
       blockPrefixScan(psum, psum, item.get_group_range(0), item, ws);
 
       // now it would have been handy to have the other blocks around...
-      for (int i = item.get_local_id(0) + item.get_local_range(0), k = 0; i < size;
-           i += item.get_local_range(0), ++k) {
+      for (int i = item.get_local_id(0) + item.get_local_range(0), k = 0; i < size; i += item.get_local_range(0), ++k) {
         co[i] += psum[k];
       }
     }

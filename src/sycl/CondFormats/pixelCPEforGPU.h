@@ -11,7 +11,6 @@
 #include "DataFormats/SOARotation.h"
 #include "Geometry/phase1PixelTopology.h"
 
-
 namespace pixelCPEforGPU {
 
   using sycl::abs;

@@ -23,12 +23,12 @@ namespace gpuVertexFinder {
     uint32_t const& nvFinal = data.nvFinal;
 
     int32_t const* __restrict__ iv = ws.iv;
-    float* __restrict__ ptv2 = data.ptv2;             // empty, will be filled here
-    uint16_t* __restrict__ sortInd = data.sortInd;    // empty, will be filled in radixSort
+    float* __restrict__ ptv2 = data.ptv2;           // empty, will be filled here
+    uint16_t* __restrict__ sortInd = data.sortInd;  // empty, will be filled in radixSort
 
 #ifdef VERTEX_DEBUG
     if (item.get_local_id(0) == 0)
-       printf("sorting %d vertices\n",nvFinal);
+      printf("sorting %d vertices\n", nvFinal);
 #endif
 
     if (nvFinal < 1)
@@ -68,7 +68,7 @@ namespace gpuVertexFinder {
     radixSort<float, 2>(ptv2, sortInd, sws, nvFinal, item);
   }
 
-   __attribute__((always_inline)) void sortByPt2CPU(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item) {
+  __attribute__((always_inline)) void sortByPt2CPU(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item) {
     auto& __restrict__ data = *pdata;
     auto& __restrict__ ws = *pws;
     auto nt = ws.ntrks;
@@ -76,12 +76,12 @@ namespace gpuVertexFinder {
     uint32_t const& nvFinal = data.nvFinal;
 
     int32_t const* __restrict__ iv = ws.iv;
-    float* __restrict__ ptv2 = data.ptv2;             // empty, will be filled here
-    uint16_t* __restrict__ sortInd = data.sortInd;    // empty, will be filled in radixSort
+    float* __restrict__ ptv2 = data.ptv2;           // empty, will be filled here
+    uint16_t* __restrict__ sortInd = data.sortInd;  // empty, will be filled in radixSort
 
 #ifdef VERTEX_DEBUG
     if (item.get_local_id(0) == 0)
-       printf("sorting %d vertices\n",nvFinal);
+      printf("sorting %d vertices\n", nvFinal);
 #endif
 
     if (nvFinal < 1)
@@ -109,25 +109,21 @@ namespace gpuVertexFinder {
     // now only the first "number of vertices" entries of ptv2 will be relevant
     // because iv[i] goes from 0 to the number of vertices, while i from 0 to the number of tracks
     // even though ptv2 has size nt(=number of tracks)
-    
+
     if (1 == nvFinal) {
       if (item.get_local_id(0) == 0)
         sortInd[0] = 0;
       return;
-    }else{
-        for (uint32_t i = item.get_local_id(0); i < nvFinal; i += item.get_local_range(0)){
-          sortInd[i] = i;
-	}
+    } else {
+      for (uint32_t i = item.get_local_id(0); i < nvFinal; i += item.get_local_range(0)) {
+        sortInd[i] = i;
+      }
     }
   }
 
-  void sortByPt2Kernel(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item) { 
-    sortByPt2(pdata, pws, item); 
-  }
+  void sortByPt2Kernel(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item) { sortByPt2(pdata, pws, item); }
 
-  void sortByPt2CPUKernel(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item) {
-    sortByPt2CPU(pdata, pws, item);
-  }
+  void sortByPt2CPUKernel(ZVertices* pdata, WorkSpace* pws, sycl::nd_item<1> item) { sortByPt2CPU(pdata, pws, item); }
 }  // namespace gpuVertexFinder
 
 #endif  // RecoPixelVertexing_PixelVertexFinding_src_gpuSortByPt2_h

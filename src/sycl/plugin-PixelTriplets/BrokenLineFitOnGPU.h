@@ -24,15 +24,15 @@ using OutputSoA = pixelTrack::TrackSoA;
 // #define BL_DUMP_HITS
 
 template <int N>
-void kernelBLFastFit(Tuples const * foundNtuplets,
-                     CAConstants::TupleMultiplicity const * tupleMultiplicity,
-                     HitsOnGPU const * hhp,
-                     double * phits,
-                     float * phits_ge,
-                     double * pfast_fit,
+void kernelBLFastFit(Tuples const *foundNtuplets,
+                     CAConstants::TupleMultiplicity const *tupleMultiplicity,
+                     HitsOnGPU const *hhp,
+                     double *phits,
+                     float *phits_ge,
+                     double *pfast_fit,
                      uint32_t nHits,
                      uint32_t offset,
-                     sycl::nd_item<1> item) { 
+                     sycl::nd_item<1> item) {
   constexpr uint32_t hitsInFit = N;
   assert(hitsInFit <= nHits);
 
@@ -69,10 +69,11 @@ void kernelBLFastFit(Tuples const * foundNtuplets,
 
 #ifdef BL_DUMP_HITS
     auto donebuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int>(item.get_group());
-    int* done = (int*)donebuff.get();
+    int *done = (int *)donebuff.get();
     *done = 0;
     sycl::group_barrier(item.get_group());
-    bool dump = (foundNtuplets->size(tkid) == 5 && 0 == cms::sycltools::atomic_fetch_add<int, cl::sycl::access::address_space::local_space>(done, 1));
+    bool dump = (foundNtuplets->size(tkid) == 5 &&
+                 0 == cms::sycltools::atomic_fetch_add<int, cl::sycl::access::address_space::local_space>(done, 1));
 #endif
 
     // Prepare data structure
@@ -120,14 +121,14 @@ void kernelBLFastFit(Tuples const * foundNtuplets,
 
 template <int N>
 void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
-                            double B,
-                            OutputSoA *results,
-                            double *__restrict__ phits,
-                            float *__restrict__ phits_ge,
-                            double *__restrict__ pfast_fit,
-                            uint32_t nHits,
-                            uint32_t offset,
-                            sycl::nd_item<1> item) {
+                 double B,
+                 OutputSoA *results,
+                 double *__restrict__ phits,
+                 float *__restrict__ phits_ge,
+                 double *__restrict__ pfast_fit,
+                 uint32_t nHits,
+                 uint32_t offset,
+                 sycl::nd_item<1> item) {
   assert(N <= nHits);
 
   assert(results);

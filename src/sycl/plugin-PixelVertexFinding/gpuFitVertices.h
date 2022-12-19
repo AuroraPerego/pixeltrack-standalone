@@ -17,11 +17,9 @@
 namespace gpuVertexFinder {
 
   __attribute__((always_inline)) void fitVertices(ZVertices* pdata,
-                                 WorkSpace* pws,
-                                 float chi2Max,  // for outlier rejection
-                                 sycl::nd_item<1> item
-  ) {
-
+                                                  WorkSpace* pws,
+                                                  float chi2Max,  // for outlier rejection
+                                                  sycl::nd_item<1> item) {
     auto& __restrict__ data = *pdata;
     auto& __restrict__ ws = *pws;
     auto nt = ws.ntrks;
@@ -63,7 +61,7 @@ namespace gpuVertexFinder {
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] > 9990) {
 #ifdef VERTEX_DEBUG
-          cms::sycltools::atomic_fetch_add<int, cl::sycl::access::address_space::local_space>(noise, 1);
+        cms::sycltools::atomic_fetch_add<int, cl::sycl::access::address_space::local_space>(noise, 1);
 #endif
         continue;
       }
@@ -111,8 +109,7 @@ namespace gpuVertexFinder {
   void fitVerticesKernel(ZVertices* pdata,
                          WorkSpace* pws,
                          float chi2Max,  // for outlier rejection
-                         sycl::nd_item<1> item
-  ) {
+                         sycl::nd_item<1> item) {
     fitVertices(pdata, pws, chi2Max, item);
   }
 

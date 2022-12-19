@@ -53,8 +53,7 @@ namespace BrokenLine {
     
     \return the variance of the planar angle ((theta_0)^2 /3).
   */
-  inline double MultScatt(
-      const double& length, const double B, const double R, int Layer, double slope) {
+  inline double MultScatt(const double& length, const double B, const double R, int Layer, double slope) {
     // limit R to 20GeV...
     auto pt2 = std::min(20., B * R);
     pt2 *= pt2;
@@ -93,10 +92,7 @@ namespace BrokenLine {
     \param y0 y coordinate of the translation vector.
     \param jacobian passed by reference in order to save stack.
   */
-  inline void TranslateKarimaki(karimaki_circle_fit& circle,
-                                                    double x0,
-                                                    double y0,
-                                                    Rfit::Matrix3d& jacobian) {
+  inline void TranslateKarimaki(karimaki_circle_fit& circle, double x0, double y0, Rfit::Matrix3d& jacobian) {
     double A, U, BB, C, DO, DP, uu, xi, v, mu, lambda, zeta;
     DP = x0 * cos(circle.par(0)) + y0 * sin(circle.par(0));
     DO = x0 * sin(circle.par(0)) - y0 * cos(circle.par(0)) + circle.par(1);
@@ -414,10 +410,10 @@ namespace BrokenLine {
   */
   template <typename V4, typename M6xN, int N>
   inline void BL_Line_fit(const M6xN& hits_ge,
-                                              const V4& fast_fit,
-                                              const double B,
-                                              const PreparedBrokenLineData<N>& data,
-                                              Rfit::line_fit& line_results) {
+                          const V4& fast_fit,
+                          const double B,
+                          const PreparedBrokenLineData<N>& data,
+                          Rfit::line_fit& line_results) {
     constexpr u_int n = N;
     u_int i;
 

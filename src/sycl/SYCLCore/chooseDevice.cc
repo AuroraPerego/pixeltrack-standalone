@@ -7,22 +7,22 @@
 
 namespace cms::sycltools {
 
-   namespace {
+  namespace {
 
     void syclExceptionHandler(sycl::exception_list exceptions) {
       std::ostringstream msg;
       msg << "Caught asynchronous SYCL exception:";
-      for (auto const &exc_ptr : exceptions) {
+      for (auto const& exc_ptr : exceptions) {
         try {
           std::rethrow_exception(exc_ptr);
-        } catch (cl::sycl::exception const &e) {
+        } catch (cl::sycl::exception const& e) {
           msg << '\n' << e.what();
         }
         throw std::runtime_error(msg.str());
       }
     }
 
-  }
+  }  // namespace
 
   static std::vector<sycl::device> discoverDevices() {
     std::vector<sycl::device> temp;
@@ -96,7 +96,7 @@ namespace cms::sycltools {
   sycl::device chooseDevice(edm::StreamID id, bool verbose) {
     auto const& devices = enumerateDevices();
     auto const& device = devices[id % devices.size()];
-    if(verbose){
+    if (verbose) {
       std::cerr << "EDM stream " << id << " offload to " << device.get_info<cl::sycl::info::device::name>()
                 << " on backend " << device.get_backend() << std::endl;
     }

@@ -120,23 +120,26 @@ void kernelCircleFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMul
 
 #ifdef RIEMANN_DEBUG
     auto tkid = *(tupleMultiplicity->begin(nHits) + tuple_idx);
-    printf("kernelCircleFit circle.par(0,1,2): %d %f,%f,%f\n", tkid,
-         circle_fit[local_idx].par(0), circle_fit[local_idx].par(1), circle_fit[local_idx].par(2));
+    printf("kernelCircleFit circle.par(0,1,2): %d %f,%f,%f\n",
+           tkid,
+           circle_fit[local_idx].par(0),
+           circle_fit[local_idx].par(1),
+           circle_fit[local_idx].par(2));
 #endif
   }
 }
 
 template <int N>
 void kernelLineFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMultiplicity,
-                              uint32_t nHits,
-                              double B,
-                              OutputSoA *results,
-                              double *__restrict__ phits,
-                              float *__restrict__ phits_ge,
-                              double *__restrict__ pfast_fit_input,
-                              Rfit::circle_fit *__restrict__ circle_fit,
-                              uint32_t offset,
-                              sycl::nd_item<1> item) {
+                   uint32_t nHits,
+                   double B,
+                   OutputSoA *results,
+                   double *__restrict__ phits,
+                   float *__restrict__ phits_ge,
+                   double *__restrict__ pfast_fit_input,
+                   Rfit::circle_fit *__restrict__ circle_fit,
+                   uint32_t offset,
+                   sycl::nd_item<1> item) {
   assert(results);
   assert(circle_fit);
   assert(N <= nHits);
@@ -165,8 +168,8 @@ void kernelLineFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMulti
     results->stateAtBS.copyFromCircle(
         circle_fit[local_idx].par, circle_fit[local_idx].cov, line_fit.par, line_fit.cov, 1.f / float(B), tkid);
     results->pt(tkid) = B / sycl::abs(circle_fit[local_idx].par(2));
-    //results->eta(tkid) = sycl::asinh(line_fit.par(0)); 
-    results->eta(tkid) = asinhf(line_fit.par(0)); 
+    //results->eta(tkid) = sycl::asinh(line_fit.par(0));
+    results->eta(tkid) = asinhf(line_fit.par(0));
     results->chi2(tkid) = (circle_fit[local_idx].chi2 + line_fit.chi2) / (2 * N - 5);
 
 #ifdef RIEMANN_DEBUG

@@ -60,7 +60,7 @@ namespace gpuPixelDoublets {
   using CellTracks = CAConstants::CellTracks;
   using CellNeighborsVector = CAConstants::CellNeighborsVector;
   using CellTracksVector = CAConstants::CellTracksVector;
-  
+
   void initDoublets(GPUCACell::OuterHitOfCell* isOuterHitOfCell,
                     int nHits,
                     CellNeighborsVector* cellNeighbors,
@@ -89,18 +89,18 @@ namespace gpuPixelDoublets {
   constexpr auto getDoubletsFromHistoMinBlocksPerMP = 16;
 
   void getDoubletsFromHisto(GPUCACell* cells,
-                                uint32_t* nCells,
-                                CellNeighborsVector* cellNeighbors,
-                                CellTracksVector* cellTracks,
-                                TrackingRecHit2DSOAView const* __restrict__ hhp,
-                                GPUCACell::OuterHitOfCell* isOuterHitOfCell,
-                                int nActualPairs,
-                                bool ideal_cond,
-                                bool doClusterCut,
-                                bool doZ0Cut,
-                                bool doPtCut,
-                                uint32_t maxNumOfDoublets,
-				                        sycl::nd_item<3> item) {
+                            uint32_t* nCells,
+                            CellNeighborsVector* cellNeighbors,
+                            CellTracksVector* cellTracks,
+                            TrackingRecHit2DSOAView const* __restrict__ hhp,
+                            GPUCACell::OuterHitOfCell* isOuterHitOfCell,
+                            int nActualPairs,
+                            bool ideal_cond,
+                            bool doClusterCut,
+                            bool doZ0Cut,
+                            bool doPtCut,
+                            uint32_t maxNumOfDoublets,
+                            sycl::nd_item<3> item) {
     auto const& __restrict__ hh = *hhp;
     doubletsFromHisto(layerPairs,
                       nActualPairs,
@@ -119,7 +119,7 @@ namespace gpuPixelDoublets {
                       doZ0Cut,
                       doPtCut,
                       maxNumOfDoublets,
-		                  item);
+                      item);
   }
 
 }  // namespace gpuPixelDoublets

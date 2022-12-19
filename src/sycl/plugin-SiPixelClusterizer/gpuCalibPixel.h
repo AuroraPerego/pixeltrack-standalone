@@ -31,8 +31,7 @@ namespace gpuCalibPixel {
                   uint32_t* __restrict__ moduleStart,        // just to zero first
                   uint32_t* __restrict__ nClustersInModule,  // just to zero them
                   uint32_t* __restrict__ clusModuleStart,    // just to zero first
-                  sycl::nd_item<1> item
-  ) {
+                  sycl::nd_item<1> item) {
     int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
     // zero for next kernels...
 
@@ -54,7 +53,7 @@ namespace gpuCalibPixel {
 
       int row = x[i];
       int col = y[i];
- 
+
       auto ret = ped->getPedAndGain(id[i], col, row, isDeadColumn, isNoisyColumn);
       float pedestal = ret.first;
       float gain = ret.second;

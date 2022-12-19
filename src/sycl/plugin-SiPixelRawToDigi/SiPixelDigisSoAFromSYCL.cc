@@ -1,5 +1,5 @@
 #include "SYCLCore/Product.h"
-#include "SYCLDataFormats/SiPixelDigisSYCL.h" 
+#include "SYCLDataFormats/SiPixelDigisSYCL.h"
 #include "DataFormats/SiPixelDigisSoA.h"
 #include "Framework/EventSetup.h"
 #include "Framework/Event.h"

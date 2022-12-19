@@ -42,16 +42,16 @@ void verify(AtomicPairCounter const *dc, uint32_t const *ind, uint32_t const *co
 }
 
 #include <iostream>
-int main(int argc, char** argv) {
-    std::string devices(argv[1]);
+int main(int argc, char **argv) {
+  std::string devices(argv[1]);
   setenv("SYCL_DEVICE_FILTER", devices.c_str(), true);
 
   cms::sycltools::enumerateDevices(true);
   sycl::device device = cms::sycltools::chooseDevice(0);
   sycl::queue queue = sycl::queue(device, sycl::property::queue::in_order());
 
-  std::cout << "AtomicPairCounter offload to " << device.get_info<cl::sycl::info::device::name>()
-              << " on backend " << device.get_backend() << std::endl;
+  std::cout << "AtomicPairCounter offload to " << device.get_info<cl::sycl::info::device::name>() << " on backend "
+            << device.get_backend() << std::endl;
 
   AtomicPairCounter *dc_d = sycl::malloc_device<AtomicPairCounter>(1, queue);
   queue.memset(dc_d, 0, sizeof(AtomicPairCounter)).wait();
@@ -71,9 +71,7 @@ int main(int argc, char** argv) {
     cgh.parallel_for(sycl::nd_range<1>(2000 * threads, threads),
                      [=](sycl::nd_item<1> item) { update(dc_d, n_d, m_d, 10000, item); });
   });
-  queue.submit([&](sycl::handler &cgh) {
-    cgh.single_task([=]() { finalize(dc_d, n_d, m_d, 10000); });
-  });
+  queue.submit([&](sycl::handler &cgh) { cgh.single_task([=]() { finalize(dc_d, n_d, m_d, 10000); }); });
   queue.submit([&](sycl::handler &cgh) {
     cgh.parallel_for(sycl::nd_range<1>(2000 * threads, threads),
                      [=](sycl::nd_item<1> item) { verify(dc_d, n_d, m_d, 10000, item); });

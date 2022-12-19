@@ -12,9 +12,9 @@ public:
   TrackingRecHit2DSYCL() = default;
 
   explicit TrackingRecHit2DSYCL(uint32_t nHits,
-                                         pixelCPEforGPU::ParamsOnGPU const* cpeParams,
-                                         uint32_t const* hitsModuleStart,
-                                         sycl::queue stream);
+                                pixelCPEforGPU::ParamsOnGPU const* cpeParams,
+                                uint32_t const* hitsModuleStart,
+                                sycl::queue stream);
 
   ~TrackingRecHit2DSYCL() = default;
 
@@ -66,13 +66,11 @@ private:
   int16_t* m_iphi;
 };
 
-inline
-TrackingRecHit2DSYCL::TrackingRecHit2DSYCL(uint32_t nHits,
-                                           pixelCPEforGPU::ParamsOnGPU const* cpeParams,
-                                           uint32_t const* hitsModuleStart,
-                                           sycl::queue stream)
+inline TrackingRecHit2DSYCL::TrackingRecHit2DSYCL(uint32_t nHits,
+                                                  pixelCPEforGPU::ParamsOnGPU const* cpeParams,
+                                                  uint32_t const* hitsModuleStart,
+                                                  sycl::queue stream)
     : m_nHits(nHits), m_hitsModuleStart(hitsModuleStart) {
-
   auto view = cms::sycltools::make_host_unique<TrackingRecHit2DSOAView>(stream);
 
   view->m_nHits = nHits;
@@ -84,7 +82,10 @@ TrackingRecHit2DSYCL::TrackingRecHit2DSYCL(uint32_t nHits,
 
   // if empy do not bother
   if (0 == nHits) {
-      stream.memcpy(m_view.get(), view.get(), sizeof(TrackingRecHit2DSOAView)).wait();
+    stream.memcpy(m_view.get(), view.get(), sizeof(TrackingRecHit2DSOAView));
+#ifdef CPU_DEBUG
+   stream.wait();
+#endif
     return;
   }
 
@@ -123,7 +124,10 @@ TrackingRecHit2DSYCL::TrackingRecHit2DSYCL(uint32_t nHits,
   m_hitsLayerStart = view->m_hitsLayerStart = reinterpret_cast<uint32_t*>(get32(n32));
 
   // transfer view
-    stream.memcpy(m_view.get(), view.get(), sizeof(TrackingRecHit2DSOAView)).wait();
+  stream.memcpy(m_view.get(), view.get(), sizeof(TrackingRecHit2DSOAView)); 
+#ifdef CPU_DEBUG
+  stream.wait();
+#endif
 }
 
 #endif  // SYCLDataFormats_TrackingRecHit_interface_TrackingRecHit2DSYCL_h

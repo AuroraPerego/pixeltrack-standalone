@@ -11,9 +11,9 @@
 
 namespace Rfit {
 
-  using sycl::sqrt;
   using sycl::abs;
   using sycl::atan2;
+  using sycl::sqrt;
 
   constexpr double d = 1.e-4;  //!< used in numerical derivative (J2 in Circle_fit())
 
@@ -86,9 +86,7 @@ namespace Rfit {
     \return z component of the cross product.
   */
 
-  inline double cross2D(const Vector2d& a, const Vector2d& b) {
-    return a.x() * b.y() - a.y() * b.x();
-  }
+  inline double cross2D(const Vector2d& a, const Vector2d& b) { return a.x() * b.y() - a.y() * b.x(); }
 
   /*!
    *  load error in CMSSW format to our formalism

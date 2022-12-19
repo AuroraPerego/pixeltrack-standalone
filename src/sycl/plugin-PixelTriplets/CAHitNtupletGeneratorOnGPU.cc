@@ -70,16 +70,15 @@ CAHitNtupletGeneratorOnGPU::CAHitNtupletGeneratorOnGPU(edm::ProductRegistry& reg
 PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecHit2DSYCL const& hits_d,
                                                                     float bfield,
                                                                     sycl::queue stream) {
-
   PixelTrackHeterogeneous tracks(cms::sycltools::make_device_unique<pixelTrack::TrackSoA>(stream));
   m_counters = cms::sycltools::make_device_unique<Counters>(stream);
-  stream.memset(m_counters.get(), 0x00, sizeof(Counters)).wait(); 
-  
+  stream.memset(m_counters.get(), 0x00, sizeof(Counters)).wait();
+
   auto* soa = tracks.get();
 
   CAHitNtupletGeneratorKernels kernels(m_params);
-  
-  kernels.counters_ = m_counters.get(); 
+
+  kernels.counters_ = m_counters.get();
   kernels.allocateOnGPU(stream);
   kernels.buildDoublets(hits_d, stream);
   kernels.launchKernels(hits_d, soa, stream);
@@ -88,7 +87,7 @@ PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecH
 #ifdef NTUPLE_DEBUG
   std::cout << "------------------------\n";
   std::cout << "Starting n-tuplets fit..\n";
-#endif 
+#endif
 
   HelixFitOnGPU fitter(bfield, m_params.fit5as4_);
   fitter.allocateOnGPU(&(soa->hitIndices), kernels.tupleMultiplicity(), soa);
@@ -107,7 +106,7 @@ PixelTrackHeterogeneous CAHitNtupletGeneratorOnGPU::makeTuplesAsync(TrackingRecH
 #endif
   kernels.classifyTuples(hits_d, soa, stream);
   stream.wait();
-  
+
   if (m_params.doStats_) {
     kernels.printCounters(m_counters.get(), stream);
     stream.wait();

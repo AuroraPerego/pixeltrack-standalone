@@ -37,7 +37,7 @@ namespace cms {
       }
 
       template <class... Ts>
-      constexpr int emplace_back_unsafe(Ts &&... args) {
+      constexpr int emplace_back_unsafe(Ts &&...args) {
         auto previousSize = m_size;
         m_size++;
         if (previousSize < m_capacity) {
@@ -60,24 +60,21 @@ namespace cms {
 
       // thread-safe version of the vector, when used in a SYCL kernel
       int push_back(const T &element) {
-        auto previousSize = cms::sycltools::atomic_fetch_add<int,
-	                                                           sycl::access::address_space::global_space,
-						                                                 sycl::memory_scope::device>
-						                                                 (&m_size, static_cast<int>(1));
+        auto previousSize =
+            cms::sycltools::atomic_fetch_add<int, sycl::access::address_space::global_space, sycl::memory_scope::device>(
+                &m_size, static_cast<int>(1));
         if (previousSize < m_capacity) {
           m_data[previousSize] = element;
           return previousSize;
         } else {
-          cms::sycltools::atomic_fetch_sub<int,
-	                                         sycl::access::address_space::global_space,
-	                                         sycl::memory_scope::device>
-	                                         (&m_size, static_cast<int>(1));
+          cms::sycltools::atomic_fetch_sub<int, sycl::access::address_space::global_space, sycl::memory_scope::device>(
+              &m_size, static_cast<int>(1));
           return -1;
         }
       }
 
       template <class... Ts>
-      int emplace_back(Ts &&... args) {
+      int emplace_back(Ts &&...args) {
         auto previousSize = cms::sycltools::atomic_fetch_add<int>(&m_size, static_cast<int>(1));
         if (previousSize < m_capacity) {
           (new (&m_data[previousSize]) T(std::forward<Ts>(args)...));

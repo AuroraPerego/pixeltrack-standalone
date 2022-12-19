@@ -21,13 +21,11 @@ namespace gpuVertexFinder {
   // enough for <10K tracks we have
   void clusterTracksIterative(ZVertices* pdata,
                               WorkSpace* pws,
-                              int minT,      // min number of neighbours to be "core"
-                              float eps,     // max absolute distance to cluster
-                              float errmax,  // max error to be "seed"
+                              int minT,       // min number of neighbours to be "core"
+                              float eps,      // max absolute distance to cluster
+                              float errmax,   // max error to be "seed"
                               float chi2max,  // max normalized distance to cluster
-                              sycl::nd_item<1> item
-  ) {
-
+                              sycl::nd_item<1> item) {
 #ifdef VERTEX_DEBUG
     if (0 == item.get_local_id(0))
       printf("params %d %f %f %f\n", minT, eps, errmax, chi2max);
@@ -152,8 +150,8 @@ namespace gpuVertexFinder {
             cms::sycltools::atomic_fetch_min<int32_t>(&iv[i], (int32_t)old);
           };
           ++p;
-          // for (; p < hist->end(be); ++p) // SYCL_BUG_ this line gives an error of un undefined intrinsic 
-            loop(*p);
+          // for (; p < hist->end(be); ++p) // SYCL_BUG_ this line gives an error of un undefined intrinsic
+          loop(*p);
         }  // for i
       }
       if (item.get_local_id(0) == 0)
@@ -190,9 +188,8 @@ namespace gpuVertexFinder {
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       if (iv[i] == int(i)) {
         if (nn[i] >= minT) {
-          auto old = cms::sycltools::atomic_fetch_add<unsigned int, 
-                                                              cl::sycl::access::address_space::local_space>
-                                                              (foundClusters, (unsigned int)1);
+          auto old = cms::sycltools::atomic_fetch_add<unsigned int, cl::sycl::access::address_space::local_space>(
+              foundClusters, (unsigned int)1);
           iv[i] = -(old + 1);
         } else {  // noise
           iv[i] = -9998;

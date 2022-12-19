@@ -14,14 +14,17 @@ SiPixelDigisSYCL::SiPixelDigisSYCL(size_t maxFedWords, sycl::queue stream) {
   rawIdArr_d = cms::sycltools::make_device_unique<uint32_t[]>(maxFedWords, stream);
 
   auto view = cms::sycltools::make_host_unique<DeviceConstView>(stream);
-  view->xx_ = xx_d.get(); 
+  view->xx_ = xx_d.get();
   view->yy_ = yy_d.get();
   view->adc_ = adc_d.get();
   view->moduleInd_ = moduleInd_d.get();
   view->clus_ = clus_d.get();
 
   view_d = cms::sycltools::make_device_unique<DeviceConstView>(stream);
-  stream.memcpy(view_d.get(), view.get(), sizeof(DeviceConstView)).wait();
+  stream.memcpy(view_d.get(), view.get(), sizeof(DeviceConstView));
+#ifdef CPU_DEBUG
+  stream.wait();
+#endif
 }
 
 cms::sycltools::host::unique_ptr<uint16_t[]> SiPixelDigisSYCL::adcToHostAsync(sycl::queue stream) const {

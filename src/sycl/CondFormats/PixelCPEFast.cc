@@ -34,19 +34,30 @@ const pixelCPEforGPU::ParamsOnGPU *PixelCPEFast::getGPUProductAsync(sycl::queue 
   const auto &data = gpuData_.dataForCurrentDeviceAsync(stream, [this](GPUData &data, sycl::queue stream) {
     // and now copy to device...
     data.h_paramsOnGPU.m_commonParams = cms::sycltools::make_device_unique<pixelCPEforGPU::CommonParams>(stream);
-    data.h_paramsOnGPU.m_detParams    = cms::sycltools::make_device_unique_uninitialized<pixelCPEforGPU::DetParams[]>(this->m_detParamsGPU.size(), stream);
-    data.h_paramsOnGPU.m_averageGeometry    = cms::sycltools::make_device_unique<pixelCPEforGPU::AverageGeometry>(stream);
-    data.h_paramsOnGPU.m_layerGeometry      = cms::sycltools::make_device_unique<pixelCPEforGPU::LayerGeometry>(stream);
-    data.d_paramsOnGPU      = cms::sycltools::make_device_unique_uninitialized<pixelCPEforGPU::ParamsOnGPU>(stream);
+    data.h_paramsOnGPU.m_detParams = cms::sycltools::make_device_unique_uninitialized<pixelCPEforGPU::DetParams[]>(
+        this->m_detParamsGPU.size(), stream);
+    data.h_paramsOnGPU.m_averageGeometry = cms::sycltools::make_device_unique<pixelCPEforGPU::AverageGeometry>(stream);
+    data.h_paramsOnGPU.m_layerGeometry = cms::sycltools::make_device_unique<pixelCPEforGPU::LayerGeometry>(stream);
+    data.d_paramsOnGPU = cms::sycltools::make_device_unique_uninitialized<pixelCPEforGPU::ParamsOnGPU>(stream);
 
     stream.memcpy(data.d_paramsOnGPU.get(), &data.h_paramsOnGPU, sizeof(pixelCPEforGPU::ParamsOnGPU));
-    stream.memcpy((void *)data.h_paramsOnGPU.m_commonParams.get(), &this->m_commonParamsGPU, sizeof(pixelCPEforGPU::CommonParams));
-    stream.memcpy((void *)data.h_paramsOnGPU.m_averageGeometry.get(), &this->m_averageGeometry, sizeof(pixelCPEforGPU::AverageGeometry));
-    stream.memcpy((void *)data.h_paramsOnGPU.m_layerGeometry.get(), &this->m_layerGeometry, sizeof(pixelCPEforGPU::LayerGeometry));
-    stream.memcpy((void *)data.h_paramsOnGPU.m_detParams.get(), this->m_detParamsGPU.data(), this->m_detParamsGPU.size() * sizeof(pixelCPEforGPU::DetParams)).wait();
+    stream.memcpy((void *)data.h_paramsOnGPU.m_commonParams.get(),
+                  &this->m_commonParamsGPU,
+                  sizeof(pixelCPEforGPU::CommonParams));
+    stream.memcpy((void *)data.h_paramsOnGPU.m_averageGeometry.get(),
+                  &this->m_averageGeometry,
+                  sizeof(pixelCPEforGPU::AverageGeometry));
+    stream.memcpy((void *)data.h_paramsOnGPU.m_layerGeometry.get(),
+                  &this->m_layerGeometry,
+                  sizeof(pixelCPEforGPU::LayerGeometry));
+    stream.memcpy((void *)data.h_paramsOnGPU.m_detParams.get(),
+                  this->m_detParamsGPU.data(),
+                  this->m_detParamsGPU.size() * sizeof(pixelCPEforGPU::DetParams));
+#ifdef CPU_DEBUG
+   stream.wait();
+#endif
   });
   return data.d_paramsOnGPU.get();
 }
 
 PixelCPEFast::GPUData::~GPUData() = default;
-

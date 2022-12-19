@@ -27,9 +27,9 @@ namespace cms {
       // that enqueues asynchronous transfers (possibly kernels as well) to the SYCL queue.
       template <typename F>
       const T& dataForCurrentDeviceAsync(sycl::queue stream, F transferAsync) const {
-	      int dev_idx = getDeviceIndex(stream.get_device());
+        int dev_idx = getDeviceIndex(stream.get_device());
         auto& data = gpuDataPerDevice_[dev_idx];
-      
+
         // If the GPU data has already been filled, we can return it immediately
         if (not data.m_filled.load()) {
           // It wasn't, so need to fill it
@@ -57,7 +57,7 @@ namespace cms {
               // Submit a barrier to our queae and return the value.
               // Subsequent work in our queue will wait for the event to occur
               // (i.e. for the transfer to finish).
-	      stream.ext_oneapi_submit_barrier({*data.m_event});
+              stream.ext_oneapi_submit_barrier({*data.m_event});
             }
             // Filling is still going on, in the same SYCL queue.
             // Return the value immediately.
@@ -69,12 +69,12 @@ namespace cms {
             transferAsync(data.m_data, stream);
             assert(not data.m_fillingStream);
             data.m_fillingStream = stream;
-	    // Record in the stream an event to mark the readiness of the
+            // Record in the stream an event to mark the readiness of the
             // EventSetup data on the GPU, so other streams can check for it
             assert(not data.m_event);
             data.m_event = stream.ext_oneapi_submit_barrier();
-	    
-	    // Now the filling has been enqueued to the stream, so we
+
+            // Now the filling has been enqueued to the stream, so we
             // can return the GPU data immediately, since all subsequent
             // work must be either enqueued to the stream, or the stream
             // must be synchronized by the caller
@@ -87,8 +87,8 @@ namespace cms {
     private:
       struct Item {
         mutable std::mutex m_mutex;
-        mutable std::optional<sycl::event> m_event;          // guarded by m_mutex
-        // non-null if some thread is already filling 
+        mutable std::optional<sycl::event> m_event;  // guarded by m_mutex
+        // non-null if some thread is already filling
         mutable std::optional<sycl::queue> m_fillingStream;  // guarded by m_mutex
         mutable std::atomic<bool> m_filled = false;          // easy check if data has been filled already or not
         mutable T m_data;                                    // guarded by m_mutex

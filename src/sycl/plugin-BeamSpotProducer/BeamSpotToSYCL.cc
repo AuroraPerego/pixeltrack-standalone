@@ -21,18 +21,17 @@ public:
 
 private:
   const edm::EDPutTokenT<cms::sycltools::Product<BeamSpotSYCL>> bsPutToken_;
-
 };
 
 BeamSpotToSYCL::BeamSpotToSYCL(edm::ProductRegistry& reg)
-    : bsPutToken_{reg.produces<cms::sycltools::Product<BeamSpotSYCL>>()} {} 
+    : bsPutToken_{reg.produces<cms::sycltools::Product<BeamSpotSYCL>>()} {}
 
 void BeamSpotToSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   cms::sycltools::ScopedContextProduce ctx{iEvent.streamID()};
-  
+
   sycl::queue stream = ctx.stream();
   BeamSpotSYCL bsDevice(stream);
-  
+
   // in CUDA this is done in the constructor, but we need the queue so we do it here
   cms::sycltools::host::unique_ptr<BeamSpotPOD> bsHost;
   bsHost = cms::sycltools::make_host_unique<BeamSpotPOD>(stream);

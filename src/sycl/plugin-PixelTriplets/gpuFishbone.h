@@ -14,16 +14,15 @@
 
 #include "GPUCACell.h"
 
-
 namespace gpuPixelDoublets {
 
-    void fishbone(GPUCACell::Hits const* __restrict__ hhp,
-                  GPUCACell* cells,
-                  uint32_t const* __restrict__ nCells,
-                  GPUCACell::OuterHitOfCell const* __restrict__ isOuterHitOfCell,
-                  uint32_t nHits,
-                  bool checkTrack,
-                  sycl::nd_item<3> item) {
+  void fishbone(GPUCACell::Hits const* __restrict__ hhp,
+                GPUCACell* cells,
+                uint32_t const* __restrict__ nCells,
+                GPUCACell::OuterHitOfCell const* __restrict__ isOuterHitOfCell,
+                uint32_t nHits,
+                bool checkTrack,
+                sycl::nd_item<3> item) {
     constexpr auto maxCellsPerHit = GPUCACell::maxCellsPerHit;
 
     auto const& hh = *hhp;
