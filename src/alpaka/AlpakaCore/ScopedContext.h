@@ -48,15 +48,6 @@ namespace cms::alpakatools {
       // functions relying on the current device should be called from
       // the scope where this context is. The current device doesn't
       // really matter between modules (or across TBB tasks).
-//#if defined(ALPAKA_ACC_SYCL_ENABLED) || (ALPAKA_ACC_SYCL_PRESENT)
-//      ScopedContextBase(ProductBase<Queue> const& data)
-//	      : stream_{data.mayReuseStream() ? data.streamPtr() : std::make_shared<Queue>(data.device())} {}
-//
-//      explicit ScopedContextBase(std::shared_ptr<Queue> stream) : stream_(std::move(stream)) {}
-//
-//      explicit ScopedContextBase(edm::StreamID streamID)
-//	      : stream_{std::make_shared<Queue>(cms::alpakatools::chooseDevice<Platform>(streamID))} {}
-//#else
       ScopedContextBase(ProductBase<Queue> const& data)
           : stream_{data.mayReuseStream() ? data.streamPtr() : getStreamCache<Queue>().get(data.device())} {}
 
@@ -64,7 +55,6 @@ namespace cms::alpakatools {
 
       explicit ScopedContextBase(edm::StreamID streamID)
           : stream_{getStreamCache<Queue>().get(cms::alpakatools::chooseDevice<Platform>(streamID))} {}
-//#endif
 
     private:
       std::shared_ptr<Queue> stream_;

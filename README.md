@@ -1,3 +1,9 @@
+## Note:
+- the default is to compile AOT for the CUDA backend
+- due to a bug in the compilation of RiemannFit, remove `RiemannFit*` to be able to compile for the SYCL backend
+
+
+
 # Standalone [Patatrack](https://patatrack.web.cern.ch/patatrack/wiki/) pixel tracking
 
 ## Table of contents
