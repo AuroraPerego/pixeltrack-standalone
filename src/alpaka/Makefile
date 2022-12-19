@@ -272,11 +272,11 @@ $$($(1)_ROCM_LIB): $$($(1)_ROCM_OBJ) $$(foreach dep,$(EXTERNAL_DEPENDS_H),$$($$(
 
 $$($(1)_SYCL_CPU_LIB): $$($(1)_SYCL_CPU_OBJ) $$(foreach dep,$(EXTERNAL_DEPENDS_H),$$($$(dep)_DEPS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LIB)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_CPU_LIB))
 	@[ -d $$(@D) ] || mkdir -p $$(@D)
-	$(SYCL_CXX) $(SYCL_CXXFLAGS) $$($(1)_SYCL_CPU_OBJ) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_CPU_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
+	$(SYCL_CXX) $(SYCL_CXXFLAGS) -fsycl-targets=spir64_x86_64 $$($(1)_SYCL_CPU_OBJ) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_CPU_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
 
 $$($(1)_SYCL_GPU_LIB): $$($(1)_SYCL_GPU_OBJ) $$(foreach dep,$(EXTERNAL_DEPENDS_H),$$($$(dep)_DEPS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LIB)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_GPU_LIB))
 	@[ -d $$(@D) ] || mkdir -p $$(@D)
-	$(SYCL_CXX) $(SYCL_CXXFLAGS) $$($(1)_SYCL_GPU_OBJ) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_GPU_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
+	$(SYCL_CXX) $(SYCL_CXXFLAGS) -fsycl-targets=nvptx64-nvidia-cuda -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings $$($(1)_SYCL_GPU_OBJ) $(LDFLAGS) -shared $(SO_LDFLAGS) $(LIB_LDFLAGS) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_LDFLAGS)) $$(foreach lib,$$($(1)_DEPENDS),$$($$(lib)_SYCL_GPU_LDFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_LDFLAGS)) -o $$@
 
 
 # Anything depending on Alpaka
@@ -314,14 +314,14 @@ endif
 ifdef SYCL_BASE
 $(OBJ_DIR)/$(2)/alpaka/%.cc.syclcpu.o: $(SRC_DIR)/$(2)/alpaka/%.cc
 	@[ -d $$(@D) ] || mkdir -p $$(@D)
-	$(SYCL_CXX) $(SYCL_CXXFLAGS) $(MY_CXXFLAGS) -DALPAKA_ACC_SYCL_ENABLED -DALPAKA_SYCL_BACKEND_ONEAPI -DALPAKA_SYCL_ONEAPI_CPU -UALPAKA_HOST_ONLY $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_CXXFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_SYCL_CXXFLAGS)) -c $$< -o $$@ -MMD
+	$(SYCL_CXX) $(SYCL_CXXFLAGS) $(MY_CXXFLAGS) -fsycl-targets=spir64_x86_64 -DALPAKA_ACC_SYCL_ENABLED -DALPAKA_SYCL_BACKEND_ONEAPI -DALPAKA_SYCL_ONEAPI_CPU -UALPAKA_HOST_ONLY $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_CXXFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_SYCL_CXXFLAGS)) -c $$< -o $$@ -MMD
 endif
 
 # Portable code, for SYCL GPU backend
 ifdef SYCL_BASE
 $(OBJ_DIR)/$(2)/alpaka/%.cc.syclgpu.o: $(SRC_DIR)/$(2)/alpaka/%.cc
 	@[ -d $$(@D) ] || mkdir -p $$(@D)
-	$(SYCL_CXX) $(SYCL_CXXFLAGS) $(MY_CXXFLAGS) -DALPAKA_ACC_SYCL_ENABLED -DALPAKA_SYCL_BACKEND_ONEAPI -DALPAKA_SYCL_ONEAPI_GPU -UALPAKA_HOST_ONLY $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_CXXFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_SYCL_CXXFLAGS)) -c $$< -o $$@ -MMD
+	$(SYCL_CXX) $(SYCL_CXXFLAGS) $(MY_CXXFLAGS) -fsycl-targets=nvptx64-nvidia-cuda -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings -DALPAKA_ACC_SYCL_ENABLED -DALPAKA_SYCL_BACKEND_ONEAPI -DALPAKA_SYCL_ONEAPI_GPU -UALPAKA_HOST_ONLY $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_CXXFLAGS)) $$(foreach dep,$(EXTERNAL_DEPENDS),$$($$(dep)_SYCL_CXXFLAGS)) -c $$< -o $$@ -MMD
 endif
 
 
@@ -404,20 +404,20 @@ endif
 ifdef SYCL_BASE
 $(OBJ_DIR)/$(TARGET_NAME)/test/alpaka/%.cc.syclcpu.o: $(SRC_DIR)/$(TARGET_NAME)/test/alpaka/%.cc
 	@[ -d $(@D) ] || mkdir -p $(@D)
-	$(SYCL_CXX) $(SYCL_CXXFLAGS) $(SYCL_TEST_CXXFLAGS) $(MY_CXXFLAGS) -DALPAKA_ACC_SYCL_ENABLED -DALPAKA_SYCL_BACKEND_ONEAPI -DALPAKA_SYCL_ONEAPI_CPU -UALPAKA_HOST_ONLY $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_SYCL_CXXFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_CXXFLAGS)) -c $< -o $@ -MMD
+	$(SYCL_CXX) $(SYCL_CXXFLAGS) $(SYCL_TEST_CXXFLAGS) $(MY_CXXFLAGS) -fsycl-targets=spir64_x86_64 -DALPAKA_ACC_SYCL_ENABLED -DALPAKA_SYCL_BACKEND_ONEAPI -DALPAKA_SYCL_ONEAPI_CPU -UALPAKA_HOST_ONLY $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_SYCL_CXXFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_CXXFLAGS)) -c $< -o $@ -MMD
 
 $(TEST_DIR)/$(TARGET_NAME)/%.syclcpu: $(OBJ_DIR)/$(TARGET_NAME)/test/alpaka/%.cc.syclcpu.o | $(LIBS)
 	@[ -d $(@D) ] || mkdir -p $(@D)
-	$(SYCL_CXX) $(SYCL_CXXFLAGS) $^ $(LDFLAGS) $(MY_LDFLAGS) -o $@ -L$(LIB_DIR)/$(TARGET_NAME) $(foreach lib,$(LIBNAMES),$($(lib)_LDFLAGS) $($(lib)_SYCL_CPU_LDFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_LDFLAGS))
+	$(SYCL_CXX) $(SYCL_CXXFLAGS) $^ $(LDFLAGS) $(MY_LDFLAGS) -fsycl-targets=spir64_x86_64 -o $@ -L$(LIB_DIR)/$(TARGET_NAME) $(foreach lib,$(LIBNAMES),$($(lib)_LDFLAGS) $($(lib)_SYCL_CPU_LDFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_LDFLAGS))
 endif
 
 # SYCL GPU backend
 ifdef SYCL_BASE
 $(OBJ_DIR)/$(TARGET_NAME)/test/alpaka/%.cc.syclgpu.o: $(SRC_DIR)/$(TARGET_NAME)/test/alpaka/%.cc
 	@[ -d $(@D) ] || mkdir -p $(@D)
-	$(SYCL_CXX) $(SYCL_CXXFLAGS) $(SYCL_TEST_CXXFLAGS) $(MY_CXXFLAGS) -DALPAKA_ACC_SYCL_ENABLED -DALPAKA_SYCL_BACKEND_ONEAPI -DALPAKA_SYCL_ONEAPI_GPU -UALPAKA_HOST_ONLY $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_SYCL_CXXFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_CXXFLAGS)) -c $< -o $@ -MMD
+	$(SYCL_CXX) $(SYCL_CXXFLAGS) $(SYCL_TEST_CXXFLAGS) $(MY_CXXFLAGS) -fsycl-targets=nvptx64-nvidia-cuda -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings -DALPAKA_ACC_SYCL_ENABLED -DALPAKA_SYCL_BACKEND_ONEAPI -DALPAKA_SYCL_ONEAPI_GPU -UALPAKA_HOST_ONLY $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_SYCL_CXXFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_CXXFLAGS)) -c $< -o $@ -MMD
 
 $(TEST_DIR)/$(TARGET_NAME)/%.syclgpu: $(OBJ_DIR)/$(TARGET_NAME)/test/alpaka/%.cc.syclgpu.o | $(LIBS)
 	@[ -d $(@D) ] || mkdir -p $(@D)
-	$(SYCL_CXX) $(SYCL_CXXFLAGS) $^ $(LDFLAGS) $(MY_LDFLAGS) -o $@ -L$(LIB_DIR)/$(TARGET_NAME) $(foreach lib,$(LIBNAMES),$($(lib)_LDFLAGS) $($(lib)_SYCL_GPU_LDFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_LDFLAGS))
+	$(SYCL_CXX) $(SYCL_CXXFLAGS) $^ $(LDFLAGS) $(MY_LDFLAGS) -fsycl-targets=nvptx64-nvidia-cuda -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings -o $@ -L$(LIB_DIR)/$(TARGET_NAME) $(foreach lib,$(LIBNAMES),$($(lib)_LDFLAGS) $($(lib)_SYCL_GPU_LDFLAGS)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_LDFLAGS))
 endif

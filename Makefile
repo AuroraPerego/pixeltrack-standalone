@@ -62,7 +62,7 @@ CUDA_LIBDIR := $(CUDA_BASE)/lib64
 USER_CUDAFLAGS :=
 export CUDA_BASE
 export CUDA_DEPS := $(CUDA_LIBDIR)/libcudart.so
-export CUDA_ARCH := 35 50 60 70
+export CUDA_ARCH := 50 60 70
 export CUDA_CXXFLAGS := -I$(CUDA_BASE)/include
 export CUDA_TEST_CXXFLAGS := -DGPU_DEBUG
 export CUDA_LDFLAGS := -L$(CUDA_LIBDIR) -lcudart -lcudadevrt
@@ -210,7 +210,7 @@ export EIGEN_DEPS := $(EIGEN_BASE)
 export EIGEN_CXXFLAGS := -isystem $(EIGEN_BASE) -DEIGEN_DONT_PARALLELIZE
 export EIGEN_LDFLAGS :=
 export EIGEN_NVCC_CXXFLAGS := --diag-suppress 20014
-export EIGEN_SYCL_CXXFLAGS := -DEIGEN_USE_SYCL # -DEIGEN_NO_CUDA
+export EIGEN_SYCL_CXXFLAGS := -DEIGEN_USE_SYCL -DEIGEN_NO_CUDA
 
 BOOST_BASE := /usr
 # Minimum required version of Boost, e.g. 1.78.0
