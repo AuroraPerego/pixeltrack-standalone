@@ -7,18 +7,15 @@
 #include "chooseDevice.h"
 
 namespace cms::sycltools {
-    
-    namespace impl {
 
-    ScopedContextBase::ScopedContextBase(edm::StreamID streamID)
-        : stream_(getDeviceQueue(streamID)) {}
+  namespace impl {
+
+    ScopedContextBase::ScopedContextBase(edm::StreamID streamID) : stream_(getStreamCache().get(chooseDevice(streamID))) {}
 
     ScopedContextBase::ScopedContextBase(ProductBase const &data)
-        : stream_(data.mayReuseStream()
-                      ? data.stream()
-                      : getDeviceQueue(data.device())) {}
+        : stream_(data.mayReuseStream() ? data.streamPtr() : getStreamCache().get(data.device())) {}
 
-    ScopedContextBase::ScopedContextBase(sycl::queue stream) : stream_(std::move(stream)) {}
+    ScopedContextBase::ScopedContextBase(std::shared_ptr<sycl::queue> stream) : stream_(std::move(stream)) {}
 
     ////////////////////
 
@@ -31,13 +28,13 @@ namespace cms::sycltools {
 
       if (dataStream != stream()) {
         // Different streams, need to synchronize
-        if (not available) { 
+        if (not available) {
           // Event not yet occurred, so need to add synchronization
           // here. Sychronization is done by making the SYCL stream to
           // wait for an event, so all subsequent work in the stream
           // will run only after the event has "occurred" (i.e. data
           // product became available).
-	stream().submit_barrier({dataEvent});
+          stream().submit_barrier({dataEvent});
         }
       }
     }
@@ -55,7 +52,7 @@ namespace cms::sycltools {
   ScopedContextAcquire::~ScopedContextAcquire() {
     holderHelper_.enqueueCallback(stream());
     if (contextState_) {
-      contextState_->set(stream());
+      contextState_->set(streamPtr());
     }
   }
 
