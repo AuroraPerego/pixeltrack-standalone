@@ -133,7 +133,7 @@ $(OBJ_DIR)/$(TARGET_NAME)/test/%.cc.o: $(SRC_DIR)/$(TARGET_NAME)/test/%.cc
 
 $(TEST_DIR)/$(TARGET_NAME)/%: $(OBJ_DIR)/$(TARGET_NAME)/test/%.cc.o | $(LIBS)
 	@[ -d $(@D) ] || mkdir -p $(@D)
-	$(CXX) $< $(CUDA_LDFLAGS) $(LDFLAGS) $(MY_LDFLAGS) -o $@ -L$(LIB_DIR)/$(TARGET_NAME) $(patsubst %,-l%,$(LIBNAMES)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_LDFLAGS))
+	$(CUDA_NVCC) $< $(CUDA_LDFLAGS) $(LDFLAGS) $(MY_LDFLAGS) -o $@ -L$(LIB_DIR)/$(TARGET_NAME) $(patsubst %,-l%,$(LIBNAMES)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_LDFLAGS))
 
 $(OBJ_DIR)/$(TARGET_NAME)/test/%.cu.o: $(SRC_DIR)/$(TARGET_NAME)/test/%.cu
 	@[ -d $(@D) ] || mkdir -p $(@D)
@@ -141,4 +141,4 @@ $(OBJ_DIR)/$(TARGET_NAME)/test/%.cu.o: $(SRC_DIR)/$(TARGET_NAME)/test/%.cu
 
 $(TEST_DIR)/$(TARGET_NAME)/%: $(OBJ_DIR)/$(TARGET_NAME)/test/%.cu.o | $(LIBS)
 	@[ -d $(@D) ] || mkdir -p $(@D)
-	$(CXX) $^ $(CUDA_LDFLAGS) $(LDFLAGS) $(MY_LDFLAGS) -o $@ -L$(LIB_DIR)/$(TARGET_NAME) $(patsubst %,-l%,$(LIBNAMES)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_LDFLAGS))
+	$(CUDA_NVCC) $^ $(CUDA_LDFLAGS) $(LDFLAGS) $(MY_LDFLAGS) -o $@ -L$(LIB_DIR)/$(TARGET_NAME) $(patsubst %,-l%,$(LIBNAMES)) $(foreach dep,$(EXTERNAL_DEPENDS),$($(dep)_LDFLAGS))
