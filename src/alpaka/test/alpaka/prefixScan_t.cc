@@ -67,9 +67,8 @@ struct testWarpPrefixScan {
     alpaka::syncBlockThreads(acc);
     auto laneId = blockThreadIdx & 0x1f;
 
-    warpPrefixScan(laneId, c, co, i, 0xffffffff);
-    warpPrefixScan(laneId, c, i, 0xffffffff);
-
+    warpPrefixScan(acc, laneId, c, co, i);
+    warpPrefixScan(acc, laneId, c, i);
     alpaka::syncBlockThreads(acc);
 
     assert(1 == c[0]);

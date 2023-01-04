@@ -63,7 +63,7 @@ CUDA_LIBDIR := $(CUDA_BASE)/lib64
 USER_CUDAFLAGS :=
 export CUDA_BASE
 export CUDA_DEPS := $(CUDA_LIBDIR)/libcudart.so
-export CUDA_ARCH := 35 50 60 70
+export CUDA_ARCH := 50 60 70
 export CUDA_CXXFLAGS := -I$(CUDA_BASE)/include
 export CUDA_TEST_CXXFLAGS := -DGPU_DEBUG
 export CUDA_LDFLAGS := -L$(CUDA_LIBDIR) -lcudart -lcudadevrt
@@ -637,8 +637,8 @@ $(HWLOC_BASE):
 external_alpaka: $(ALPAKA_BASE)
 
 $(ALPAKA_BASE):
-	git clone git@github.com:alpaka-group/alpaka.git -b develop $@
-	cd $@ && git checkout b518e8c943a816eba06c3e12c0a7e1b58c8faedc
+	git clone git@github.com:AuroraPerego/alpaka.git -b shfl $@
+	cd $@ && git checkout be35cc8b373aa6fbc062803c968f4cd9d9b449c0
 
 # Kokkos
 external_kokkos: $(KOKKOS_LIB)

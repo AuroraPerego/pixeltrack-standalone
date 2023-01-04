@@ -112,11 +112,7 @@ namespace cms::alpakatools {
         auto laneId = idx & 0x1f;
 
         for (int offset = 1; offset < 32; offset <<= 1) {
-#if defined(__CUDA_ARCH__)
-          auto y = __shfl_up_sync(0xffffffff, x, offset);
-#elif defined(__HIP_DEVICE_COMPILE__)
-          auto y = __shfl_up(x, offset);
-#endif
+          auto y = alpaka::shfl_up(acc, std::int32_t(x), offset);
           if (laneId >= (uint32_t)offset)
             x += y;
         }
@@ -211,10 +207,9 @@ namespace cms::alpakatools {
       for_each_element_in_block_strided(acc, size, [&](uint32_t idx) { ind[idx] = ind2[idx]; });
 
     alpaka::syncBlockThreads(acc);
-
     // now move negative first... (if signed)
     reorder(acc, a, ind, ind2, size);
-#endif
+#endif 
   }
 
   template <typename TAcc,

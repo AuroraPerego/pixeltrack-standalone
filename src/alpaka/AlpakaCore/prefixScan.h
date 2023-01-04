@@ -19,39 +19,25 @@ namespace cms {
 #if (defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDA_ARCH__)) || \
     (defined(ALPAKA_ACC_GPU_HIP_ENABLED) && defined(__HIP_DEVICE_COMPILE__))
 
-    template <typename T>
-    ALPAKA_FN_ACC ALPAKA_FN_INLINE void warpPrefixScan(uint32_t laneId, T const* ci, T* co, uint32_t i, uint32_t mask) {
-#if defined(__HIP_DEVICE_COMPILE__)
-      ALPAKA_ASSERT_OFFLOAD(mask == warpMask);
-#endif
+    template <typename TAcc, typename T>
+    ALPAKA_FN_ACC ALPAKA_FN_INLINE void warpPrefixScan(const TAcc& acc, uint32_t laneId, T const* ci, T* co, uint32_t i) {
       // ci and co may be the same
       auto x = ci[i];
       CMS_UNROLL_LOOP
       for (uint32_t offset = 1; offset < warpSize; offset <<= 1) {
-#if defined(__CUDA_ARCH__)
-        auto y = __shfl_up_sync(mask, x, offset);
-#elif defined(__HIP_DEVICE_COMPILE__)
-        auto y = __shfl_up(x, offset);
-#endif
+        auto y = alpaka::warp::shfl_up(acc, std::int32_t(x), offset);
         if (laneId >= offset)
           x += y;
       }
       co[i] = x;
     }
 
-    template <typename T>
-    ALPAKA_FN_ACC ALPAKA_FN_INLINE void warpPrefixScan(uint32_t laneId, T* c, uint32_t i, uint32_t mask) {
-#if defined(__HIP_DEVICE_COMPILE__)
-      ALPAKA_ASSERT_OFFLOAD(mask == warpMask);
-#endif
+    template <typename TAcc, typename T>
+    ALPAKA_FN_ACC ALPAKA_FN_INLINE void warpPrefixScan(const TAcc& acc, uint32_t laneId, T* c, uint32_t i) {
       auto x = c[i];
       CMS_UNROLL_LOOP
       for (uint32_t offset = 1; offset < warpSize; offset <<= 1) {
-#if defined(__CUDA_ARCH__)
-        auto y = __shfl_up_sync(mask, x, offset);
-#elif defined(__HIP_DEVICE_COMPILE__)
-        auto y = __shfl_up(x, offset);
-#endif
+	auto y = alpaka::warp::shfl_up(acc, std::int32_t(x), offset);
         if (laneId >= offset)
           x += y;
       }
@@ -72,29 +58,21 @@ namespace cms {
       ALPAKA_ASSERT_OFFLOAD(size <= warpSize * warpSize);
       ALPAKA_ASSERT_OFFLOAD(0 == blockDimension % warpSize);
       auto first = blockThreadIdx;
-#if defined(__CUDA_ARCH__)
-      auto mask = __ballot_sync(warpMask, first < size);
-#elif defined(__HIP_DEVICE_COMPILE__)
-      auto mask = warpMask;
-#endif
       auto laneId = blockThreadIdx & (warpSize - 1);
 
       for (auto i = first; i < size; i += blockDimension) {
-        warpPrefixScan(laneId, ci, co, i, mask);
+        warpPrefixScan(acc, laneId, ci, co, i);
         auto warpId = i / warpSize;
         // FIXME test ?
         ALPAKA_ASSERT_OFFLOAD(warpId < warpSize);
         if ((warpSize - 1) == laneId)
           ws[warpId] = co[i];
-#if defined(__CUDA_ARCH__)
-        mask = __ballot_sync(mask, i + blockDimension < size);
-#endif
       }
       alpaka::syncBlockThreads(acc);
       if (size <= warpSize)
         return;
       if (blockThreadIdx < warpSize) {
-        warpPrefixScan(laneId, ws, blockThreadIdx, warpMask);
+        warpPrefixScan(acc, laneId, ws, blockThreadIdx);
       }
       alpaka::syncBlockThreads(acc);
       for (auto i = first + warpSize; i < size; i += blockDimension) {
@@ -122,28 +100,20 @@ namespace cms {
       ALPAKA_ASSERT_OFFLOAD(size <= warpSize * warpSize);
       ALPAKA_ASSERT_OFFLOAD(0 == blockDimension % warpSize);
       auto first = blockThreadIdx;
-#if defined(__CUDA_ARCH__)
-      auto mask = __ballot_sync(warpMask, first < size);
-#elif defined(__HIP_DEVICE_COMPILE__)
-      auto mask = warpMask;
-#endif
       auto laneId = blockThreadIdx & (warpSize - 1);
 
       for (auto i = first; i < size; i += blockDimension) {
-        warpPrefixScan(laneId, c, i, mask);
+        warpPrefixScan(acc, laneId, c, i);
         auto warpId = i / warpSize;
         ALPAKA_ASSERT_OFFLOAD(warpId < warpSize);
         if ((warpSize - 1) == laneId)
           ws[warpId] = c[i];
-#if defined(__CUDA_ARCH__)
-        mask = __ballot_sync(mask, i + blockDimension < size);
-#endif
       }
       alpaka::syncBlockThreads(acc);
       if (size <= warpSize)
         return;
       if (blockThreadIdx < warpSize) {
-        warpPrefixScan(laneId, ws, blockThreadIdx, warpMask);
+        warpPrefixScan(acc, laneId, ws, blockThreadIdx);
       }
       alpaka::syncBlockThreads(acc);
       for (auto i = first + warpSize; i < size; i += blockDimension) {
