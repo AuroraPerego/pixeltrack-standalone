@@ -638,7 +638,7 @@ external_alpaka: $(ALPAKA_BASE)
 
 $(ALPAKA_BASE):
 	git clone git@github.com:AuroraPerego/alpaka.git -b shfl $@
-	cd $@ && git checkout be35cc8b373aa6fbc062803c968f4cd9d9b449c0
+	cd $@ && git checkout 65339abaa9d483d40e11e812f169c5a97f100d37
 
 # Kokkos
 external_kokkos: $(KOKKOS_LIB)

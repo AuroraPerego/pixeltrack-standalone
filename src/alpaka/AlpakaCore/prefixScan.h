@@ -25,7 +25,7 @@ namespace cms {
       auto x = ci[i];
       CMS_UNROLL_LOOP
       for (uint32_t offset = 1; offset < warpSize; offset <<= 1) {
-        auto y = alpaka::warp::shfl_up(acc, std::int32_t(x), offset);
+        auto y = alpaka::warp::shfl_up(acc, x, offset);
         if (laneId >= offset)
           x += y;
       }
@@ -37,7 +37,7 @@ namespace cms {
       auto x = c[i];
       CMS_UNROLL_LOOP
       for (uint32_t offset = 1; offset < warpSize; offset <<= 1) {
-	auto y = alpaka::warp::shfl_up(acc, std::int32_t(x), offset);
+	auto y = alpaka::warp::shfl_up(acc, x, offset);
         if (laneId >= offset)
           x += y;
       }

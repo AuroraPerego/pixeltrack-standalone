@@ -112,7 +112,7 @@ namespace cms::alpakatools {
         auto laneId = idx & 0x1f;
 
         for (int offset = 1; offset < 32; offset <<= 1) {
-          auto y = alpaka::shfl_up(acc, std::int32_t(x), offset);
+          auto y = alpaka::warp::shfl_up(acc, x, offset);
           if (laneId >= (uint32_t)offset)
             x += y;
         }
