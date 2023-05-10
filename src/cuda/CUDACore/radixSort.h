@@ -178,9 +178,7 @@ __device__ __forceinline__ void radixSortImpl(
         assert(c[bin] >= 0);
       if (threadIdx.x == 0)
         ibs -= sb;
-      __syncthreads();
-if (threadIdx.x == 0)
-	printf("ibs = %d\n", ibs);
+      __threadfence();
     }
 
     /*
@@ -203,9 +201,7 @@ if (threadIdx.x == 0)
 
     if (threadIdx.x == 0)
       ++p;
-    __syncthreads();
-if (threadIdx.x == 0)
-        printf("p = %d\n", p);
+    __threadfence();
   }
 
   if ((w != 8) && (0 == (NS & 1)))

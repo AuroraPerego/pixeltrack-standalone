@@ -127,11 +127,17 @@ namespace cms {
 #endif
     }
 
-#ifdef __CUDA_ARCH__
-    // see https://stackoverflow.com/questions/40021086/can-i-obtain-the-amount-of-allocated-dynamic-shared-memory-from-within-a-kernel/40021087#40021087
+#if defined(__clang__) && defined(__CUDA__) && defined(__CUDA_ARCH__)
     __device__ __forceinline__ unsigned dynamic_smem_size() {
       unsigned ret;
       asm volatile("mov.u32 %0, %%dynamic_smem_size;" : "=r"(ret));
+      return ret;
+    }
+#elif defined(__CUDA_ARCH__)
+    // see https://stackoverflow.com/questions/40021086/can-i-obtain-the-amount-of-allocated-dynamic-shared-memory-from-within-a-kernel/40021087#40021087
+    __device__ __forceinline__ unsigned dynamic_smem_size() {
+      unsigned ret;
+      asm volatile("mov.u32 %0, %dynamic_smem_size;" : "=r"(ret));
       return ret;
     }
 #endif
