@@ -4,11 +4,9 @@
 ```bash
 make environment
 source env.sh
-ake -j `nproc` cuda
-./cuda | awk /^Processed/
+make -j `nproc` cuda
+./cuda 
 ```
-The `awk /^Processed/` is needed because due to a bug in the compiler two numbers are printed for each event to avoid a seg fault.
-In this way those additional prints are not shown during the execution.
 
 ## Differences in the code
 - inline PTX compiled with nvcc `needs` one `%`, with `clang++` needs `%%`:
@@ -19,6 +17,7 @@ In this way those additional prints are not shown during the execution.
     asm volatile("mov.u32 %0, %%dynamic_smem_size;" : "=r"(ret));
   ```
 - if there is the possibility to call a function from the host, it must  have the attribute `__host__` in `clang++`. In CUDA it compiles even without it (it will probably breaks if the function is actually called from the host at some point).
+- due to a bug in LLVM with shared variables, two `__syncthreads()` in `radixSort.h` have been replaced with `__threadfence()`
 
 ## How to compile and link
 - Compile files `.cu` with `clang++`:
