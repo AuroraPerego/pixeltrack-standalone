@@ -120,7 +120,13 @@ endif
 LLVM_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Werror=format-contains-nul -Wno-non-template-friend -Werror=return-local-addr -Werror=unused-but-set-variable
 
 # flags to compile AOT:
-AOT_INTEL_FLAGS   := -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device 0x020a"
+AOT_CPU_FLAGS := -fsycl-targets=spir64_x86_64
+AOT_GPU_FLAGS := -fsycl-targets=intel_gpu_pvc #,nvidia_gpu_sm_60,amd_gpu_gfx900
+
+export AOT_CPU_FLAGS
+export AOT_GPU_FLAGS
+
+AOT_INTEL_FLAGS   := -fsycl-targets=spir64_gen -Xsycl-target-backend=spir64_gen "-device 0x020a"
 AOT_CUDA_FLAGS    := -fsycl-targets=nvptx64-nvidia-cuda $(foreach ARCH,$(CUDA_ARCH),-Xsycl-target-backend=nvptx64-nvidia-cuda --offload-arch=sm_$(ARCH)) -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings
 AOT_HIP_FLAGS     := -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx900 --rocm-path=$(ROCM_BASE) -Wno-linker-warnings 
 AOT_CPU_FLAGS     := -fsycl-targets=spir64_x86_64
@@ -154,7 +160,7 @@ ifdef USE_SYCL_ONEAPI
   endif
 else
   # use llvm 
-  SYCL_BASE      := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09
+  SYCL_BASE      := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/nightly/20230309
   USER_SYCLFLAGS := 
   
   # make CPUs visible
@@ -163,6 +169,8 @@ else
   export SYCL_CXX      := $(SYCL_BASE)/bin/clang++
   export SYCL_CXXFLAGS := -O3 -fsycl $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
 endif
+
+export SYCL_BASE
 
 # Now add the flags to compile ahead of time for CPUs, Intel GPUs, NVIDIA GPUs and AMD GPUs
 # The flags for NVIDIA GPUs and AMD GPUs are added only if llvm is used since they are not yet supported by dpcpp
@@ -707,8 +715,8 @@ $(HWLOC_BASE):
 external_alpaka: $(ALPAKA_BASE)
 
 $(ALPAKA_BASE):
-	git clone https://github.com/alpaka-group/alpaka.git -b develop $@
-	cd $@ && git checkout b518e8c943a816eba06c3e12c0a7e1b58c8faedc
+	git clone https://github.com/Parsifal-2045/alpaka.git -b SYCL_USM $@
+	cd $@
 
 # Kokkos
 external_kokkos: $(KOKKOS_LIB)
