@@ -24,6 +24,12 @@ namespace cms::alpakatools {
   inline int getDeviceIndex(alpaka::DevHipRt const& device) { return alpaka::getNativeHandle(device); }
 #endif  // ALPAKA_ACC_GPU_HIP_ENABLED
 
+#ifdef ALPAKA_ACC_SYCL_ENABLED
+  // overload for DevGenericSycl
+  inline int getDeviceIndex(alpaka::DevCpuSycl const& device) { return 0; }  // FIXME_
+  inline int getDeviceIndex(alpaka::DevGpuSyclIntel const& device) { return 0; }  // FIXME_
+#endif  // ALPAKA_ACC_SYCL_ENABLED
+
 }  // namespace cms::alpakatools
 
 #endif  // AlpakaCore_getDeviceIndex_h
