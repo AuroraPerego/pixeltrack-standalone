@@ -101,7 +101,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     HelixFitOnGPU fitter(bfield, m_params.fit5as4_);
     fitter.allocateOnGPU(&tracks->hitIndices, kernels.tupleMultiplicity(), tracks.data());
     if (m_params.useRiemannFit_) {
-      fitter.launchRiemannKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), queue);
+//      fitter.launchRiemannKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), queue);
     } else {
       fitter.launchBrokenLineKernels(hits_d.view(), hits_d.nHits(), CAConstants::maxNumberOfQuadruplets(), queue);
     }
