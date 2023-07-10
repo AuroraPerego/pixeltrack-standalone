@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
   sycl::device device = cms::sycltools::chooseDevice(0);
   sycl::queue queue = sycl::queue(device, sycl::property::queue::in_order());
 
-  std::cout << "VertexFinder offload to " << device.get_info<cl::sycl::info::device::name>() << " on backend "
+  std::cout << "VertexFinder offload to " << device.get_info<sycl::info::device::name>() << " on backend "
             << device.get_backend() << std::endl;
 
   auto onGPU_d = cms::sycltools::make_device_unique<gpuVertexFinder::ZVertices[]>(1, queue);

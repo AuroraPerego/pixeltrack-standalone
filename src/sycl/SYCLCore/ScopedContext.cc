@@ -1,7 +1,7 @@
 #include <chrono>
 #include <future>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "SYCLCore/ScopedContext.h"
 #include "chooseDevice.h"
@@ -35,7 +35,7 @@ namespace cms::sycltools {
           // wait for an event, so all subsequent work in the stream
           // will run only after the event has "occurred" (i.e. data
           // product became available).
-          stream().submit_barrier({dataEvent});
+          stream().ext_oneapi_submit_barrier({dataEvent});
         }
       }
     }
@@ -67,7 +67,7 @@ namespace cms::sycltools {
 
   ScopedContextProduce::~ScopedContextProduce() {
     // the barrier should be a no-op on an ordered queue, but is used to mark the end of the data processing
-    event_ = stream().submit_barrier();
+    event_ = stream().ext_oneapi_submit_barrier();
   }
 
   ////////////////////

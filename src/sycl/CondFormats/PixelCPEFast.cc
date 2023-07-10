@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 
-#include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
 
 #include "Geometry/phase1PixelTopology.h"
 #include "CondFormats/PixelCPEFast.h"
