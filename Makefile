@@ -120,15 +120,19 @@ endif
 LLVM_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Werror=format-contains-nul -Wno-non-template-friend -Werror=return-local-addr -Werror=unused-but-set-variable
 
 # flags to compile AOT:
-AOT_INTEL_FLAGS   := -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device 0x020a"
-AOT_CUDA_FLAGS    := -fsycl-targets=nvptx64-nvidia-cuda $(foreach ARCH,$(CUDA_ARCH),-Xsycl-target-backend=nvptx64-nvidia-cuda --offload-arch=sm_$(ARCH)) -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings
-AOT_HIP_FLAGS     := -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx900 --rocm-path=$(ROCM_BASE) -Wno-linker-warnings 
-AOT_CPU_FLAGS     := -fsycl-targets=spir64_x86_64
+AOT_INTEL_FLAGS    := -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device 0x020a"
+AOT_CUDA_FLAGS     := -fsycl-targets=nvptx64-nvidia-cuda $(foreach ARCH,$(CUDA_ARCH),-Xsycl-target-backend=nvptx64-nvidia-cuda --offload-arch=sm_$(ARCH)) -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings
+AOT_CUDA_NEW_FLAGS := -fsycl-targets=nvidia_gpu_sm_60 -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings
+AOT_HIP_FLAGS      := -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx900 --rocm-path=$(ROCM_BASE) -Wno-linker-warnings 
+AOT_CPU_FLAGS      := -fsycl-targets=spir64_x86_64
+JIT_FLAGS          := -fsycl-targets=spir64
 
 # INTEL flags: compile AOT for all the CPUs and for the GPU on olice-05
 # CUDA flags : compile AOT for NVIDIA GPUs
 # HIP flags  : compile AOT for architectures with ID gfx900 (e.g. the Radeon PRO WX 9100)
 # CPU flags  : compile AOT for all the CPUs
+
+AOT_FLAGS := $(AOT_INTEL_FLAGS)
 
 # -Wno-linker-warnings will not be needed be needed anymore with https://github.com/intel/llvm/pull/7245
 
@@ -137,16 +141,18 @@ ifdef USE_SYCL_ONEAPI
   TBB_BASE          := $(ONEAPI_BASE)/tbb/latest
   TBB_LIBDIR        := $(TBB_BASE)/lib/intel64/gcc4.8
   ifneq ($(wildcard $(ONEAPI_BASE)),)
-    ONEAPI_ENV        := $(ONEAPI_BASE)/setvars.sh # --config="/eos/user/a/aperego/dev/pixeltrack-standalone/config.txt"
-                                                   # the config.txt file can be used to source only specific tools 
+    ONEAPI_ENV        := $(ONEAPI_BASE)/setvars.sh --include-intel-llvm
+                                                   # --config="/eos/user/a/aperego/dev/pixeltrack-standalone/config.txt"
+                                                   # the config.txt file can be used to source only specific tools
                                                    # or a specific version of a tool of the oneAPI package
     SYCL_BASE         := $(ONEAPI_BASE)/compiler/latest/linux
     SYCL_LIBDIR       := $(SYCL_BASE)/lib
     TBB_BASE          := $(ONEAPI_BASE)/tbb/latest
     TBB_LIBDIR        := $(TBB_BASE)/lib/intel64/gcc4.8
     USER_SYCLFLAGS    :=
-    export SYCL_CXX      := $(SYCL_BASE)/bin/dpcpp
-    export SYCL_CXXFLAGS := -O3 -fsycl -Wno-sycl-strict -fp-model=precise -fimf-arch-consistency=true -no-fma $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
+
+    export SYCL_CXX      := $(SYCL_BASE)/bin/icpx
+    export SYCL_CXXFLAGS := -O3 -fsycl -Wno-sycl-strict -fp-model=precise -fimf-arch-consistency=true -no-fma $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS) $(AOT_FLAGS)
     # math flags : -fp-model=precise -fimf-arch-consistency=true -no-fma
     # workaround for the unexpected intrinsic in ONEAPI 2022.2.0 (SYCL BUG): -fno-sycl-early-optimizations
   else
@@ -154,39 +160,22 @@ ifdef USE_SYCL_ONEAPI
   endif
 else
   # use llvm 
-  SYCL_BASE      := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/build-2022-09
+  SYCL_BASE      := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/nightly/20230613
   USER_SYCLFLAGS := 
   
   # make CPUs visible
-  export OCL_ICD_FILENAMES := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/runtime/intel/oclcpuexp_2022.14.8.0.04/x64/libintelocl.so
+  export OCL_ICD_FILENAMES := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/runtime/intel/oclcpuexp_2023.15.3.0.20/x64/libintelocl.so
   
   export SYCL_CXX      := $(SYCL_BASE)/bin/clang++
-  export SYCL_CXXFLAGS := -O3 -fsycl $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
+  export SYCL_CXXFLAGS := -O3 -fsycl $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS) $(AOT_FLAGS)
 endif
 
-# Now add the flags to compile ahead of time for CPUs, Intel GPUs, NVIDIA GPUs and AMD GPUs
-# The flags for NVIDIA GPUs and AMD GPUs are added only if llvm is used since they are not yet supported by dpcpp
 # At the moment it's not possible to compile AOT for both CUDA and AMD together (LLVM BUG)
 # so if both are there the default is to compile only for the CUDA backend
 # same for CPUs and CUDA backend : it's not possible to compile AOT for both right now -> 
 # keep a look on https://github.com/intel/llvm/issues/7676 for that error.
 # (the AMD backend has some bugs so there is a high probability that it won't even compile)
 
-ifdef ONEAPI_BASE
-  SYCL_CXXFLAGS += $(AOT_INTEL_FLAGS)
-else
-  ifdef CPU_FLAGS
-    SYCL_CXXFLAGS += $(AOT_CPU_FLAGS)
-  else
-    ifdef CUDA_BASE
-      SYCL_CXXFLAGS += $(AOT_CUDA_FLAGS)
-    else 
-      ifdef ROCM_BASE
-        SYCL_CXXFLAGS += $(AOT_HIP_FLAGS)
-      endif
-    endif
-  endif
-endif
 # check if libraries are under lib or lib64
 ifdef SYCL_BASE
 ifneq ($(wildcard $(SYCL_BASE)/lib/libsycl.so),)
