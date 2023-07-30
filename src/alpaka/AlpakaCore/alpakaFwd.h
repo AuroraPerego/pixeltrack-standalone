@@ -36,15 +36,15 @@ namespace alpaka {
   }
 
   // Platforms
-  class PltfCpu;
+  class PlatformCpu;
   template <typename TApi>
-  class PltfUniformCudaHipRt;
-  using PltfCudaRt = PltfUniformCudaHipRt<ApiCudaRt>;
-  using PltfHipRt = PltfUniformCudaHipRt<ApiHipRt>;
+  class PlatformUniformCudaHipRt;
+  using PlatformCudaRt = PlatformUniformCudaHipRt<ApiCudaRt>;
+  using PlatformHipRt = PlatformUniformCudaHipRt<ApiHipRt>;
   template <typename TSelector>
-  class PltfGenericSycl; 
-  using PltfCpuSycl = PltfGenericSycl<detail::SyclCpuSelector>;
-  using PltfGpuSyclIntel = PltfGenericSycl<detail::IntelGpuSelector>;
+  class PlatformGenericSycl; 
+  using PlatformCpuSycl = PlatformGenericSycl<detail::SyclCpuSelector>;
+  using PlatformGpuSyclIntel = PlatformGenericSycl<detail::IntelGpuSelector>;
 
   // Devices
   class DevCpu;
@@ -52,10 +52,10 @@ namespace alpaka {
   class DevUniformCudaHipRt;
   using DevCudaRt = DevUniformCudaHipRt<ApiCudaRt>;
   using DevHipRt = DevUniformCudaHipRt<ApiHipRt>;
-  template <typename TPltf>
+  template <typename TPlatform>
   class DevGenericSycl;
-  using DevCpuSycl= DevGenericSycl<PltfCpuSycl>;
-  using DevGpuSyclIntel = DevGenericSycl<PltfGpuSyclIntel>;
+  using DevCpuSycl= DevGenericSycl<PlatformCpuSycl>;
+  using DevGpuSyclIntel = DevGenericSycl<PlatformGpuSyclIntel>;
 
   // Queues
   template <typename TDev>

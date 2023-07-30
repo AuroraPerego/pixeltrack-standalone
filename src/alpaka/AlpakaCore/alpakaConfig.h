@@ -30,7 +30,7 @@ namespace alpaka_common {
 
   // host types
   using DevHost = alpaka::DevCpu;
-  using PltfHost = alpaka::PltfCpu;
+  using PlatformHost = alpaka::PlatformCpu;
 
 }  // namespace alpaka_common
 
@@ -46,7 +46,7 @@ namespace alpaka_common {
 namespace alpaka_cuda_async {
   using namespace alpaka_common;
 
-  using Platform = alpaka::PltfCudaRt;
+  using Platform = alpaka::PlatformCudaRt;
   using Device = alpaka::DevCudaRt;
   using Queue = alpaka::QueueCudaRtNonBlocking;
   using Event = alpaka::EventCudaRt;
@@ -69,7 +69,7 @@ namespace alpaka_cuda_async {
 namespace alpaka_rocm_async {
   using namespace alpaka_common;
 
-  using Platform = alpaka::PltfHipRt;
+  using Platform = alpaka::PlatformHipRt;
   using Device = alpaka::DevHipRt;
   using Queue = alpaka::QueueHipRtNonBlocking;
   using Event = alpaka::EventHipRt;
@@ -92,7 +92,7 @@ namespace alpaka_rocm_async {
 namespace alpaka_cpu_sycl {
   using namespace alpaka_common;
 
-  using Platform = alpaka::PltfCpuSycl;
+  using Platform = alpaka::PlatformCpuSycl;
   using Device = alpaka::DevCpuSycl;
   using Queue = alpaka::QueueCpuSyclNonBlocking;
   using Event = alpaka::EventCpuSycl;
@@ -108,7 +108,7 @@ namespace alpaka_cpu_sycl {
 namespace alpaka_gpu_sycl {
   using namespace alpaka_common;
 
-  using Platform = alpaka::PltfGpuSyclIntel;
+  using Platform = alpaka::PlatformGpuSyclIntel;
   using Device = alpaka::DevGpuSyclIntel;
   using Queue = alpaka::QueueGpuSyclIntelNonBlocking;
   using Event = alpaka::EventGpuSyclIntel;
@@ -135,7 +135,7 @@ namespace alpaka_gpu_sycl {
 namespace alpaka_serial_sync {
   using namespace alpaka_common;
 
-  using Platform = alpaka::PltfCpu;
+  using Platform = alpaka::PlatformCpu;
   using Device = alpaka::DevCpu;
   using Queue = alpaka::QueueCpuBlocking;
   using Event = alpaka::EventCpu;
@@ -158,7 +158,7 @@ namespace alpaka_serial_sync {
 namespace alpaka_tbb_async {
   using namespace alpaka_common;
 
-  using Platform = alpaka::PltfCpu;
+  using Platform = alpaka::PlatformCpu;
   using Device = alpaka::DevCpu;
   using Queue = alpaka::QueueCpuNonBlocking;
   using Event = alpaka::EventCpu;
@@ -181,7 +181,7 @@ namespace alpaka_tbb_async {
 namespace alpaka_omp2_async {
   using namespace alpaka_common;
 
-  using Platform = alpaka::PltfCpu;
+  using Platform = alpaka::PlatformCpu;
   using Device = alpaka::DevCpu;
   using Queue = alpaka::QueueCpuBlocking;
   using Event = alpaka::EventCpu;
