@@ -26,6 +26,8 @@ namespace cms::alpakatools {
     using Device = alpaka::Dev<TPlatform>;
     using Platform = TPlatform;
 
+    platform = Platform{};
+
     std::vector<Device> devices;
     uint32_t n = alpaka::getDevCount(platform);
     devices.reserve(n);
