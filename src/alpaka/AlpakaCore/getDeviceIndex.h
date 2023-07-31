@@ -2,8 +2,11 @@
 #define AlpakaCore_getDeviceIndex_h
 
 #include <alpaka/alpaka.hpp>
+#include "AlpakaCore/alpakaConfig.h"
 
 namespace cms::alpakatools {
+
+  inline ALPAKA_ACCELERATOR_NAMESPACE::Platform platform{};
 
   // generic interface, for DevOacc and DevOmp5
   template <typename Device>
@@ -26,8 +29,8 @@ namespace cms::alpakatools {
 
 #ifdef ALPAKA_ACC_SYCL_ENABLED
   // overload for DevGenericSycl
-  inline int getDeviceIndex(alpaka::DevCpuSycl const& device) { return 0; }  // FIXME_
-  inline int getDeviceIndex(alpaka::DevGpuSyclIntel const& device) { return 0; }  // FIXME_
+  inline int getDeviceIndex(alpaka::DevCpuSycl const& device) { return 0; }  //std::find(platform.syclDevices().begin(), platform.syclDevices().end(), device) - platform.syclDevices().begin(); }  // FIXME_
+  inline int getDeviceIndex(alpaka::DevGpuSyclIntel const& device) { return 0; } //std::find(platform.syclDevices().begin(), platform.syclDevices().end(), device) - platform.syclDevices().begin(); }  // FIXME_
 #endif  // ALPAKA_ACC_SYCL_ENABLED
 
 }  // namespace cms::alpakatools
