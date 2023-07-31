@@ -6,7 +6,7 @@
 
 namespace cms::alpakatools {
 
-  inline ALPAKA_ACCELERATOR_NAMESPACE::Platform platform{};
+  inline ALPAKA_ACCELERATOR_NAMESPACE::Platform platform;
 
   // generic interface, for DevOacc and DevOmp5
   template <typename Device>
