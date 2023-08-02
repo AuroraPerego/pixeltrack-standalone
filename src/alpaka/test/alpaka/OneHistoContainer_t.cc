@@ -156,7 +156,7 @@ void go(const DevHost& host, const Device& device, Queue& queue) {
 int main() {
   cms::alpakatools::initialise<Platform>();
   const DevHost host(alpaka::getDevByIdx(cms::alpakatools::platformHost, 0u));
-  const Device device(alpaka::getDevByIdx(cms::alpakatools::platform, 0u));
+  const Device device(alpaka::getDevByIdx(*cms::alpakatools::platform, 0u));
   Queue queue(device);
 
   go<int16_t>(host, device, queue);
