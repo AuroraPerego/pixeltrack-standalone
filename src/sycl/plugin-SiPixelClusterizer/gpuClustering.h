@@ -14,6 +14,10 @@
 #include "SYCLDataFormats/gpuClusteringConstants.h"
 
 // #define GPU_DEBUG
+#ifdef GPU_DEBUG
+using namespace sycl::ext::oneapi::experimental;
+device_global<uint32_t> gMaxHit;
+#endif
 
 namespace gpuClustering {
 
@@ -55,10 +59,6 @@ namespace gpuClustering {
                    sycl::nd_item<1> item) {
     if (item.get_group(0) >= moduleStart[0])
       return;
-
-#ifdef GPU_DEBUG
-    uint32_t gMaxHit = 0;  //FIXME_
-#endif
 
     auto firstPixel = moduleStart[1 + item.get_group(0)];
     auto thisModuleId = id[firstPixel];
@@ -316,8 +316,8 @@ namespace gpuClustering {
       nClustersInModule[thisModuleId] = *foundClusters;
       moduleId[item.get_group(0)] = thisModuleId;
 #ifdef GPU_DEBUG
-      if (*foundClusters > gMaxHit) {
-        gMaxHit = *foundClusters;
+      if (*foundClusters > gMaxHit.get()) {
+        gMaxHit.get() = *foundClusters;
         if (*foundClusters > 8)
           printf("max hit %d in %d\n", *foundClusters, thisModuleId);
       }
@@ -338,10 +338,6 @@ namespace gpuClustering {
                    sycl::nd_item<1> item) {
     if (item.get_group(0) >= moduleStart[0])
       return;
-
-#ifdef GPU_DEBUG
-    uint32_t gMaxHit = 0;  //FIXME_
-#endif
 
     auto firstPixel = moduleStart[1 + item.get_group(0)];
     auto thisModuleId = id[firstPixel];
@@ -599,8 +595,8 @@ namespace gpuClustering {
       nClustersInModule[thisModuleId] = *foundClusters;
       moduleId[item.get_group(0)] = thisModuleId;
 #ifdef GPU_DEBUG
-      if (*foundClusters > gMaxHit) {
-        gMaxHit = *foundClusters;
+      if (*foundClusters > gMaxHit.get()) {
+        gMaxHit.get() = *foundClusters;
         if (*foundClusters > 8)
           printf("max hit %d in %d\n", *foundClusters, thisModuleId);
       }
