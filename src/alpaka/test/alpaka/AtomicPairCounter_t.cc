@@ -58,7 +58,7 @@ struct verify {
 int main() {
   cms::alpakatools::initialise<Platform>();
   const DevHost host(alpaka::getDevByIdx(cms::alpakatools::platformHost, 0u));
-  const Device device(alpaka::getDevByIdx(cms::alpakatools::platform, 0u));
+  const Device device(alpaka::getDevByIdx(*cms::alpakatools::platform, 0u));
   Queue queue(device);
 
   auto c_d = make_device_buffer<AtomicPairCounter>(queue);

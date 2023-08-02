@@ -121,7 +121,7 @@ LLVM_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Werro
 
 # flags to compile AOT:
 AOT_CPU_FLAGS := -fsycl-targets=spir64_x86_64
-AOT_GPU_FLAGS := -fsycl-targets=intel_gpu_pvc #,nvidia_gpu_sm_60,amd_gpu_gfx900
+AOT_GPU_FLAGS := -fsycl-targets=intel_gpu_pvc -Xsycl-target-backend '-options -ze-intel-enable-auto-large-GRF-mode' #,nvidia_gpu_sm_60,amd_gpu_gfx900
 
 export AOT_CPU_FLAGS
 export AOT_GPU_FLAGS
@@ -138,12 +138,16 @@ AOT_CPU_FLAGS     := -fsycl-targets=spir64_x86_64
 
 # -Wno-linker-warnings will not be needed be needed anymore with https://github.com/intel/llvm/pull/7245
 
+#USE_SYCL_ONEAPI := true
+
 ifdef USE_SYCL_ONEAPI
+#  ONEAPI_BASE       := /opt/intel/oneapi
   ONEAPI_BASE       := /cvmfs/projects.cern.ch/intelsw/oneAPI/linux/x86_64/2023
   TBB_BASE          := $(ONEAPI_BASE)/tbb/latest
   TBB_LIBDIR        := $(TBB_BASE)/lib/intel64/gcc4.8
   ifneq ($(wildcard $(ONEAPI_BASE)),)
-    ONEAPI_ENV        := $(ONEAPI_BASE)/setvars.sh # --config="/eos/user/a/aperego/dev/pixeltrack-standalone/config.txt"
+    ONEAPI_ENV        := $(ONEAPI_BASE)/setvars.sh --include-intel-llvm
+                                                   # --config="/eos/user/a/aperego/dev/pixeltrack-standalone/config.txt"
                                                    # the config.txt file can be used to source only specific tools 
                                                    # or a specific version of a tool of the oneAPI package
     SYCL_BASE         := $(ONEAPI_BASE)/compiler/latest/linux
@@ -151,7 +155,7 @@ ifdef USE_SYCL_ONEAPI
     TBB_BASE          := $(ONEAPI_BASE)/tbb/latest
     TBB_LIBDIR        := $(TBB_BASE)/lib/intel64/gcc4.8
     USER_SYCLFLAGS    :=
-    export SYCL_CXX      := $(SYCL_BASE)/bin/dpcpp
+    export SYCL_CXX      := $(SYCL_BASE)/bin-llvm/clang++
     export SYCL_CXXFLAGS := -O3 -fsycl -Wno-sycl-strict -fp-model=precise -fimf-arch-consistency=true -no-fma $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
     # math flags : -fp-model=precise -fimf-arch-consistency=true -no-fma
     # workaround for the unexpected intrinsic in ONEAPI 2022.2.0 (SYCL BUG): -fno-sycl-early-optimizations
@@ -715,7 +719,7 @@ $(HWLOC_BASE):
 external_alpaka: $(ALPAKA_BASE)
 
 $(ALPAKA_BASE):
-	git clone https://github.com/Parsifal-2045/alpaka.git -b SYCL_USM $@
+	git clone https://github.com/alpaka-group/alpaka.git -b develop $@
 	cd $@
 
 # Kokkos

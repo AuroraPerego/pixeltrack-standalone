@@ -25,14 +25,13 @@ namespace cms::alpakatools {
 
     using Device = alpaka::Dev<TPlatform>;
     using Platform = TPlatform;
-
     platform = Platform{};
 
     std::vector<Device> devices;
-    uint32_t n = alpaka::getDevCount(platform);
+    uint32_t n = alpaka::getDevCount(*platform);
     devices.reserve(n);
     for (uint32_t i = 0; i < n; ++i) {
-      devices.push_back(alpaka::getDevByIdx(platform, i));
+      devices.push_back(alpaka::getDevByIdx(*platform, i));
     //  assert(getDeviceIndex(devices.back()) == static_cast<int>(i));
     //  std::cout << i << " = " << alpaka::getName(alpaka::getDevByIdx<Platform>(i)) << ", back = " << devices.back() << std::endl;
     }
