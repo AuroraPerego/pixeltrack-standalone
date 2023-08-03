@@ -205,6 +205,7 @@ namespace cms::alpakatools {
       const uint32_t threadIdxLocal(alpaka::getIdx<alpaka::Block, alpaka::Threads>(acc)[0u]);
       if (threadIdxLocal == 0)
         ++p;
+      alpaka::mem_fence(acc, alpaka::memory_scope::Block{});
       alpaka::syncBlockThreads(acc);
     }
 
