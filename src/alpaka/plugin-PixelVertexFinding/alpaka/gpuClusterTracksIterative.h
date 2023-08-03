@@ -125,7 +125,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
             cms::alpakatools::for_each_element_in_block_strided(acc, hist.size(), [&](uint32_t k) {
               auto p = hist.begin() + k;
               auto i = (*p);
-              auto be = std::min(Hist::bin(izt[i]) + 1, int(hist.nbins() - 1));
+              // auto be = std::min(Hist::bin(izt[i]) + 1, int(hist.nbins() - 1));
               if (nn[i] >= minT) {  // DBSCAN core rule
                 auto loop = [&](uint32_t j) {
                   ALPAKA_ASSERT_OFFLOAD(i != j);
@@ -144,7 +144,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                   alpaka::atomicMin(acc, &iv[i], old, alpaka::hierarchy::Blocks{});
                 };
                 ++p;
-                for (; p < hist.end(be); ++p)
+               // for (; p < hist.end(be); ++p)
                   loop(*p);
               }
             });  // for k
