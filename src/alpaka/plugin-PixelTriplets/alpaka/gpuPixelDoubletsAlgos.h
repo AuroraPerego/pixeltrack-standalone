@@ -19,6 +19,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
   namespace gpuPixelDoublets {
 
+#ifdef __SYCL_DEVICE_ONLY__
+    using sycl::abs;
+#else
+    using std::abs;
+#endif
+
     using CellNeighbors = CAConstants::CellNeighbors;
     using CellTracks = CAConstants::CellTracks;
     using CellNeighborsVector = CAConstants::CellNeighborsVector;
@@ -238,7 +244,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
               continue;
 
             auto mop = hh.iphi(oi);
-            uint16_t idphi = std::min(std::abs(int16_t(mop - mep)), std::abs(int16_t(mep - mop)));
+            uint16_t idphi = static_cast<uint16_t>(abs(static_cast<int16_t>(mep-mop))); //std::min(std::abs(int16_t(mop - mep)), std::abs(int16_t(mep - mop)));
             if (idphi > iphicut)
               continue;
 
