@@ -11,6 +11,7 @@
 #include "PluginManager.h"
 #include "StreamSchedule.h"
 #include "Source.h"
+#include "Timestamp.h"
 
 namespace edm {
   struct Alternative {
@@ -28,6 +29,7 @@ namespace edm {
   class EventProcessor {
   public:
     explicit EventProcessor(int maxEvents,
+                            int skipEvents,
                             int runForMinutes,
                             int numberOfStreams,
                             Alternatives alternatives,
@@ -38,6 +40,7 @@ namespace edm {
     int maxEvents() const { return source_.maxEvents(); }
     int processedEvents() const { return source_.processedEvents(); }
     std::vector<std::pair<Backend, int>> const& backends() const { return streamsPerBackend_; }
+    Timestamp const& start() const { return source_.start(); }
 
     void runToCompletion();
 

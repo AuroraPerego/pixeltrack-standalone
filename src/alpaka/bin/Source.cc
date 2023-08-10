@@ -27,10 +27,15 @@ namespace {
 }  // namespace
 
 namespace edm {
-  Source::Source(
-      int maxEvents, int runForMinutes, ProductRegistry &reg, std::filesystem::path const &datadir, bool validation)
+  Source::Source(int maxEvents,
+                 int skipEvents,
+                 int runForMinutes,
+                 ProductRegistry &reg,
+                 std::filesystem::path const &datadir,
+                 bool validation)
       : maxEvents_(maxEvents),
         runForMinutes_(runForMinutes),
+        skipEvents_(skipEvents),
         rawToken_(reg.produces<FEDRawDataCollection>()),
         validation_(validation) {
     std::ifstream in_raw(datadir / "raw.bin", std::ios::binary);
@@ -88,6 +93,7 @@ namespace edm {
   }
 
   void Source::startProcessing() {
+    start_.mark();
     if (runForMinutes_ >= 0) {
       startTime_ = std::chrono::steady_clock::now();
     }
@@ -99,6 +105,9 @@ namespace edm {
     }
 
     const int old = numEvents_.fetch_add(1);
+    if (old == skipEvents_) {
+      start_.mark();
+    }
     const int iev = old + 1;
     if (runForMinutes_ < 0) {
       if (old >= maxEvents_) {

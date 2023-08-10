@@ -20,7 +20,7 @@
 #include "AlpakaCore/backend.h"
 #include "AlpakaCore/initialise.h"
 #include "EventProcessor.h"
-#include "PosixClockGettime.h"
+#include "Timestamp.h"
 
 namespace {
   void print_help(std::string const& name) {
@@ -58,7 +58,7 @@ namespace {
 #endif
 #ifdef ALPAKA_ACC_SYCL_PRESENT
         << " --syclcpu            Use SYCL Intel CPU backend\n"
-	<< " --syclgpu            Use SYCL Intel GPU backend\n"
+        << " --syclgpu            Use SYCL Intel GPU backend\n"
 #endif
         << " --numberOfThreads   Number of threads to use (default 1, use 0 to use all CPU cores)\n"
         << " --numberOfStreams   Number of concurrent events (default 0 = numberOfThreads)\n"
@@ -170,10 +170,10 @@ int main(int argc, char** argv) {
       float weight = 1.;
       getOptionalArgument(args, i, weight);
       backends.insert_or_assign(Backend::CPUSYCL, weight);
-   } else if (*i == "--syclgpu") {
-     float weight = 1.;
-     getOptionalArgument(args, i, weight);
-     backends.insert_or_assign(Backend::GPUSYCL, weight);
+    } else if (*i == "--syclgpu") {
+      float weight = 1.;
+      getOptionalArgument(args, i, weight);
+      backends.insert_or_assign(Backend::GPUSYCL, weight);
 #endif
     } else if (*i == "--numberOfThreads") {
       getArgument(args, i, numberOfThreads);
@@ -244,9 +244,9 @@ int main(int argc, char** argv) {
   if (backends.find(Backend::CPUSYCL) != backends.end()) {
     cms::alpakatools::initialise<alpaka_cpu_sycl::Platform>();
   }
- if (backends.find(Backend::GPUSYCL) != backends.end()) {
-   cms::alpakatools::initialise<alpaka_gpu_sycl::Platform>();
- }
+  if (backends.find(Backend::GPUSYCL) != backends.end()) {
+    cms::alpakatools::initialise<alpaka_gpu_sycl::Platform>();
+  }
 #endif
 
   // Initialize EventProcessor
@@ -281,11 +281,21 @@ int main(int argc, char** argv) {
       alternatives.emplace_back(backend, weight, std::move(edmodules));
     }
   }
-  edm::EventProcessor processor(
-      maxEvents, runForMinutes, numberOfStreams, std::move(alternatives), std::move(esmodules), datadir, validation);
+  int warmupEvents = 100;
+  edm::EventProcessor processor(maxEvents + warmupEvents,
+                                warmupEvents,
+                                runForMinutes,
+                                numberOfStreams,
+                                std::move(alternatives),
+                                std::move(esmodules),
+                                datadir,
+                                validation);
 
   if (runForMinutes < 0) {
-    std::cout << "Processing " << processor.maxEvents() << " events,";
+    std::cout << "Processing " << processor.maxEvents() - warmupEvents << " events,";
+    if (warmupEvents) {
+      std::cout << " after " << warmupEvents << " events of warm up,";
+    }
   } else {
     std::cout << "Processing for about " << runForMinutes << " minutes,";
   }
@@ -307,8 +317,6 @@ int main(int argc, char** argv) {
                                       static_cast<std::size_t>(numberOfThreads)};
 
   // Run work
-  auto cpu_start = PosixClockGettime<CLOCK_PROCESS_CPUTIME_ID>::now();
-  auto start = std::chrono::high_resolution_clock::now();
   try {
     tbb::task_arena arena(numberOfThreads);
     arena.execute([&] { processor.runToCompletion(); });
@@ -324,8 +332,7 @@ int main(int argc, char** argv) {
     std::cout << "\n----------\nCaught exception of unknown type" << std::endl;
     return EXIT_FAILURE;
   }
-  auto cpu_stop = PosixClockGettime<CLOCK_PROCESS_CPUTIME_ID>::now();
-  auto stop = std::chrono::high_resolution_clock::now();
+  auto stop = Timestamp::now();
 
   // Run endJob
   try {
@@ -344,11 +351,11 @@ int main(int argc, char** argv) {
   }
 
   // Work done, report timing
-  auto diff = stop - start;
+  auto diff = stop.real - processor.start().real;
   auto time = static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(diff).count()) / 1e6;
-  auto cpu_diff = cpu_stop - cpu_start;
+  auto cpu_diff = stop.cpu - processor.start().cpu;
   auto cpu = static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(cpu_diff).count()) / 1e6;
-  maxEvents = processor.processedEvents();
+  maxEvents = processor.processedEvents() - warmupEvents;
   std::cout << "Processed " << maxEvents << " events in " << std::scientific << time << " seconds, throughput "
             << std::defaultfloat << (maxEvents / time) << " events/s, CPU usage per thread: " << std::fixed
             << std::setprecision(1) << (cpu / time / numberOfThreads * 100) << "%" << std::endl;
