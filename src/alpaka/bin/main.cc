@@ -62,6 +62,7 @@ namespace {
 #endif
         << " --numberOfThreads   Number of threads to use (default 1, use 0 to use all CPU cores)\n"
         << " --numberOfStreams   Number of concurrent events (default 0 = numberOfThreads)\n"
+        << " --warmup            Number of events to process before starting the benchmark (default 0)\n"
         << " --maxEvents         Number of events to process (default -1 for all events in the input file)\n"
         << " --runForMinutes     Continue processing the set of 1000 events until this many minutes have passed "
            "(default -1 for disabled; conflicts with --maxEvents)\n"
@@ -130,6 +131,7 @@ int main(int argc, char** argv) {
   std::unordered_map<Backend, float> backends;
   int numberOfThreads = 1;
   int numberOfStreams = 0;
+  int warmupEvents = 0;
   int maxEvents = -1;
   int runForMinutes = -1;
   std::filesystem::path datadir;
@@ -179,6 +181,8 @@ int main(int argc, char** argv) {
       getArgument(args, i, numberOfThreads);
     } else if (*i == "--numberOfStreams") {
       getArgument(args, i, numberOfStreams);
+    } else if (*i == "--warmup") {
+      getArgument(args, i, warmupEvents);
     } else if (*i == "--maxEvents") {
       getArgument(args, i, maxEvents);
     } else if (*i == "--runForMinutes") {
@@ -203,6 +207,10 @@ int main(int argc, char** argv) {
   }
   if (maxEvents >= 0 and runForMinutes >= 0) {
     std::cout << "Got both --maxEvents and --runForMinutes, please give only one of them" << std::endl;
+    return EXIT_FAILURE;
+  }
+  if (warmupEvents < 0) {
+    std::cout << "The argument to --warmup must be positive or zero" << std::endl;
     return EXIT_FAILURE;
   }
   if (numberOfThreads == 0) {
@@ -281,9 +289,8 @@ int main(int argc, char** argv) {
       alternatives.emplace_back(backend, weight, std::move(edmodules));
     }
   }
-  int warmupEvents = 100;
-  edm::EventProcessor processor(maxEvents + warmupEvents,
-                                warmupEvents,
+  edm::EventProcessor processor(warmupEvents,
+                                maxEvents,
                                 runForMinutes,
                                 numberOfStreams,
                                 std::move(alternatives),
@@ -292,12 +299,12 @@ int main(int argc, char** argv) {
                                 validation);
 
   if (runForMinutes < 0) {
-    std::cout << "Processing " << processor.maxEvents() - warmupEvents << " events,";
-    if (warmupEvents) {
-      std::cout << " after " << warmupEvents << " events of warm up,";
-    }
+    std::cout << "Processing " << processor.maxEvents() << " events,";
   } else {
     std::cout << "Processing for about " << runForMinutes << " minutes,";
+  }
+  if (warmupEvents > 0) {
+    std::cout << " after " << warmupEvents << " events of warm up,";
   }
   {
     std::cout << " with " << numberOfStreams << " concurrent events (";
@@ -332,7 +339,6 @@ int main(int argc, char** argv) {
     std::cout << "\n----------\nCaught exception of unknown type" << std::endl;
     return EXIT_FAILURE;
   }
-  auto stop = Timestamp::now();
 
   // Run endJob
   try {
@@ -351,13 +357,13 @@ int main(int argc, char** argv) {
   }
 
   // Work done, report timing
-  auto diff = stop.real - processor.start().real;
-  auto time = static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(diff).count()) / 1e6;
-  auto cpu_diff = stop.cpu - processor.start().cpu;
+  auto time_diff = processor.stop().time - processor.start().time;
+  auto time = static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(time_diff).count()) / 1e6;
+  auto cpu_diff = processor.stop().cpu - processor.start().cpu;
   auto cpu = static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(cpu_diff).count()) / 1e6;
-  maxEvents = processor.processedEvents() - warmupEvents;
-  std::cout << "Processed " << maxEvents << " events in " << std::scientific << time << " seconds, throughput "
-            << std::defaultfloat << (maxEvents / time) << " events/s, CPU usage per thread: " << std::fixed
+  auto events = processor.processedEvents();
+  std::cout << "Processed " << events << " events in " << std::scientific << time << " seconds, throughput "
+            << std::defaultfloat << (events / time) << " events/s, CPU usage per thread: " << std::fixed
             << std::setprecision(1) << (cpu / time / numberOfThreads * 100) << "%" << std::endl;
 
   // Destroy initialised devices

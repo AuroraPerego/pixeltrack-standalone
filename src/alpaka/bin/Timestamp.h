@@ -7,11 +7,11 @@
 
 struct Timestamp {
   PosixClockGettime<CLOCK_PROCESS_CPUTIME_ID>::time_point cpu;
-  std::chrono::high_resolution_clock::time_point real;
+  std::chrono::steady_clock::time_point time;
 
   void mark() {
     cpu = PosixClockGettime<CLOCK_PROCESS_CPUTIME_ID>::now();
-    real = std::chrono::high_resolution_clock::now();
+    time = std::chrono::steady_clock::now();
   }
 
   static Timestamp now() {

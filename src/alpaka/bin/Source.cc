@@ -27,15 +27,15 @@ namespace {
 }  // namespace
 
 namespace edm {
-  Source::Source(int maxEvents,
-                 int skipEvents,
+  Source::Source(int warmupEvents,
+                 int maxEvents,
                  int runForMinutes,
                  ProductRegistry &reg,
                  std::filesystem::path const &datadir,
                  bool validation)
-      : maxEvents_(maxEvents),
+      : warmupEvents_(warmupEvents),
+        maxEvents_(maxEvents),
         runForMinutes_(runForMinutes),
-        skipEvents_(skipEvents),
         rawToken_(reg.produces<FEDRawDataCollection>()),
         validation_(validation) {
     std::ifstream in_raw(datadir / "raw.bin", std::ios::binary);
@@ -87,15 +87,14 @@ namespace edm {
       assert(raw_.size() == vertices_.size());
     }
 
-    if (runForMinutes_ < 0 and maxEvents_ - skipEvents_ < 0) {
-      maxEvents_ = raw_.size() + skipEvents_;
+    // default value for maxEvents_
+    if (runForMinutes_ < 0 and maxEvents_ < 0) {
+      maxEvents_ = raw_.size();
     }
-  }
 
-  void Source::startProcessing() {
-    start_.mark();
-    if (runForMinutes_ >= 0) {
-      startTime_ = std::chrono::steady_clock::now();
+    // run for warmupEvents before checking for the requested maxEvents
+    if (runForMinutes_ < 0 and warmupEvents_ > 0) {
+      maxEvents_ += warmupEvents_;
     }
   }
 
@@ -104,23 +103,29 @@ namespace edm {
       return nullptr;
     }
 
+    // old is the number of events that have been produced until now
     const int old = numEvents_.fetch_add(1);
-    if (old == skipEvents_) {
+    if (old == warmupEvents_) {
+      // reset the time stamps after the warmup period
       start_.mark();
     }
-    const int iev = old + 1;
+
+    // check for the stop condition
     if (runForMinutes_ < 0) {
+      // check based on the number of processed events
       if (old >= maxEvents_) {
         shouldStop_ = true;
         --numEvents_;
         return nullptr;
       }
     } else {
+      // check based on the elapsed time
+      // check only once per full processing of the input
       if (numEvents_ - numEventsTimeLastCheck_ > static_cast<int>(raw_.size())) {
         std::scoped_lock lock(timeMutex_);
-        // if some other thread beat us, no need to do anything
+        // check again, in case another thread beat us while acuiring the lock, and we don't need to do anything
         if (numEvents_ - numEventsTimeLastCheck_ > static_cast<int>(raw_.size())) {
-          auto processingTime = std::chrono::steady_clock::now() - startTime_;
+          auto processingTime = std::chrono::steady_clock::now() - start_.time;
           if (std::chrono::duration_cast<std::chrono::minutes>(processingTime).count() >= runForMinutes_) {
             shouldStop_ = true;
           }
@@ -132,7 +137,11 @@ namespace edm {
         }
       }
     }
+
+    // iev is the event that we are producing
+    const int iev = old + 1;
     auto ev = std::make_unique<Event>(streamId, iev, reg);
+    // use old rather than iev because events count from 1, but the buffer is 0-based
     const int index = old % raw_.size();
 
     ev->emplace(rawToken_, raw_[index]);
