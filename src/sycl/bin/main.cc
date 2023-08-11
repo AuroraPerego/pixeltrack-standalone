@@ -25,7 +25,8 @@ namespace {
         << " --numberOfThreads   Number of threads to use (default 1, use 0 to use all CPU cores)\n"
         << " --numberOfStreams   Number of concurrent events (default 0 = numberOfThreads)\n"
         << " --maxEvents         Number of events to process (default -1 for all events in the input file)\n"
-        << " --device            Specifies the device which should run the code (default all, options: cpu, gpu, cuda, "
+        << " --device            Specifies the device which should run the code (default all, options: <backend>:<devices> "
+           "with <backend>={ * | level_zero | opencl | cuda | hip | esimd_emulator } and <devices>={ * | cpu | gpu | fpga | <num> | <num>.<num> | <num>.* | *.* | <num>.<num>.<num> | <num>.<num>.* | <num>.*.* | *.*.*  } "
            "hip, backend:device:tile (e.g.opencl:gpu:0)..)\n"
         << " --runForMinutes     Continue processing the set of 1000 events until this many minutes have passed "
            "(default -1 for disabled; conflicts with --maxEvents)\n"
@@ -69,7 +70,7 @@ int main(int argc, char** argv) try {
     } else if (*i == "--device") {
       ++i;
       std::string device = *i;
-      setenv("SYCL_DEVICE_FILTER", device.c_str(), true);
+      setenv("ONEAPI_DEVICE_SELECTOR", device.c_str(), true);
     } else if (*i == "--data") {
       ++i;
       datadir = *i;

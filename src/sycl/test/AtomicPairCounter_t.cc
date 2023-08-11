@@ -44,7 +44,7 @@ void verify(AtomicPairCounter const *dc, uint32_t const *ind, uint32_t const *co
 #include <iostream>
 int main(int argc, char **argv) {
   std::string devices(argv[1]);
-  setenv("SYCL_DEVICE_FILTER", devices.c_str(), true);
+  setenv("ONEAPI_DEVICE_SELECTOR", devices.c_str(), true);
 
   cms::sycltools::enumerateDevices(true);
   sycl::device device = cms::sycltools::chooseDevice(0);
