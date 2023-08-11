@@ -54,7 +54,7 @@ template <typename T>
 struct testWarpPrefixScan {
   template <typename TAcc>
   ALPAKA_FN_ACC void operator()(const TAcc& acc, uint32_t size) const {
-#if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) && defined(__CUDA_ARCH__) || \
+#if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) && defined(__CUDA_ARCH__) ||         \
     defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND) && defined(__HIP_DEVICE_COMPILE__) || \
     defined(ALPAKA_ACC_SYCL_ENABLED) && defined(__SYCL_DEVICE_ONLY__)
     assert(size <= 32);
@@ -81,7 +81,7 @@ struct testWarpPrefixScan {
     assert(1 == c[0]);
     assert(1 == co[0]);
     if (i != 0) {
-#if !defined(ALPAKA_ACC_SYCL_ENABLED) //FIXME_
+#if !defined(ALPAKA_ACC_SYCL_ENABLED)  //FIXME_
       if (c[i] != c[i - 1] + 1)
         printf(format_traits<T>::failed_msg, size, i, blockDimension, c[i], c[i - 1]);
 #endif

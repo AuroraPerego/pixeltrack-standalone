@@ -106,7 +106,7 @@ namespace cms::alpakatools {
       // On GPU backends, each thread is looking at a single element:
       //   - threadsPerBlockOrElementsPerThread is the number of threads per block;
       //   - elementsPerThread is always 1.
-      const auto elementsPerThread =  Vec<Dim>::ones();
+      const auto elementsPerThread = Vec<Dim>::ones();
       return WorkDiv<Dim1D>(blocksPerGrid, threadsPerBlockOrElementsPerThread, elementsPerThread);
     } else
 #endif  // ALPAKA_SYCL_ONEAPI_CPU
@@ -115,7 +115,7 @@ namespace cms::alpakatools {
       // On GPU backends, each thread is looking at a single element:
       //   - threadsPerBlockOrElementsPerThread is the number of threads per block;
       //   - elementsPerThread is always 1.
-      const auto elementsPerThread =  Vec<Dim>::ones();
+      const auto elementsPerThread = Vec<Dim>::ones();
       return WorkDiv<Dim1D>(blocksPerGrid, threadsPerBlockOrElementsPerThread, elementsPerThread);
     } else
 #endif  // ALPAKA_SYCL_ONEAPI_GPU

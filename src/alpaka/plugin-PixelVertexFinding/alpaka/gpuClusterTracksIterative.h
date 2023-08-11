@@ -144,8 +144,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                   alpaka::atomicMin(acc, &iv[i], old, alpaka::hierarchy::Blocks{});
                 };
                 ++p;
-               // for (; p < hist.end(be); ++p)
-                  loop(*p);
+                // for (; p < hist.end(be); ++p)
+                loop(*p);
               }
             });  // for k
           }

@@ -216,10 +216,10 @@ namespace cms::alpakatools {
       for_each_element_in_block_strided(acc, size, [&](uint32_t idx) { ind[idx] = ind2[idx]; });
 
     alpaka::syncBlockThreads(acc);
-#endif //SYCL
+#endif  //SYCL
     // now move negative first... (if signed)
     reorder(acc, a, ind, ind2, size);
-#endif //CUDA and HIP
+#endif  //CUDA and HIP
   }
 
   template <typename TAcc,
@@ -257,7 +257,7 @@ namespace cms::alpakatools {
     radixSortImpl<TAcc, I, NS>(acc, (I const*)(a), ind, ind2, size, reorderFloat<TAcc, I>);
 #if defined(__SYCL_DEVICE_ONLY__)
     reorderFloat<TAcc, I>(acc, (I const*)(a), ind, ind2, size);
-#endif 
+#endif
   }
 
   /* Not needed

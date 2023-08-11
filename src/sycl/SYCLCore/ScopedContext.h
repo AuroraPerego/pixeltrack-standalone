@@ -27,7 +27,7 @@ namespace cms {
       public:
         sycl::device device() const { return stream_->get_device(); }
         sycl::queue stream() const { return *stream_; }
-	const std::shared_ptr<sycl::queue>& streamPtr() const { return stream_; }
+        const std::shared_ptr<sycl::queue>& streamPtr() const { return stream_; }
 
       protected:
         // The constructors set the current device, but the device

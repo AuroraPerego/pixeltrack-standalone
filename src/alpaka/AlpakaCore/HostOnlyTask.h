@@ -5,7 +5,7 @@
 #include <memory>
 
 #include <alpaka/alpaka.hpp>
-#    include <alpaka/core/CallbackThread.hpp>
+#include <alpaka/core/CallbackThread.hpp>
 
 namespace alpaka {
 
@@ -66,20 +66,18 @@ namespace alpaka {
     //! The SYCL CPU async queue enqueue trait specialization for "safe tasks"
     template <>
     struct Enqueue<QueueCpuSyclNonBlocking, Task> {
-
       ALPAKA_FN_HOST static auto enqueue(QueueCpuSyclNonBlocking& queue, Task&& task) -> void {
-	alpaka::core::CallbackThread m_callbackThread;
-	queue.getNativeHandle().wait();
-	m_callbackThread.submit(std::forward<Task>(task));
+        alpaka::core::CallbackThread m_callbackThread;
+        queue.getNativeHandle().wait();
+        m_callbackThread.submit(std::forward<Task>(task));
       }
-    };   
-    
+    };
+
     //! The SYCL GPU async queue enqueue trait specialization for "safe tasks"
     template <>
     struct Enqueue<QueueGpuSyclIntelNonBlocking, Task> {
-
       ALPAKA_FN_HOST static auto enqueue(QueueGpuSyclIntelNonBlocking& queue, Task&& task) -> void {
-	alpaka::core::CallbackThread m_callbackThread;
+        alpaka::core::CallbackThread m_callbackThread;
         queue.getNativeHandle().wait();
         m_callbackThread.submit(std::forward<Task>(task));
       }

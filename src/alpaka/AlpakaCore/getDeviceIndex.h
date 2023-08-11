@@ -29,8 +29,12 @@ namespace cms::alpakatools {
 
 #ifdef ALPAKA_ACC_SYCL_ENABLED
   // overload for DevGenericSycl
-  inline int getDeviceIndex(alpaka::DevCpuSycl const& device) { return 0; }  //std::find(platform.syclDevices().begin(), platform.syclDevices().end(), device) - platform.syclDevices().begin(); }  // FIXME_
-  inline int getDeviceIndex(alpaka::DevGpuSyclIntel const& device) { return 0; } //std::find(platform.syclDevices().begin(), platform.syclDevices().end(), device) - platform.syclDevices().begin(); }  // FIXME_
+  inline int getDeviceIndex(alpaka::DevCpuSycl const& device) {
+    return 0;
+  }  //std::find(platform.syclDevices().begin(), platform.syclDevices().end(), device) - platform.syclDevices().begin(); }  // FIXME_
+  inline int getDeviceIndex(alpaka::DevGpuSyclIntel const& device) {
+    return 0;
+  }  //std::find(platform.syclDevices().begin(), platform.syclDevices().end(), device) - platform.syclDevices().begin(); }  // FIXME_
 #endif  // ALPAKA_ACC_SYCL_ENABLED
 
 }  // namespace cms::alpakatools

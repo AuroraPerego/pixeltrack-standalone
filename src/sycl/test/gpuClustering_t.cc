@@ -352,7 +352,6 @@ int main(int argc, char **argv) {
           });
     });
 
-
     std::cout << "found " << nModules << " Modules active" << std::endl;
 
     queue.memcpy(h_id.get(), d_id.get(), size16);

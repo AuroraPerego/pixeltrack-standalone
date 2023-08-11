@@ -10,7 +10,8 @@ namespace cms::sycltools {
 
   namespace impl {
 
-    ScopedContextBase::ScopedContextBase(edm::StreamID streamID) : stream_(getStreamCache().get(chooseDevice(streamID))) {}
+    ScopedContextBase::ScopedContextBase(edm::StreamID streamID)
+        : stream_(getStreamCache().get(chooseDevice(streamID))) {}
 
     ScopedContextBase::ScopedContextBase(ProductBase const &data)
         : stream_(data.mayReuseStream() ? data.streamPtr() : getStreamCache().get(data.device())) {}

@@ -54,7 +54,7 @@ const pixelCPEforGPU::ParamsOnGPU *PixelCPEFast::getGPUProductAsync(sycl::queue 
                   this->m_detParamsGPU.data(),
                   this->m_detParamsGPU.size() * sizeof(pixelCPEforGPU::DetParams));
 #ifdef CPU_DEBUG
-   stream.wait();
+    stream.wait();
 #endif
   });
   return data.d_paramsOnGPU.get();

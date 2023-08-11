@@ -15,15 +15,15 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   namespace BrokenLine {
 
 #if defined(ALPAKA_ACC_SYCL_ENABLED)
-  using sycl::abs;
-  using sycl::atan;
-  using sycl::atan2;
-  using sycl::cos;
-  using sycl::log;
-  using sycl::sin;
-  using sycl::sqrt;
+    using sycl::abs;
+    using sycl::atan;
+    using sycl::atan2;
+    using sycl::cos;
+    using sycl::log;
+    using sycl::sin;
+    using sycl::sqrt;
 #else
-  using std::abs;
+    using std::abs;
 #endif
 
     //!< Karimäki's parameters: (phi, d, k=1/R)
@@ -566,7 +566,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
       // the circle fit gives k, but here we want p_t, so let's change the parameter and the covariance matrix
       jacobian << 1., 0, 0, 0, 1., 0, 0, 0, -abs(circle.par(2)) * B / (Rfit::sqr(circle.par(2)) * circle.par(2));
-      circle.par(2) = B /abs(circle.par(2));
+      circle.par(2) = B / abs(circle.par(2));
       circle.cov = jacobian * circle.cov * jacobian.transpose();
 
       helix.par << circle.par, line.par;

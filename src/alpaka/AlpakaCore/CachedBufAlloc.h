@@ -180,8 +180,7 @@ namespace cms::alpakatools {
         // use a custom deleter to return the buffer to the CachingAllocator
         auto deleter = [alloc = &allocator](TElem* ptr) { alloc->free(ptr); };
 
-        return alpaka::BufCpuSycl<TElem, TDim, TIdx>(
-            dev, reinterpret_cast<TElem*>(memPtr), std::move(deleter), extent);
+        return alpaka::BufCpuSycl<TElem, TDim, TIdx>(dev, reinterpret_cast<TElem*>(memPtr), std::move(deleter), extent);
       }
     };
 
@@ -239,8 +238,6 @@ namespace cms::alpakatools {
     };
 
 #endif  // ALPAKA_SYCL_ONEAPI_GPU
-
-
 
   }  // namespace traits
 

@@ -16,13 +16,14 @@ namespace cms {
     constexpr uint32_t warpSize = 32;
     constexpr uint64_t warpMask = ~(~0ull << warpSize);
 
-#if (defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDA_ARCH__)) || \
+#if (defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDA_ARCH__)) ||         \
     (defined(ALPAKA_ACC_GPU_HIP_ENABLED) && defined(__HIP_DEVICE_COMPILE__)) || \
     (defined(ALPAKA_ACC_SYCL_ENABLED) && defined(__SYCL_DEVICE_ONLY__))
 
     template <typename T>
 #if defined(__SYCL_DEVICE_ONLY__)
-    ALPAKA_FN_ACC ALPAKA_FN_INLINE void warpPrefixScan(uint32_t laneId, T const* ci, T* co, uint32_t i, sycl::ext::oneapi::sub_group mask) {
+    ALPAKA_FN_ACC ALPAKA_FN_INLINE void warpPrefixScan(
+        uint32_t laneId, T const* ci, T* co, uint32_t i, sycl::ext::oneapi::sub_group mask) {
 #else
     ALPAKA_FN_ACC ALPAKA_FN_INLINE void warpPrefixScan(uint32_t laneId, T const* ci, T* co, uint32_t i, uint32_t mask) {
 #endif
@@ -38,7 +39,7 @@ namespace cms {
 #elif defined(__HIP_DEVICE_COMPILE__)
         auto y = __shfl_up(x, offset);
 #elif defined(__SYCL_DEVICE_ONLY__)
-	auto y = sycl::shift_group_right(mask, x, offset);
+      auto y = sycl::shift_group_right(mask, x, offset);
 #endif
         if (laneId >= offset)
           x += y;
@@ -48,11 +49,14 @@ namespace cms {
 
     template <typename T>
 #if defined(__SYCL_DEVICE_ONLY__)
-    ALPAKA_FN_ACC ALPAKA_FN_INLINE void warpPrefixScan(uint32_t laneId, T* c, uint32_t i, sycl::ext::oneapi::sub_group mask) {
+    ALPAKA_FN_ACC ALPAKA_FN_INLINE void warpPrefixScan(uint32_t laneId,
+                                                       T* c,
+                                                       uint32_t i,
+                                                       sycl::ext::oneapi::sub_group mask) {
 #else
     ALPAKA_FN_ACC ALPAKA_FN_INLINE void warpPrefixScan(uint32_t laneId, T* c, uint32_t i, uint32_t mask) {
 #endif
-#if defined(__HIP_DEVICE_COMPILE__) 
+#if defined(__HIP_DEVICE_COMPILE__)
       ALPAKA_ASSERT_OFFLOAD(mask == warpMask);
 #endif
       auto x = c[i];
@@ -63,7 +67,7 @@ namespace cms {
 #elif defined(__HIP_DEVICE_COMPILE__)
         auto y = __shfl_up(x, offset);
 #elif defined(__SYCL_DEVICE_ONLY__)
-	auto y = sycl::shift_group_right(mask, x, offset);
+    auto y = sycl::shift_group_right(mask, x, offset);
 #endif
         if (laneId >= offset)
           x += y;
@@ -77,7 +81,7 @@ namespace cms {
     template <typename TAcc, typename T>
     ALPAKA_FN_ACC ALPAKA_FN_INLINE void blockPrefixScan(
         const TAcc& acc, T const* ci, T* co, uint32_t size, T* ws = nullptr) {
-#if (defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDA_ARCH__)) || \
+#if (defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDA_ARCH__)) ||         \
     (defined(ALPAKA_ACC_GPU_HIP_ENABLED) && defined(__HIP_DEVICE_COMPILE__)) || \
     (defined(ALPAKA_ACC_SYCL_ENABLED) && defined(__SYCL_DEVICE_ONLY__))
       uint32_t const blockDimension(alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u]);
@@ -91,7 +95,7 @@ namespace cms {
 #elif defined(__HIP_DEVICE_COMPILE__)
       auto mask = warpMask;
 #elif defined(__SYCL_DEVICE_ONLY__)
-      auto mask = sycl::ext::oneapi::experimental::this_sub_group();
+  auto mask = sycl::ext::oneapi::experimental::this_sub_group();
 #endif
 
       auto laneId = blockThreadIdx & (warpSize - 1);
@@ -112,7 +116,7 @@ namespace cms {
         return;
       if (blockThreadIdx < warpSize) {
 #if defined(__SYCL_DEVICE_ONLY__)
-	warpPrefixScan(laneId, ws, blockThreadIdx, mask);
+        warpPrefixScan(laneId, ws, blockThreadIdx, mask);
 #else
         warpPrefixScan(laneId, ws, blockThreadIdx, warpMask);
 #endif
@@ -135,7 +139,7 @@ namespace cms {
                                                              T* __restrict__ c,
                                                              uint32_t size,
                                                              T* __restrict__ ws = nullptr) {
-#if (defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDA_ARCH__)) || \
+#if (defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDA_ARCH__)) ||         \
     (defined(ALPAKA_ACC_GPU_HIP_ENABLED) && defined(__HIP_DEVICE_COMPILE__)) || \
     (defined(ALPAKA_ACC_SYCL_ENABLED) && defined(__SYCL_DEVICE_ONLY__))
       uint32_t const blockDimension(alpaka::getWorkDiv<alpaka::Block, alpaka::Threads>(acc)[0u]);
@@ -148,8 +152,8 @@ namespace cms {
       auto mask = __ballot_sync(warpMask, first < size);
 #elif defined(__HIP_DEVICE_COMPILE__)
       auto mask = warpMask;
-#elif defined(__SYCL_DEVICE_ONLY__)  
-      auto mask = sycl::ext::oneapi::experimental::this_sub_group();
+#elif defined(__SYCL_DEVICE_ONLY__)
+  auto mask = sycl::ext::oneapi::experimental::this_sub_group();
 #endif
       auto laneId = blockThreadIdx & (warpSize - 1);
 
@@ -168,7 +172,7 @@ namespace cms {
         return;
       if (blockThreadIdx < warpSize) {
 #if defined(__SYCL_DEVICE_ONLY__)
-	warpPrefixScan(laneId, ws, blockThreadIdx, mask);
+        warpPrefixScan(laneId, ws, blockThreadIdx, mask);
 #else
         warpPrefixScan(laneId, ws, blockThreadIdx, warpMask);
 #endif

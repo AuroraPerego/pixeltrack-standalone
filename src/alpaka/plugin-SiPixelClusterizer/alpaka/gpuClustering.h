@@ -165,7 +165,8 @@ namespace gpuClustering {
       constexpr unsigned int maxiter = 16;
       ALPAKA_ASSERT_OFFLOAD((hist.size() / blockDimension) <= maxiter);
 
-#if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) || defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND) || defined(ALPAKA_SYCL_BACKEND_ONEAPI)
+#if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) || defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND) || \
+    defined(ALPAKA_SYCL_BACKEND_ONEAPI)
       constexpr uint32_t threadDimension = 1;
 #else
       // NB: can be tuned.
@@ -353,10 +354,7 @@ namespace gpuClustering {
 
 }  // namespace gpuClustering
 
-  template<typename TAcc>
-  struct alpaka::trait::WarpSize<gpuClustering::findClus, TAcc>
-    : std::integral_constant<std::uint32_t, 32>
-  {
-  };
+template <typename TAcc>
+struct alpaka::trait::WarpSize<gpuClustering::findClus, TAcc> : std::integral_constant<std::uint32_t, 32> {};
 
 #endif  // plugin_SiPixelClusterizer_alpaka_gpuClustering_h

@@ -188,9 +188,6 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
-template<typename TAcc>
+template <typename TAcc>
 struct alpaka::trait::WarpSize<ALPAKA_ACCELERATOR_NAMESPACE::gpuVertexFinder::vertexFinderOneKernel, TAcc>
-    : std::integral_constant<std::uint32_t, 32>
-{
-};
-
+    : std::integral_constant<std::uint32_t, 32> {};

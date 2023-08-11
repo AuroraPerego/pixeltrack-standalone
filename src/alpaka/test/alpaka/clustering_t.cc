@@ -240,7 +240,8 @@ int main(void) {
     alpaka::memcpy(queue, d_adc, h_adc, n);
 
 // Launch CUDA/HIP Kernels
-#if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) || defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND) || defined(ALPAKA_SYCL_BACKEND_ONEAPI)
+#if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) || defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND) || \
+    defined(ALPAKA_SYCL_BACKEND_ONEAPI)
     const auto threadsPerBlockOrElementsPerThread = (kkk == 5) ? 512 : ((kkk == 3) ? 128 : 256);
 #else
     // NB: can be tuned.
@@ -289,8 +290,7 @@ int main(void) {
 
     std::cout << "before charge cut found "
               << std::accumulate(nclus.data(), nclus.data() + gpuClustering::MaxNumModules, 0) << " clusters"
-	      << ", MaxNumModules is " << gpuClustering::MaxNumModules
-              << std::endl;
+              << ", MaxNumModules is " << gpuClustering::MaxNumModules << std::endl;
     for (auto i = gpuClustering::MaxNumModules; i > 0; i--)
       if (nclus[i - 1] > 0) {
         std::cout << "last module is " << i - 1 << ' ' << nclus[i - 1] << std::endl;

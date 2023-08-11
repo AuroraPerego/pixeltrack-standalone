@@ -33,7 +33,7 @@ namespace alpaka {
   namespace detail {
     struct SyclCpuSelector;
     struct IntelGpuSelector;
-  }
+  }  // namespace detail
 
   // Platforms
   class PlatformCpu;
@@ -42,7 +42,7 @@ namespace alpaka {
   using PlatformCudaRt = PlatformUniformCudaHipRt<ApiCudaRt>;
   using PlatformHipRt = PlatformUniformCudaHipRt<ApiHipRt>;
   template <typename TSelector>
-  class PlatformGenericSycl; 
+  class PlatformGenericSycl;
   using PlatformCpuSycl = PlatformGenericSycl<detail::SyclCpuSelector>;
   using PlatformGpuSyclIntel = PlatformGenericSycl<detail::IntelGpuSelector>;
 
@@ -54,7 +54,7 @@ namespace alpaka {
   using DevHipRt = DevUniformCudaHipRt<ApiHipRt>;
   template <typename TPlatform>
   class DevGenericSycl;
-  using DevCpuSycl= DevGenericSycl<PlatformCpuSycl>;
+  using DevCpuSycl = DevGenericSycl<PlatformCpuSycl>;
   using DevGpuSyclIntel = DevGenericSycl<PlatformGpuSyclIntel>;
 
   // Queues
@@ -89,7 +89,6 @@ namespace alpaka {
   using QueueGpuSyclIntelBlocking = QueueGenericSyclBlocking<DevGpuSyclIntel>;
   using QueueGpuSyclIntelNonBlocking = QueueGenericSyclNonBlocking<DevGpuSyclIntel>;
 
-
   // Events
   template <typename TDev>
   class EventGenericThreads;
@@ -102,7 +101,7 @@ namespace alpaka {
 
   template <typename TDev>
   class EventGenericSycl;
-  using EventCpuSycl= EventGenericSycl<DevCpuSycl>;
+  using EventCpuSycl = EventGenericSycl<DevCpuSycl>;
   using EventGpuSyclIntel = EventGenericSycl<DevGpuSyclIntel>;
 
   // Accelerators

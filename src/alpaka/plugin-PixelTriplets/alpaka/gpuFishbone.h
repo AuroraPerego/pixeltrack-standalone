@@ -102,7 +102,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                 // alligned:  kill farthest  (prefer consecutive layers)
                 if (n[ic] > n[jc]) {
                   ci.theDoubletId = -1;
-                //  break;
+                  //  break;
                 } else {
                   cj.theDoubletId = -1;
                 }

@@ -30,7 +30,7 @@ namespace cms::alpakatools {
   // explicit template instantiation definition
   template void initialise<ALPAKA_ACCELERATOR_NAMESPACE::Platform>();
 
-  template<typename TPlatform>
+  template <typename TPlatform>
   void resetDevices() {
     devices<TPlatform>.clear();
     platform.reset();

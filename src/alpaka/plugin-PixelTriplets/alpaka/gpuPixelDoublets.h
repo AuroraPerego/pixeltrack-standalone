@@ -4,9 +4,9 @@
 #include "gpuPixelDoubletsAlgos.h"
 
 #if ALPAKA_ACC_SYCL_ENABLED
-  #define CONSTANT_VAR constexpr
+#define CONSTANT_VAR constexpr
 #else
-  #define CONSTANT_VAR ALPAKA_STATIC_ACC_MEM_CONSTANT
+#define CONSTANT_VAR ALPAKA_STATIC_ACC_MEM_CONSTANT
 #endif
 
 namespace ALPAKA_ACCELERATOR_NAMESPACE {
@@ -144,11 +144,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   }  // namespace gpuPixelDoublets
 }  // namespace ALPAKA_ACCELERATOR_NAMESPACE
 
-
-    template<typename TAcc>
-    struct alpaka::trait::WarpSize<ALPAKA_ACCELERATOR_NAMESPACE::gpuPixelDoublets::getDoubletsFromHisto, TAcc>
-      : std::integral_constant<std::uint32_t, 32>
-    {
-    };
+template <typename TAcc>
+struct alpaka::trait::WarpSize<ALPAKA_ACCELERATOR_NAMESPACE::gpuPixelDoublets::getDoubletsFromHisto, TAcc>
+    : std::integral_constant<std::uint32_t, 32> {};
 
 #endif  // plugin_PixelTriplets_alpaka_gpuPixelDoublets_h

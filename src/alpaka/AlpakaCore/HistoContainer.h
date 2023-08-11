@@ -143,7 +143,7 @@ namespace cms {
     public:
       using Counter = uint32_t;
 
-      using CountersOnly = HistoContainer<T, NBINS, 1, S, I, NHISTS>; //FIXME_ sycl doesn't allow zero-length arrays
+      using CountersOnly = HistoContainer<T, NBINS, 1, S, I, NHISTS>;  //FIXME_ sycl doesn't allow zero-length arrays
 
       using index_type = I;
       using UT = typename std::make_unsigned<T>::type;
