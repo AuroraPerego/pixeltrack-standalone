@@ -87,8 +87,8 @@ namespace edm {
       assert(raw_.size() == vertices_.size());
     }
 
-    if (runForMinutes_ < 0 and maxEvents_ < 0) {
-      maxEvents_ = raw_.size();
+    if (runForMinutes_ < 0 and maxEvents_ - skipEvents_ < 0) {
+      maxEvents_ = raw_.size() + skipEvents_;
     }
   }
 
