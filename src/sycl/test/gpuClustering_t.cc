@@ -358,6 +358,7 @@ int main(int argc, char **argv) {
     queue.memcpy(h_clus.get(), d_clus.get(), size32);
     queue.memcpy(&nclus, d_clusInModule.get(), MaxNumModules * sizeof(uint32_t));
     queue.memcpy(&moduleId, d_moduleId.get(), nModules * sizeof(uint32_t)).wait();
+    queue.wait_and_throw();
 
     std::set<unsigned int> clids;
     for (int i = 0; i < n; ++i) {
@@ -407,5 +408,6 @@ int main(int argc, char **argv) {
       }
     // << " and " << seeds.size() << " seeds" << std::endl;
   }  /// end loop kkk
+
   return 0;
 }

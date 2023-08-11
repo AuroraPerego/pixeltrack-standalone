@@ -332,6 +332,8 @@ int main(int argc, char** argv) {
       queue.memcpy(ptv2, LOC_ONGPU(ptv2), nv * sizeof(float));
       queue.memcpy(nn, LOC_ONGPU(ndof), nv * sizeof(int32_t));
       queue.memcpy(ind, LOC_ONGPU(sortInd), nv * sizeof(uint16_t));
+      queue.wait_and_throw();
+
       for (auto j = 0U; j < nv; ++j)
         if (nn[j] > 0)
           chi2[j] /= float(nn[j]);

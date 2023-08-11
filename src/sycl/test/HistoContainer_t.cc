@@ -139,6 +139,8 @@ void go(sycl::queue queue) {
         //assert(!l);
       }
     }
+
+    queue.wait_and_throw();
   }
 }
 

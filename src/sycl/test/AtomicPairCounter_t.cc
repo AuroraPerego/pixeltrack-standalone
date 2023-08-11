@@ -82,5 +82,6 @@ int main(int argc, char **argv) {
 
   std::cout << dc.get().n << ' ' << dc.get().m << std::endl;
 
+  queue.wait_and_throw();
   return 0;
 }
