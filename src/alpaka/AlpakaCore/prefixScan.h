@@ -91,7 +91,7 @@ namespace cms {
 #elif defined(__HIP_DEVICE_COMPILE__)
       auto mask = warpMask;
 #elif defined(__SYCL_DEVICE_ONLY__)
-      auto mask = acc.my_item.get_sub_group();
+      auto mask = sycl::ext::oneapi::experimental::this_sub_group();
 #endif
 
       auto laneId = blockThreadIdx & (warpSize - 1);
@@ -149,7 +149,7 @@ namespace cms {
 #elif defined(__HIP_DEVICE_COMPILE__)
       auto mask = warpMask;
 #elif defined(__SYCL_DEVICE_ONLY__)  
-      auto mask = acc.my_item.get_sub_group();
+      auto mask = sycl::ext::oneapi::experimental::this_sub_group();
 #endif
       auto laneId = blockThreadIdx & (warpSize - 1);
 

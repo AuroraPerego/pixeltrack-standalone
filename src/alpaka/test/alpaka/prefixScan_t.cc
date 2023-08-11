@@ -69,7 +69,7 @@ struct testWarpPrefixScan {
     auto laneId = blockThreadIdx & 0x1f;
 
 #if defined(__SYCL_DEVICE_ONLY__)
-    auto mask = acc.my_item.get_sub_group();
+    auto mask = sycl::ext::oneapi::experimental::this_sub_group();
     warpPrefixScan(laneId, c, co, i, mask);
     warpPrefixScan(laneId, c, i, mask);
 #else
