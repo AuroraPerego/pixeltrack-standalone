@@ -1,7 +1,10 @@
 #ifndef AlpakaCore_getDeviceIndex_h
 #define AlpakaCore_getDeviceIndex_h
 
+#include <optional>
+
 #include <alpaka/alpaka.hpp>
+
 #include "AlpakaCore/alpakaConfig.h"
 
 namespace cms::alpakatools {
@@ -30,11 +33,15 @@ namespace cms::alpakatools {
 #ifdef ALPAKA_ACC_SYCL_ENABLED
   // overload for DevGenericSycl
   inline int getDeviceIndex(alpaka::DevCpuSycl const& device) {
+    // FIXME
+    //std::find(platform.syclDevices().begin(), platform.syclDevices().end(), device) - platform.syclDevices().begin(); }
     return 0;
-  }  //std::find(platform.syclDevices().begin(), platform.syclDevices().end(), device) - platform.syclDevices().begin(); }  // FIXME_
+  }
   inline int getDeviceIndex(alpaka::DevGpuSyclIntel const& device) {
+    // FIXME
+    //std::find(platform.syclDevices().begin(), platform.syclDevices().end(), device) - platform.syclDevices().begin(); }
     return 0;
-  }  //std::find(platform.syclDevices().begin(), platform.syclDevices().end(), device) - platform.syclDevices().begin(); }  // FIXME_
+  }
 #endif  // ALPAKA_ACC_SYCL_ENABLED
 
 }  // namespace cms::alpakatools
