@@ -57,8 +57,8 @@ namespace {
         << " --hip               Use ROCm/HIP backend\n"
 #endif
 #ifdef ALPAKA_ACC_SYCL_PRESENT
-        << " --syclcpu            Use SYCL Intel CPU backend\n"
-        << " --syclgpu            Use SYCL Intel GPU backend\n"
+        << " --syclcpu           Use SYCL Intel CPU backend\n"
+        << " --syclgpu           Use SYCL Intel GPU backend\n"
 #endif
         << " --numberOfThreads   Number of threads to use (default 1, use 0 to use all CPU cores)\n"
         << " --numberOfStreams   Number of concurrent events (default 0 = numberOfThreads)\n"
