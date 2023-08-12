@@ -244,8 +244,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
               continue;
 
             auto mop = hh.iphi(oi);
-            uint16_t idphi = static_cast<uint16_t>(abs(static_cast<int16_t>(
-                mep - mop)));  //std::min(std::abs(int16_t(mop - mep)), std::abs(int16_t(mep - mop)));
+            uint16_t idphi =
+                static_cast<uint16_t>(alpaka::math::abs(acc, static_cast<int32_t>(static_cast<int16_t>(mep - mop))));
             if (idphi > iphicut)
               continue;
 
