@@ -9,8 +9,6 @@
 
 namespace cms::alpakatools {
 
-  inline std::optional<ALPAKA_ACCELERATOR_NAMESPACE::Platform> platform;
-
   // generic interface, for DevOacc and DevOmp5
   template <typename Device>
   inline int getDeviceIndex(Device const& device) {
