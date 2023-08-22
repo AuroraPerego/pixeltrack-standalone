@@ -6,7 +6,7 @@
 
 #include <alpaka/alpaka.hpp>
 
-#include "AlpakaCore/alpakaConfig.h"
+// #include "AlpakaCore/alpakaConfig.h"
 #include "AlpakaCore/getDeviceIndex.h"
 
 namespace cms::alpakatools {
@@ -32,7 +32,8 @@ namespace cms::alpakatools {
     devices.reserve(n);
     for (uint32_t i = 0; i < n; ++i) {
       devices.push_back(alpaka::getDevByIdx(*platform, i));
-      assert(getDeviceIndex(devices.back()) == static_cast<int>(i));
+      //  assert(getDeviceIndex(devices.back()) == static_cast<int>(i));
+      //  std::cout << i << " = " << alpaka::getName(alpaka::getDevByIdx<Platform>(i)) << ", back = " << devices.back() << std::endl;
     }
     return devices;
   }

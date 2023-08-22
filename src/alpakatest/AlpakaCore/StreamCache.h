@@ -4,6 +4,8 @@
 #include <memory>
 #include <vector>
 
+//#include "AlpakaCore/alpakaConfig.h"
+//#include "AlpakaCore/getDeviceIndex.h"
 #include "AlpakaCore/alpakaDevices.h"
 #include "Framework/ReusableObjectHolder.h"
 
