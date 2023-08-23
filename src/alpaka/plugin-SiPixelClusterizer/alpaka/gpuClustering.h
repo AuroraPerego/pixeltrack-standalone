@@ -162,12 +162,18 @@ namespace gpuClustering {
       // Real constrainst is maxiter = hist.size() / blockDimension,
       // with blockDimension = threadPerBlock * elementsPerThread.
       // Hence, maxiter can be tuned accordingly to the workdiv.
+#ifdef __SYCL_TARGET_INTEL_X86_64__
+      constexpr unsigned int maxiter = 32;
+#else
       constexpr unsigned int maxiter = 16;
+#endif
       ALPAKA_ASSERT_OFFLOAD((hist.size() / blockDimension) <= maxiter);
 
 #if defined(ALPAKA_ACC_GPU_CUDA_ASYNC_BACKEND) || defined(ALPAKA_ACC_GPU_HIP_ASYNC_BACKEND) || \
-    defined(ALPAKA_SYCL_BACKEND_ONEAPI)
+  defined(ALPAKA_SYCL_ONEAPI_GPU)
       constexpr uint32_t threadDimension = 1;
+#elif defined(__SYCL_TARGET_INTEL_X86_64__)
+      constexpr uint32_t threadDimension = 32;
 #else
       // NB: can be tuned.
       constexpr uint32_t threadDimension = 256;

@@ -154,7 +154,8 @@ ifdef SYCL_USE_INTEL_ONEAPI
   SYCL_CXX      := $(SYCL_BASE)/bin/icpx
 
   # use the oneAPI CPU OpenCL runtime
-  export OCL_ICD_FILENAMES := $(SYCL_BASE)/lib/x64/libintelocl.so
+  export OCL_ICD_FILENAMES := /home/u108035/pixeltrack-standalone/oclcpuexp_2022.14.8.0.04/x64/libintelocl.so
+  # $(SYCL_BASE)/lib/x64/libintelocl.so
 else
   # use clang++
   # latest release: /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/release/2022-12
@@ -175,11 +176,11 @@ ifneq ($(wildcard $(SYCL_BASE)),)
   #JIT_TARGETS      := spir64
   #JIT_FLAGS        :=
   # compile AOT for x86_64 CPUs, targetting the Intel OpenCL runtime
-  #AOT_CPU_TARGETS  := spir64_x86_64        # or x86_64
-  #AOT_CPU_FLAGS    :=
+  AOT_CPU_TARGETS  := spir64_x86_64        # or x86_64
+  AOT_CPU_FLAGS    :=
   # compile AOT for the Intel GPUs identified by the $(OCLOC_IDS) architectures
-  AOT_INTEL_TARGETS := $(foreach ARCH,$(OCLOC_IDS),intel_gpu_$(ARCH))
-  AOT_INTEL_FLAGS   := -Xsycl-target-backend=intel_gpu_pvc '-q -options -ze-intel-enable-auto-large-GRF-mode'
+  #AOT_INTEL_TARGETS := $(foreach ARCH,$(OCLOC_IDS),intel_gpu_$(ARCH))
+  #AOT_INTEL_FLAGS   := -Xsycl-target-backend=intel_gpu_pvc '-q -options -ze-intel-enable-auto-large-GRF-mode'
   # compile AOT for the NVIDIA GPUs identified by the $(CUDA_ARCH) CUDA architectures
   #AOT_CUDA_TARGETS := $(foreach ARCH,$(CUDA_ARCH),nvidia_gpu_sm_$(ARCH))
   #AOT_CUDA_FLAGS   := --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version # -Wno-linker-warnings # -fno-bundle-offload-arch
@@ -240,8 +241,8 @@ ifneq ($(wildcard $(SYCL_BASE)),)
   # alpaka sycl
   export SYCL_BASE
   export ALPAKA_SYCL_CXXFLAGS := -fsycl $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
-  export ALPAKA_SYCL_CPU_FLAGS := -fsycl-targets=spir64_x86_64
-  export ALPAKA_SYCL_GPU_FLAGS := -fsycl-targets=$(foreach ARCH,$(OCLOC_IDS),intel_gpu_$(ARCH)) -Xsycl-target-backend=intel_gpu_pvc '-q -options -ze-intel-enable-auto-large-GRF-mode'
+  export ALPAKA_SYCL_CPU_FLAGS := -fsycl-default-sub-group-size=32 -fsycl-targets=spir64_x86_64
+  export ALPAKA_SYCL_GPU_FLAGS := -fsycl-default-sub-group-size=32 -fsycl-targets=$(foreach ARCH,$(OCLOC_IDS),intel_gpu_$(ARCH)) -Xsycl-target-backend=intel_gpu_pvc '-q -options -ze-intel-enable-auto-large-GRF-mode'
   # add the SYCL paths to the PATH and LD_LIBRARY_PATH
   export PATH := $(SYCL_PATH):$(PATH)
   export LD_LIBRARY_PATH := $(SYCL_LDPATH):$(TBB_LIBDIR):$(LD_LIBRARY_PATH)
@@ -764,7 +765,7 @@ $(HWLOC_BASE):
 external_alpaka: $(ALPAKA_BASE)
 
 $(ALPAKA_BASE):
-	git clone https://github.com/alpaka-group/alpaka.git -b develop $@
+	git clone https://github.com/AuroraPerego/alpaka.git -b shared_memory $@
 	cd $@
 
 # Kokkos

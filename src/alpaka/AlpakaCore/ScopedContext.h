@@ -121,17 +121,11 @@ namespace cms::alpakatools {
 
       template <typename TQueue>
       void enqueueCallback(TQueue& stream) {
-#ifdef ALPAKA_ACC_SYCL_CPU
-        std::packaged_task<void()> task(
-            const_cast<edm::WaitingTaskWithArenaHolder&>(std::move(waitingTaskHolder_)).doneWaiting(nullptr));
-        alpaka::enqueue(stream, std::forward(task));
-#else
         alpaka::enqueue(stream, alpaka::HostOnlyTask([holder = std::move(waitingTaskHolder_)]() {
                           // The functor is required to be const, but the original waitingTaskHolder_
                           // needs to be notified...
                           const_cast<edm::WaitingTaskWithArenaHolder&>(holder).doneWaiting(nullptr);
                         }));
-#endif
       }
 
     private:
