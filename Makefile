@@ -63,7 +63,7 @@ export TEST_DIR := $(BASE_DIR)/test
 
 # System external definitions
 # CUDA
-CUDA_BASE := /usr/local/cuda
+CUDA_BASE := /usr/local/cuda-11.8.0
 ifeq ($(wildcard $(CUDA_BASE)),)
 # CUDA platform not found
 CUDA_BASE :=
@@ -125,7 +125,7 @@ export ROCM_TEST_CXXFLAGS := -DGPU_DEBUG
 endif
 
 # SYCL and Intel oneAPI
-SYCL_USE_INTEL_ONEAPI := true
+#SYCL_USE_INTEL_ONEAPI := true
 
 # Intel GPU ids
 OCLOC_IDS := pvc    # tgllp acm_g10 pvc
@@ -151,7 +151,7 @@ ifdef SYCL_USE_INTEL_ONEAPI
   SYCL_LIBDIR   := $(SYCL_BASE)/lib
   # use ICPX:       $(SYCL_BASE)/bin/icpx
   # use clang++:    $(SYCL_BASE)/bin-llvm/clang++
-  SYCL_CXX      := $(SYCL_BASE)/bin/icpx
+  SYCL_CXX      := $(SYCL_BASE)/bin-llvm/clang++
 
   # use the oneAPI CPU OpenCL runtime
   export OCL_ICD_FILENAMES := $(SYCL_BASE)/lib/x64/libintelocl.so
@@ -159,7 +159,7 @@ else
   # use clang++
   # latest release: /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/release/2022-12
   # latest nightly: /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/nightly/20230708
-  SYCL_BASE     := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/nightly/20230805_160000
+  SYCL_BASE     := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/nightly/20221215
   SYCL_PATH     := $(SYCL_BASE)/bin
   SYCL_LDPATH   := $(SYCL_BASE)/lib:$(SYCL_BASE)/lib64
   SYCL_LIBDIR   := $(SYCL_BASE)/lib
@@ -178,11 +178,12 @@ ifneq ($(wildcard $(SYCL_BASE)),)
   #AOT_CPU_TARGETS  := spir64_x86_64        # or x86_64
   #AOT_CPU_FLAGS    :=
   # compile AOT for the Intel GPUs identified by the $(OCLOC_IDS) architectures
-  AOT_INTEL_TARGETS := $(foreach ARCH,$(OCLOC_IDS),intel_gpu_$(ARCH))
-  AOT_INTEL_FLAGS   := -Xsycl-target-backend=intel_gpu_pvc '-q -options -ze-intel-enable-auto-large-GRF-mode'
+  #AOT_INTEL_TARGETS := $(foreach ARCH,$(OCLOC_IDS),intel_gpu_$(ARCH))
+  #AOT_INTEL_FLAGS   := -Xsycl-target-backend=intel_gpu_pvc '-q -options -ze-intel-enable-auto-large-GRF-mode'
   # compile AOT for the NVIDIA GPUs identified by the $(CUDA_ARCH) CUDA architectures
-  #AOT_CUDA_TARGETS := $(foreach ARCH,$(CUDA_ARCH),nvidia_gpu_sm_$(ARCH))
-  #AOT_CUDA_FLAGS   := --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version # -Wno-linker-warnings # -fno-bundle-offload-arch
+  AOT_CUDA_TARGETS := nvidia_gpu_sm_60
+  # duplicate targets not supported: $(foreach ARCH,$(CUDA_ARCH),nvidia_gpu_sm_$(ARCH))
+  AOT_CUDA_FLAGS   := --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version # -Wno-linker-warnings # -fno-bundle-offload-arch
   # compile AOT for the AMD GPUs identified by the $(ROCM_ARCH) ROCm architectures
   #AOT_ROCM_TARGETS := $(foreach ARCH,$(ROCM_ARCH),amd_gpu_$(ARCH))
   #AOT_ROCM_FLAGS   := --rocm-path=$(ROCM_BASE) # -Wno-linker-warnings
