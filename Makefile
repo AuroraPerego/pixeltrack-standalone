@@ -63,7 +63,7 @@ export TEST_DIR := $(BASE_DIR)/test
 
 # System external definitions
 # CUDA
-CUDA_BASE := /usr/local/cuda
+CUDA_BASE := /usr/local/cuda-12.0.0
 ifeq ($(wildcard $(CUDA_BASE)),)
 # CUDA platform not found
 CUDA_BASE :=
@@ -748,7 +748,7 @@ external_alpaka: $(ALPAKA_BASE)
 
 $(ALPAKA_BASE):
 	git clone https://github.com/alpaka-group/alpaka.git -b develop $@
-	cd $@ && git checkout bb74c9129e8761cb74b9733b034eec62f7c0f600
+	cd $@ && git checkout 2830f3645be9d11ec69cf02e53ebbc2a1e234f17
 
 # Kokkos
 external_kokkos: $(KOKKOS_LIB)
