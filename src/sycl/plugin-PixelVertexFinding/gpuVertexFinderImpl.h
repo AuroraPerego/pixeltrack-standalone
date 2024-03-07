@@ -10,14 +10,6 @@
 // #define VERTEX_DEBUG
 // #define GPU_DEBUG
 
-/* NOTE: SYCL_BUG_
- * in SplitVertices and in GpuSortByPt2 (radixSort) there are any/all_of_group
- * to work on CPU they require a sub_group_size = numberOfThreadsPerBlock
- * set the latter to 32 if you want to run on CPU
- * Note that radixSort will not work in this case (it requires a group size of 256)
- * working on a different sorting if we are on CPU
- */
-
 namespace gpuVertexFinder {
 
   using Hist = cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
@@ -59,30 +51,13 @@ namespace gpuVertexFinder {
 
 // #define THREE_KERNELS
 #ifndef THREE_KERNELS
-  void vertexFinderOneKernelCPU(gpuVertexFinder::ZVertices* pdata,
-                                gpuVertexFinder::WorkSpace* pws,
-                                int minT,       // min number of neighbours to be "seed"
-                                float eps,      // max absolute distance to cluster
-                                float errmax,   // max error to be "seed"
-                                float chi2max,  // max normalized distance to cluster
-                                sycl::nd_item<1> item) {
-    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item);
-    sycl::group_barrier(item.get_group());
-    fitVertices(pdata, pws, 50., item);
-    sycl::group_barrier(item.get_group());
-    splitVertices(pdata, pws, 9.f, item);
-    sycl::group_barrier(item.get_group());
-    fitVertices(pdata, pws, 5000., item);
-    sycl::group_barrier(item.get_group());
-  }
-
-  void vertexFinderOneKernelGPU(gpuVertexFinder::ZVertices* pdata,
-                                gpuVertexFinder::WorkSpace* pws,
-                                int minT,       // min number of neighbours to be "seed"
-                                float eps,      // max absolute distance to cluster
-                                float errmax,   // max error to be "seed"
-                                float chi2max,  // max normalized distance to cluster
-                                sycl::nd_item<1> item) {
+  void vertexFinderOneKernel(gpuVertexFinder::ZVertices* pdata,
+                             gpuVertexFinder::WorkSpace* pws,
+                             int minT,       // min number of neighbours to be "seed"
+                             float eps,      // max absolute distance to cluster
+                             float errmax,   // max error to be "seed"
+                             float chi2max,  // max normalized distance to cluster
+                             sycl::nd_item<1> item) {
     clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item);
     sycl::group_barrier(item.get_group());
     fitVertices(pdata, pws, 50., item);
@@ -154,71 +129,23 @@ namespace gpuVertexFinder {
     if (oneKernel_) {
       // implemented only for density clustesrs
 #ifndef THREE_KERNELS
-      if (isCpu) {
-        numberOfBlocks = 1;
-        blockSize = 32;  // SYCL_BUG_ on GPU every size is ok, on CPU only 32 (i.e. the sub group size) will work
-        stream.submit([&](sycl::handler& cgh) {
-          auto soa_kernel = soa;
-          auto ws_kernel = ws_d.get();
-          auto minT_kernel = minT;
-          auto eps_kernel = eps;
-          auto errmax_kernel = errmax;
-          auto chi2max_kernel = chi2max;
-          cgh.parallel_for<class vertexFinder_one_Kernel_CPU>(
-              sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-              [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
-                vertexFinderOneKernelCPU(
-                    soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);
-              });
-        });
-        stream.submit([&](sycl::handler& cgh) {
-          auto pdata = soa;
-          cgh.single_task([=]() {
-            auto& __restrict__ data = *pdata;
-            float* ptv2 = data.ptv2;
-            uint16_t* sortInd = data.sortInd;
-            uint32_t const& nvFinal = data.nvFinal;
-            bool sorting = true;
-            while (sorting) {
-              sorting = false;
-              for (uint32_t i = 0; i < (nvFinal - 1); i++) {
-                if (ptv2[i] > ptv2[i + 1]) {
-                  // sort ptv2
-                  auto tmp = ptv2[i];
-                  ptv2[i] = ptv2[i + 1];
-                  ptv2[i + 1] = tmp;
-
-                  // sort indexes
-                  auto tmp2 = sortInd[i];
-                  sortInd[i] = sortInd[i + 1];
-                  sortInd[i + 1] = tmp2;
-
-                  //sorting still ongoing
-                  sorting = true;
-                }
-              }
-            }
-          });
-        });
-      } else {
-        numberOfBlocks = 1;
-        blockSize =
-            1024 - 256;  // SYCL_BUG_ on GPU every size is ok, on CPU only 32 (i.e. the sub group size) will work
-        stream.submit([&](sycl::handler& cgh) {
-          auto soa_kernel = soa;
-          auto ws_kernel = ws_d.get();
-          auto minT_kernel = minT;
-          auto eps_kernel = eps;
-          auto errmax_kernel = errmax;
-          auto chi2max_kernel = chi2max;
-          cgh.parallel_for<class vertexFinder_one_Kernel_GPU>(
-              sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
-              [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
-                vertexFinderOneKernelGPU(
-                    soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);
-              });
-        });
-      }
+      numberOfBlocks = 1;
+      blockSize =
+          1024 - 256;
+      stream.submit([&](sycl::handler& cgh) {
+        auto soa_kernel = soa;
+        auto ws_kernel = ws_d.get();
+        auto minT_kernel = minT;
+        auto eps_kernel = eps;
+        auto errmax_kernel = errmax;
+        auto chi2max_kernel = chi2max;
+        cgh.parallel_for<class vertexFinder_one_Kernel_GPU>(
+            sycl::nd_range<1>(numberOfBlocks * sycl::range<1>(blockSize), sycl::range<1>(blockSize)),
+            [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
+              vertexFinderOneKernel(
+                  soa_kernel, ws_kernel, minT_kernel, eps_kernel, errmax_kernel, chi2max_kernel, item);
+            });
+      });
 #ifdef GPU_DEBUG
       stream.wait();
 #endif

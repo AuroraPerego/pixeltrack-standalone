@@ -174,8 +174,7 @@ namespace pixelgpudetails {
                            bool useQualityInfo,
                            bool includeErrors,
                            bool debug,
-                           sycl::queue stream,
-                           bool isCpu);
+                           sycl::queue stream);
 
     std::pair<SiPixelDigisSYCL, SiPixelClustersSYCL> getResults() {
       digis_d.setNModulesDigis(nModules_Clusters_h[0], nDigis);

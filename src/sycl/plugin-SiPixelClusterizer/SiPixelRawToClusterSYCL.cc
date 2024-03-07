@@ -47,7 +47,6 @@ private:
   const bool isRun2_;
   const bool includeErrors_;
   const bool useQuality_;
-  std::optional<bool> isCpu_;
 };
 
 SiPixelRawToClusterSYCL::SiPixelRawToClusterSYCL(edm::ProductRegistry& reg)
@@ -68,9 +67,6 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
                                       const edm::EventSetup& iSetup,
                                       edm::WaitingTaskWithArenaHolder waitingTaskHolder) {
   cms::sycltools::ScopedContextAcquire ctx{iEvent.streamID(), std::move(waitingTaskHolder), ctxState_};
-
-  if (!isCpu_)
-    isCpu_ = ctx.stream().get_device().is_cpu();
 
   auto const& hgpuMap = iSetup.get<SiPixelFedCablingMapGPUWrapper>();
   if (hgpuMap.hasQuality() != useQuality_) {
@@ -162,8 +158,7 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
                              useQuality_,
                              includeErrors_,
                              false,  // debug
-                             ctx.stream(),
-                             *isCpu_);
+                             ctx.stream());
 }
 
 void SiPixelRawToClusterSYCL::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
