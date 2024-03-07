@@ -128,7 +128,7 @@ endif
 SYCL_USE_INTEL_ONEAPI := true
 
 # Intel GPU ids
-OCLOC_IDS := tgllp acm_g10 pvc
+OCLOC_IDS := pvc
 
 ifdef SYCL_USE_INTEL_ONEAPI
   ONEAPI_BASE := /opt/intel/oneapi
@@ -148,7 +148,7 @@ ifdef SYCL_USE_INTEL_ONEAPI
   SYCL_LIBDIR   := $(SYCL_BASE)/lib
   # use ICPX:       $(SYCL_BASE)/bin/icpx
   # use clang++:    $(SYCL_BASE)/bin-llvm/clang++
-  SYCL_CXX      := $(SYCL_BASE)/bin/icpx
+  SYCL_CXX      := $(SYCL_BASE)/bin/icpx -DGPU_DEBUG
 
   # use the oneAPI CPU OpenCL runtime
   export OCL_ICD_FILENAMES := $(SYCL_BASE)/lib/libintelocl.so
@@ -176,7 +176,7 @@ ifneq ($(wildcard $(SYCL_BASE)),)
   AOT_CPU_FLAGS    :=
   # compile AOT for the Intel GPUs identified by the $(OCLOC_IDS) architectures
   AOT_INTEL_TARGETS := $(foreach ARCH,$(OCLOC_IDS),intel_gpu_$(ARCH))
-  AOT_INTEL_FLAGS   := -Xsycl-target-backend=spir64_gen '-q -options -ze-intel-enable-auto-large-GRF-mode'
+  #AOT_INTEL_FLAGS   := -Xsycl-target-backend=spir64_gen '-q -options -ze-intel-enable-auto-large-GRF-mode'
   # compile AOT for the NVIDIA GPUs identified by the $(CUDA_ARCH) CUDA architectures
   #AOT_CUDA_TARGETS := $(foreach ARCH,$(CUDA_ARCH),nvidia_gpu_sm_$(ARCH))
   # currently supports a single CUDA arch, use the lowest architecture for forward compatibility
@@ -185,8 +185,8 @@ ifneq ($(wildcard $(SYCL_BASE)),)
   # compile AOT for the AMD GPUs identified by the $(ROCM_ARCH) ROCm architectures
   #AOT_ROCM_TARGETS := $(foreach ARCH,$(ROCM_ARCH),amd_gpu_$(ARCH))
   # currently supports a single ROCm arch
-  AOT_ROCM_TARGETS := amd_gpu_$(firstword $(ROCM_ARCH))
-  AOT_ROCM_FLAGS   := --rocm-path=$(ROCM_BASE)
+  #AOT_ROCM_TARGETS := amd_gpu_$(firstword $(ROCM_ARCH))
+  #AOT_ROCM_FLAGS   := --rocm-path=$(ROCM_BASE)
 
   # compile JIT and AOT for all the targets
   SYCL_TARGETS      := $(subst $(SPACE),$(COMMA),$(strip $(JIT_TARGETS) $(AOT_CPU_TARGETS) $(AOT_INTEL_TARGETS) $(AOT_CUDA_TARGETS) $(AOT_ROCM_TARGETS)))
@@ -268,8 +268,9 @@ DATA_TAR_GZ := $(DATA_BASE)/data.tar.gz
 
 # External definitions
 EXTERNAL_BASE := $(BASE_DIR)/external
+EXTERNAL_BASE2 := /data/user/fwyzard/pixeltrack-standalone/external
 
-HWLOC_BASE := $(EXTERNAL_BASE)/hwloc
+HWLOC_BASE := $(EXTERNAL_BASE2)/hwloc
 export HWLOC_DEPS := $(HWLOC_BASE)
 HWLOC_CXXFLAGS := -isystem $(HWLOC_BASE)/include
 HWLOC_LDFLAGS := -L$(HWLOC_BASE)/lib -lhwloc
@@ -320,7 +321,7 @@ else
 NEED_BOOST := $(shell awk '/.define *BOOST_VERSION\>/ { if ($$3 < $(BOOST_MIN_VERSION)) print "true"; else print "false"; }' $(BOOST_BASE)/include/boost/version.hpp )
 endif
 ifeq ($(NEED_BOOST),true)
-BOOST_BASE := $(EXTERNAL_BASE)/boost
+BOOST_BASE := $(EXTERNAL_BASE2)/boost
 endif
 export BOOST_DEPS := $(BOOST_BASE)
 export BOOST_CXXFLAGS := -isystem $(BOOST_BASE)/include
@@ -328,7 +329,7 @@ export BOOST_LDFLAGS := -L$(BOOST_BASE)/lib
 export BOOST_NVCC_CXXFLAGS :=
 export BOOST_SYCL_CXXFLAGS :=
 
-BACKTRACE_BASE := $(EXTERNAL_BASE)/libbacktrace
+BACKTRACE_BASE := $(EXTERNAL_BASE2)/libbacktrace
 export BACKTRACE_DEPS := $(BACKTRACE_BASE)
 export BACKTRACE_CXXFLAGS := -isystem $(BACKTRACE_BASE)/include
 export BACKTRACE_LDFLAGS := -L$(BACKTRACE_BASE)/lib -lbacktrace
