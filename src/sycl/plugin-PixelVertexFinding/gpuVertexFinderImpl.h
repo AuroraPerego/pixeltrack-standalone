@@ -130,8 +130,7 @@ namespace gpuVertexFinder {
       // implemented only for density clustesrs
 #ifndef THREE_KERNELS
       numberOfBlocks = 1;
-      blockSize =
-          1024 - 256;
+      blockSize = 512;
       stream.submit([&](sycl::handler& cgh) {
         auto soa_kernel = soa;
         auto ws_kernel = ws_d.get();

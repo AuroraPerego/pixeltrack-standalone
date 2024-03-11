@@ -15,6 +15,27 @@
 
 namespace cms {
   namespace sycltools {
+    namespace sycl_std {
+
+      template <typename RandomIt, typename T, typename Compare = std::less<T>>
+      constexpr RandomIt upper_bound(RandomIt first, RandomIt last, const T &value, Compare comp = {}) {
+        auto count = last - first;
+
+        while (count > 0) {
+          auto it = first;
+          auto step = count / 2;
+          it += step;
+          if (!comp(value, *it)) {
+            first = ++it;
+            count -= step + 1;
+          } else {
+            count = step;
+          }
+        }
+        return first;
+      }
+
+    }  // namespace sycl_std
 
     template <typename Histo, typename T>
     void countFromVector(Histo *__restrict__ h,
@@ -24,7 +45,7 @@ namespace cms {
                          sycl::nd_item<1> item) {
       int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
       for (int i = first, nt = offsets[nh]; i < nt; i += item.get_group_range(0) * item.get_local_range(0)) {
-        auto off = std::upper_bound(offsets, offsets + nh + 1, i);
+        auto off = sycl_std::upper_bound(offsets, offsets + nh + 1, i);
         assert((*off) > 0);
         int32_t ih = off - offsets - 1;
         assert(ih >= 0);
@@ -41,7 +62,7 @@ namespace cms {
                         sycl::nd_item<1> item) {
       int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
       for (int i = first, nt = offsets[nh]; i < nt; i += item.get_group_range(0) * item.get_local_range(0)) {
-        auto off = std::upper_bound(offsets, offsets + nh + 1, i);
+        auto off = sycl_std::upper_bound(offsets, offsets + nh + 1, i);
         assert((*off) > 0);
         int32_t ih = off - offsets - 1;
         assert(ih >= 0);

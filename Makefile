@@ -147,7 +147,7 @@ ifdef SYCL_USE_INTEL_ONEAPI
   SYCL_LDPATH   := $(SYCL_BASE)/lib:$(SYCL_BASE)/opt/compiler/lib
   SYCL_LIBDIR   := $(SYCL_BASE)/lib
   # use ICPX:       $(SYCL_BASE)/bin/icpx
-  # use clang++:    $(SYCL_BASE)/bin-llvm/clang++
+  # use clang++:    $(SYCL_BASE)/bin/compiler/clang++
   SYCL_CXX      := $(SYCL_BASE)/bin/icpx
 
   # use the oneAPI CPU OpenCL runtime

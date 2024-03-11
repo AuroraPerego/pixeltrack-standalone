@@ -8,30 +8,24 @@
 
 template <typename T>
 void __attribute__((always_inline))
-warpPrefixScan(T const* __restrict__ ci, T* __restrict__ co, uint32_t i, sycl::nd_item<1> item) {
+warpPrefixScan(uint32_t laneId, T const* __restrict__ ci, T* __restrict__ co, uint32_t i, sycl::nd_item<1> item, bool active = true) {
   // ci and co may be the same
-  auto x = ci[i];
-  int laneId = item.get_local_id(0) & 0x1f;
+  T x = active ? ci[i] : 0;
+  // int laneId = item.get_local_id(0) & 0x1f;
+  int size = static_cast<int>(item.get_sub_group().get_max_local_range()[0]);
 #pragma unroll
-  for (int offset = 1; offset < 32; offset <<= 1) {
+  for (int offset = 1; offset < size; offset <<= 1) {
     auto y = sycl::shift_group_right(item.get_sub_group(), x, offset);
-    if (laneId >= offset)
+    if (static_cast<int32_t>(laneId) >= offset)
       x += y;
   }
-  co[i] = x;
+  if (active)
+    co[i] = x;
 }
 
 template <typename T>
-void __attribute__((always_inline)) warpPrefixScan(T* c, uint32_t i, sycl::nd_item<1> item) {
-  auto x = c[i];
-  int laneId = item.get_local_id(0) & 0x1f;
-#pragma unroll
-  for (int offset = 1; offset < 32; offset <<= 1) {
-    auto y = sycl::shift_group_right(item.get_sub_group(), x, offset);
-    if (laneId >= offset)
-      x += y;
-  }
-  c[i] = x;
+void __attribute__((always_inline)) warpPrefixScan(uint32_t laneId, T* c, uint32_t i, sycl::nd_item<1> item, bool active = true) {
+	warpPrefixScan(laneId, c, c, i, item, active);
 }
 
 namespace cms {
@@ -41,41 +35,33 @@ namespace cms {
     template <typename VT, typename T>
     __attribute__((always_inline)) void blockPrefixScan(
         VT const* ci, VT* co, uint32_t size, sycl::nd_item<1> item, T* ws) {
+	  uint32_t warpSize = static_cast<uint32_t>(item.get_sub_group().get_max_local_range()[0]);
       auto first = item.get_local_id(0);
+      auto laneId = item.get_local_id(0) & (warpSize - 1);
+	  auto warpUpRoundedSize = (size + warpSize - 1) / warpSize * warpSize;
 
-      //__ballot_sync in CUDA
-      // size_t id = item.get_sub_group().get_local_linear_id();
-      // uint32_t local_val = (first < size ? 1u : 0u) << id;
-      // auto mask = sycl::reduce_over_group(item.get_sub_group(), local_val, sycl::plus<>());
-      //end of __ballot_sync equivalent
-
-      for (auto i = first; i < size; i += item.get_local_range(0)) {
-        warpPrefixScan(ci, co, i, item);
-        int laneId = item.get_local_id(0) & 0x1f;
-        auto warpId = i / 32;
-        if (31 == laneId)
-          ws[warpId] = co[i];
-
-        //__ballot_sync in CUDA
-        // size_t id2 = item.get_sub_group().get_local_linear_id();
-        // uint32_t local_val2 = ((i + item.get_local_range(0)) < size ? 1u : 0u) << id2;
-        // mask = sycl::reduce_over_group(item.get_sub_group(), local_val2, sycl::plus<>());
-        //end of __ballot_sync equivalent
+      for (auto i = first; i < warpUpRoundedSize; i += item.get_local_range(0)) {
+        warpPrefixScan(laneId, ci, co, i, item, i < size);
+        if (i < size) {
+          // Skipped in warp padding threads.
+          auto warpId = i / warpSize;
+          if ((warpSize - 1) == laneId)
+            ws[warpId] = co[i];
+        }
       }
       // item.barrier(sycl::access::fence_space::local_space);
       sycl::group_barrier(item.get_group());
 
-      if (size <= 32)
+      if (size <= warpSize)
         return;
 
-      if (item.get_local_id(0) < 32)
-        warpPrefixScan(ws, item.get_local_id(0), item);
+      warpPrefixScan(laneId, ws, item.get_local_id(0), item, item.get_local_id(0) < warpSize);
 
       // item.barrier(sycl::access::fence_space::local_space);
       sycl::group_barrier(item.get_group());
 
-      for (auto i = first + 32; i < size; i += item.get_local_range(0)) {
-        auto warpId = i / 32;
+      for (auto i = first + warpSize; i < size; i += item.get_local_range(0)) {
+        auto warpId = i / warpSize;
         co[i] += ws[warpId - 1];
       }
 
@@ -87,36 +73,27 @@ namespace cms {
     // limited to 32*32 elements....
     template <typename T>
     __attribute__((always_inline)) void blockPrefixScan(T* c, uint32_t size, sycl::nd_item<1> item, T* ws) {
+	  uint32_t warpSize = static_cast<uint32_t>(item.get_sub_group().get_max_local_range()[0]);
       auto first = item.get_local_id(0);
+      auto laneId = item.get_local_id(0) & (warpSize - 1);
+	  auto warpUpRoundedSize = (size + warpSize - 1) / warpSize * warpSize;
 
-      //__ballot_sync in CUDA
-      // size_t id = item.get_sub_group().get_local_linear_id();
-      // uint32_t local_val = (first < size ? 1u : 0u) << id;
-      // auto mask = sycl::reduce_over_group(item.get_sub_group(), local_val, sycl::plus<>());
-      //end of __ballot_sync equivalent
-
-      for (auto i = first; i < size; i += item.get_local_range(0)) {
-        warpPrefixScan(c, i, item);
-        int laneId = item.get_local_id(0) & 0x1f;
-        auto warpId = i / 32;
-        assert(warpId < 32);
-        if (31 == laneId)
-          ws[warpId] = c[i];
-
-        //__ballot_sync in CUDA
-        // size_t id2 = item.get_sub_group().get_local_linear_id();
-        // uint32_t local_val2 = ((i + item.get_local_range(0)) < size ? 1u : 0u) << id2;
-        // mask = sycl::reduce_over_group(item.get_sub_group(), local_val2, sycl::plus<>());
-        //end of __ballot_sync equivalent
+      for (auto i = first; i < warpUpRoundedSize; i += item.get_local_range(0)) {
+        warpPrefixScan(laneId, c, i, item, i < size);
+        if (i < size) {
+          // Skipped in warp padding threads.
+          auto warpId = i / warpSize;
+          if ((warpSize - 1) == laneId)
+            ws[warpId] = c[i];
+        }
       }
       // item.barrier(sycl::access::fence_space::local_space);
       sycl::group_barrier(item.get_group());
 
-      if (size <= 32)
+      if (size <= warpSize)
         return;
 
-      if (item.get_local_id(0) < 32)
-        warpPrefixScan(ws, item.get_local_id(0), item);
+      warpPrefixScan(laneId, ws, item.get_local_id(0), item, item.get_local_id(0) < warpSize);
 
       // item.barrier(sycl::access::fence_space::local_space);
       sycl::group_barrier(item.get_group());
