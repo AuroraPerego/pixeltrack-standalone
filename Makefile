@@ -172,21 +172,21 @@ ifneq ($(wildcard $(SYCL_BASE)),)
   #JIT_TARGETS      := spir64
   #JIT_FLAGS        :=
   # compile AOT for x86_64 CPUs, targetting the Intel OpenCL runtime
-  AOT_CPU_TARGETS  := spir64_x86_64
-  AOT_CPU_FLAGS    :=
+  # AOT_CPU_TARGETS  := spir64_x86_64
+  # AOT_CPU_FLAGS    :=
   # compile AOT for the Intel GPUs identified by the $(OCLOC_IDS) architectures
-  AOT_INTEL_TARGETS := $(foreach ARCH,$(OCLOC_IDS),intel_gpu_$(ARCH))
+  #AOT_INTEL_TARGETS := $(foreach ARCH,$(OCLOC_IDS),intel_gpu_$(ARCH))
   #AOT_INTEL_FLAGS   := -Xsycl-target-backend=spir64_gen '-q -options -ze-intel-enable-auto-large-GRF-mode'
   # compile AOT for the NVIDIA GPUs identified by the $(CUDA_ARCH) CUDA architectures
   #AOT_CUDA_TARGETS := $(foreach ARCH,$(CUDA_ARCH),nvidia_gpu_sm_$(ARCH))
   # currently supports a single CUDA arch, use the lowest architecture for forward compatibility
-  AOT_CUDA_TARGETS := nvidia_gpu_sm_$(firstword $(CUDA_ARCH))
-  AOT_CUDA_FLAGS   := --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version
+  #AOT_CUDA_TARGETS := nvidia_gpu_sm_$(firstword $(CUDA_ARCH))
+  #AOT_CUDA_FLAGS   := --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version
   # compile AOT for the AMD GPUs identified by the $(ROCM_ARCH) ROCm architectures
   #AOT_ROCM_TARGETS := $(foreach ARCH,$(ROCM_ARCH),amd_gpu_$(ARCH))
   # currently supports a single ROCm arch
-  #AOT_ROCM_TARGETS := amd_gpu_$(firstword $(ROCM_ARCH))
-  #AOT_ROCM_FLAGS   := --rocm-path=$(ROCM_BASE)
+  AOT_ROCM_TARGETS := amd_gpu_$(firstword $(ROCM_ARCH))
+  AOT_ROCM_FLAGS   := --rocm-path=$(ROCM_BASE)
 
   # compile JIT and AOT for all the targets
   SYCL_TARGETS      := $(subst $(SPACE),$(COMMA),$(strip $(JIT_TARGETS) $(AOT_CPU_TARGETS) $(AOT_INTEL_TARGETS) $(AOT_CUDA_TARGETS) $(AOT_ROCM_TARGETS)))
