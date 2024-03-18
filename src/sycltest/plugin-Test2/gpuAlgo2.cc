@@ -7,6 +7,8 @@
 #include "SYCLCore/host_unique_ptr.h"
 #include "gpuAlgo2.h"
 
+#define SYCL_EXTERNAL
+
 namespace gpu_algo_2 {
   constexpr int NUM_VALUES = 1000;
 
