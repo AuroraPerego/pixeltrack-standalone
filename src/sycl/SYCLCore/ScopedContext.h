@@ -167,7 +167,8 @@ namespace cms {
           : ScopedContextGetterBase(std::move(stream)), event_{event} {}
 
       // the barrier should be a no-op on an ordered queue, but is used to initialise the event on the data stream
-      sycl::event event_ = stream().ext_oneapi_submit_barrier();
+	  // FIXME_EVENT
+      sycl::event event_ = sycl::event{}; // stream().submit_barrier();
     };
 
     /**

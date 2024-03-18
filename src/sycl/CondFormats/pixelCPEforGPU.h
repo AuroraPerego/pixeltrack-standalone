@@ -13,7 +13,8 @@
 
 namespace pixelCPEforGPU {
 
-  using sycl::abs;
+  //FIXME_ABS
+  using std::abs;
   using Frame = SOAFrame<float>;
   using Rotation = SOARotation<float>;
 
