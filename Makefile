@@ -124,47 +124,21 @@ export ROCM_LDFLAGS := -L$(ROCM_LIBDIR) -lamdhip64 -lhsa-runtime64
 export ROCM_TEST_CXXFLAGS := -DGPU_DEBUG
 endif
 
-# SYCL and Intel oneAPI
-SYCL_USE_INTEL_ONEAPI := true
-
 # Intel GPU ids
 OCLOC_IDS := pvc
 
-ifdef SYCL_USE_INTEL_ONEAPI
-  ONEAPI_BASE := /opt/intel/oneapi
+ONEAPI_BASE := /opt/intel/oneapi
 
-  ifeq ($(wildcard $(ONEAPI_BASE)),)
-    $(warning Cannot find an Intel oneAPI installation at $(ONEAPI_BASE))
-  endif
-
-  # Intel oneTBB
-  TBB_BASE      := $(ONEAPI_BASE)/tbb/latest
-  TBB_LIBDIR    := $(TBB_BASE)/lib
-
-  # use Intel oneAPI DPC++/C++ Compiler
-  SYCL_BASE     := $(ONEAPI_BASE)/compiler/latest
-  SYCL_PATH     := $(SYCL_BASE)/bin:$(SYCL_BASE)/bin/compiler
-  SYCL_LDPATH   := $(SYCL_BASE)/lib:$(SYCL_BASE)/opt/compiler/lib
-  SYCL_LIBDIR   := $(SYCL_BASE)/lib
-  # use ICPX:       $(SYCL_BASE)/bin/icpx
-  # use clang++:    $(SYCL_BASE)/bin-llvm/clang++
-  SYCL_CXX      := $(SYCL_BASE)/bin/icpx -DGPU_DEBUG
-
-  # use the oneAPI CPU OpenCL runtime
-  export OCL_ICD_FILENAMES := $(SYCL_BASE)/lib/libintelocl.so
-else
-  # use clang++
-  # latest release: /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/release/2022-12
-  # latest nightly: /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/nightly/20230708
-  SYCL_BASE     := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/nightly/20230805_160000
-  SYCL_PATH     := $(SYCL_BASE)/bin
-  SYCL_LDPATH   := $(SYCL_BASE)/lib:$(SYCL_BASE)/lib64
-  SYCL_LIBDIR   := $(SYCL_BASE)/lib
-  SYCL_CXX      := $(SYCL_BASE)/bin/clang++
-
-  # use the latest CPU OpenCL runtime (2023.16.6.0.28)
-  export OCL_ICD_FILENAMES := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/runtime/intel/oclcpuexp_2023.16.6.0.28/x64/libintelocl.so
+ifeq ($(wildcard $(ONEAPI_BASE)),)
+  $(warning Cannot find an Intel oneAPI installation at $(ONEAPI_BASE))
 endif
+
+# use Intel oneAPI DPC++/C++ Compiler
+SYCL_BASE     := /data/user/aperego/AdaptiveCpp/build
+SYCL_PATH     := $(SYCL_BASE)/bin
+SYCL_LDPATH   := $(SYCL_BASE)/lib
+SYCL_LIBDIR   := $(SYCL_BASE)/lib
+SYCL_CXX      := $(SYCL_BASE)/bin/acpp --gcc-install-dir=/cvmfs/cms.cern.ch/el9_amd64_gcc11/external/gcc/11.4.1-30ebdc301ebd200f2ae0e3d880258e65/lib/gcc/x86_64-redhat-linux-gnu/11.4.1
 
 ifneq ($(wildcard $(SYCL_BASE)),)
   # SYCL targets
@@ -172,16 +146,16 @@ ifneq ($(wildcard $(SYCL_BASE)),)
   #JIT_TARGETS      := spir64
   #JIT_FLAGS        :=
   # compile AOT for x86_64 CPUs, targetting the Intel OpenCL runtime
-  AOT_CPU_TARGETS  := spir64_x86_64
-  AOT_CPU_FLAGS    :=
+  #AOT_CPU_TARGETS  := spir64_x86_64
+  #AOT_CPU_FLAGS    :=
   # compile AOT for the Intel GPUs identified by the $(OCLOC_IDS) architectures
-  AOT_INTEL_TARGETS := $(foreach ARCH,$(OCLOC_IDS),intel_gpu_$(ARCH))
+  #AOT_INTEL_TARGETS := $(foreach ARCH,$(OCLOC_IDS),intel_gpu_$(ARCH))
   #AOT_INTEL_FLAGS   := -Xsycl-target-backend=spir64_gen '-q -options -ze-intel-enable-auto-large-GRF-mode'
   # compile AOT for the NVIDIA GPUs identified by the $(CUDA_ARCH) CUDA architectures
   #AOT_CUDA_TARGETS := $(foreach ARCH,$(CUDA_ARCH),nvidia_gpu_sm_$(ARCH))
   # currently supports a single CUDA arch, use the lowest architecture for forward compatibility
-  AOT_CUDA_TARGETS := nvidia_gpu_sm_$(firstword $(CUDA_ARCH))
-  AOT_CUDA_FLAGS   := --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version
+  #AOT_CUDA_TARGETS := nvidia_gpu_sm_$(firstword $(CUDA_ARCH))
+  #AOT_CUDA_FLAGS   := --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version
   # compile AOT for the AMD GPUs identified by the $(ROCM_ARCH) ROCm architectures
   #AOT_ROCM_TARGETS := $(foreach ARCH,$(ROCM_ARCH),amd_gpu_$(ARCH))
   # currently supports a single ROCm arch
@@ -189,9 +163,10 @@ ifneq ($(wildcard $(SYCL_BASE)),)
   #AOT_ROCM_FLAGS   := --rocm-path=$(ROCM_BASE)
 
   # compile JIT and AOT for all the targets
-  SYCL_TARGETS      := $(subst $(SPACE),$(COMMA),$(strip $(JIT_TARGETS) $(AOT_CPU_TARGETS) $(AOT_INTEL_TARGETS) $(AOT_CUDA_TARGETS) $(AOT_ROCM_TARGETS)))
-  SYCL_FLAGS        := -fsycl -fsycl-targets=$(SYCL_TARGETS) -Xclang -opaque-pointers
-  SYCL_LDFLAGS      := -fsycl-fp32-prec-sqrt -flink-huge-device-code $(JIT_FLAGS) $(AOT_CPU_FLAGS) $(AOT_INTEL_FLAGS) $(AOT_CUDA_FLAGS) $(AOT_ROCM_FLAGS)
+  #SYCL_TARGETS      := $(subst $(SPACE),$(COMMA),$(strip $(JIT_TARGETS) $(AOT_CPU_TARGETS) $(AOT_INTEL_TARGETS) $(AOT_CUDA_TARGETS) $(AOT_ROCM_TARGETS)))
+  SYCL_FLAGS        := --acpp-targets=cuda:sm_70 -Wno-unknown-cuda-version
+  #-fsycl -fsycl-targets=$(SYCL_TARGETS) -Xclang -opaque-pointers
+  #SYCL_LDFLAGS      := -fsycl-fp32-prec-sqrt -flink-huge-device-code $(JIT_FLAGS) $(AOT_CPU_FLAGS) $(AOT_INTEL_FLAGS) $(AOT_CUDA_FLAGS) $(AOT_ROCM_FLAGS)
 
   # other SYCL options
   #  -fsycl-device-code-split=per_kernel
@@ -594,6 +569,7 @@ ifneq ($(SYCL_BASE),)
 	@# see https://github.com/intel/compute-runtime/blob/master/opencl/doc/FAQ.md#feature-double-precision-emulation-fp64
 	@echo 'export IGC_EnableDPEmulation=1'                                  >> $@
 	@echo 'export OverrideDefaultFP64Settings=1'                            >> $@
+	@echo 'source /cvmfs/cms.cern.ch/el9_amd64_gcc11/external/llvm/16.0.3-d5387186335b0dd85e1c294a1fd64dd0/etc/profile.d/init.sh' >> $@
 endif
 
 define TARGET_template
