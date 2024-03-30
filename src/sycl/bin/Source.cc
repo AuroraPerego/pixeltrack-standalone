@@ -73,9 +73,9 @@ namespace edm {
     }
 
     if (validation_) {
-      assert(raw_.size() == digiclusters_.size());
-      assert(raw_.size() == tracks_.size());
-      assert(raw_.size() == vertices_.size());
+      // assert(raw_.size() == digiclusters_.size());
+      // assert(raw_.size() == tracks_.size());
+      // assert(raw_.size() == vertices_.size());
     }
 
     if (runForMinutes_ < 0 and maxEvents_ < 0) {

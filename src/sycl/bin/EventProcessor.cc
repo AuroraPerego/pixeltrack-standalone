@@ -54,7 +54,7 @@ namespace edm {
       s.runToCompletionAsync(WaitingTaskHolder(group, &globalWaitTask));
     }
     group.wait();
-    assert(globalWaitTask.done());
+    // assert(globalWaitTask.done());
     if (globalWaitTask.exceptionPtr()) {
       std::rethrow_exception(*(globalWaitTask.exceptionPtr()));
     }

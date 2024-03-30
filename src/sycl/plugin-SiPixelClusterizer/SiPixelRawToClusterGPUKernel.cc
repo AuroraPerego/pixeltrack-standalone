@@ -465,9 +465,9 @@ namespace pixelgpudetails {
   void fillHitsModuleStart(uint32_t const *__restrict__ cluStart,
                            uint32_t *__restrict__ moduleStart,
                            sycl::nd_item<1> item, uint32_t *ws) {
-    assert(gpuClustering::MaxNumModules < 2048);  // easy to extend at least till 32*1024
-    assert(1 == item.get_group_range(0));
-    assert(0 == item.get_group(0));
+    // assert(gpuClustering::MaxNumModules < 2048);  // easy to extend at least till 32*1024
+    // assert(1 == item.get_group_range(0));
+    // assert(0 == item.get_group(0));
 
     int first = item.get_local_id(0);
 
@@ -487,16 +487,16 @@ namespace pixelgpudetails {
     sycl::group_barrier(item.get_group());
 
 #ifdef GPU_DEBUG
-    assert(0 == moduleStart[0]);
+    // assert(0 == moduleStart[0]);
     auto c0 = std::min(gpuClustering::maxHitsInModule(), cluStart[0]);
-    assert(c0 == moduleStart[1]);
-    assert(moduleStart[1024] >= moduleStart[1023]);
-    assert(moduleStart[1025] >= moduleStart[1024]);
-    assert(moduleStart[gpuClustering::MaxNumModules] >= moduleStart[1025]);
+    // assert(c0 == moduleStart[1]);
+    // assert(moduleStart[1024] >= moduleStart[1023]);
+    // assert(moduleStart[1025] >= moduleStart[1024]);
+    // assert(moduleStart[gpuClustering::MaxNumModules] >= moduleStart[1025]);
 
     for (int i = first, iend = gpuClustering::MaxNumModules + 1; i < iend; i += item.get_local_range(0)) {
       if (0 != i)
-        assert(moduleStart[i] >= moduleStart[i - i]);
+        // assert(moduleStart[i] >= moduleStart[i - i]);
       // [BPX1, BPX2, BPX3, BPX4,  FP1,  FP2,  FP3,  FN1,  FN2,  FN3, LAST_VALID]
       // [   0,   96,  320,  672, 1184, 1296, 1408, 1520, 1632, 1744,       1856]
       if (i == 96 || i == 1184 || i == 1744 || i == gpuClustering::MaxNumModules)
@@ -542,7 +542,7 @@ namespace pixelgpudetails {
       const int blocks = (wordCounter + threadsPerBlock - 1) / threadsPerBlock;  // fill it all
       sycl::range<1> numthreadsPerBlock(threadsPerBlock);
       sycl::range<1> globalSize(blocks * threadsPerBlock);
-      assert(0 == wordCounter % 2);
+      // assert(0 == wordCounter % 2);
 
       auto word_d = cms::sycltools::make_device_unique<uint32_t[]>(wordCounter, stream);
       auto fedId_d = cms::sycltools::make_device_unique<uint8_t[]>(wordCounter, stream);

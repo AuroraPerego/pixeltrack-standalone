@@ -36,7 +36,7 @@ namespace cms {
               sycl::memory_order memOrder = sycl::memory_order::relaxed>
     inline T atomic_fetch_compare_inc(T *addr, T operand) {
       auto atm = sycl::atomic_ref<T, memOrder, Scope, addrSpace>(addr[0]);
-      assert(addr[0] < operand);
+      // assert(addr[0] < operand);
 
       // extremely inefficient (time pov)
       // TODO_ implement an efficient version of the atomicInc

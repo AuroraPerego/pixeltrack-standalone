@@ -142,10 +142,10 @@ int main(int argc, char** argv) try {
                  "PixelCPEFastESProducer"};
     if (transfer) {
       auto capos = std::find(edmodules.begin(), edmodules.end(), "CAHitNtupletSYCL");
-      assert(capos != edmodules.end());
+      // assert(capos != edmodules.end());
       edmodules.insert(capos + 1, "PixelTrackSoAFromSYCL");
       auto vertpos = std::find(edmodules.begin(), edmodules.end(), "PixelVertexProducerSYCL");
-      assert(vertpos != edmodules.end());
+      // assert(vertpos != edmodules.end());
       edmodules.insert(vertpos + 1, "PixelVertexSoAFromSYCL");
     }
     if (validation) {

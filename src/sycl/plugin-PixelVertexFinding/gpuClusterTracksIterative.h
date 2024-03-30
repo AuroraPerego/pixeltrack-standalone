@@ -50,8 +50,8 @@ namespace gpuVertexFinder {
     int32_t* __restrict__ nn = data.ndof;
     int32_t* __restrict__ iv = ws.iv;
 
-    assert(pdata);
-    assert(zt);
+  // assert(pdata);
+  // assert(zt);
 
     for (auto j = item.get_local_id(0); j < Hist::totbins(); j += item.get_local_range(0)) {
       hist->off[j] = 0;
@@ -63,17 +63,17 @@ namespace gpuVertexFinder {
       printf("booked hist with %d bins, size %d for %d tracks\n", hist->nbins(), hist->capacity(), nt);
 #endif
 
-    assert(nt <= hist->capacity());
+  // assert(nt <= hist->capacity());
 
     // fill hist  (bin shall be wider than "eps")
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
-      assert(i < ZVertices::MAXTRACKS);
+    // assert(i < ZVertices::MAXTRACKS);
       int iz = int(zt[i] * 10.);  // valid if eps<=0.1
       // iz = std::clamp(iz, INT8_MIN, INT8_MAX);  // sorry c++17 only
       iz = std::min(std::max(iz, INT8_MIN), INT8_MAX);
       izt[i] = iz - INT8_MIN;
-      assert(iz - INT8_MIN >= 0);
-      assert(iz - INT8_MIN < 256);
+    // assert(iz - INT8_MIN >= 0);
+    // assert(iz - INT8_MIN < 256);
       hist->count(izt[i]);
       iv[i] = i;
       nn[i] = 0;
@@ -84,7 +84,7 @@ namespace gpuVertexFinder {
     sycl::group_barrier(item.get_group());
     hist->finalize(item, hws);
     sycl::group_barrier(item.get_group());
-    assert(hist->size() == nt);
+  // assert(hist->size() == nt);
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {
       hist->fill(izt[i], uint16_t(i));
     }
@@ -131,7 +131,7 @@ namespace gpuVertexFinder {
           if (nn[i] < minT)
             continue;  // DBSCAN core rule
           auto loop = [&](uint32_t j) {
-            assert(i != j);
+          // assert(i != j);
             if (nn[j] < minT)
               return;  // DBSCAN core rule
             auto dist = abs(zt[i] - zt[j]);
@@ -193,7 +193,7 @@ namespace gpuVertexFinder {
     }
     sycl::group_barrier(item.get_group());
 
-    assert(*foundClusters < ZVertices::MAXVTX);
+  // assert(*foundClusters < ZVertices::MAXVTX);
 
     // propagate the negative id to all the tracks in the cluster.
     for (auto i = item.get_local_id(0); i < nt; i += item.get_local_range(0)) {

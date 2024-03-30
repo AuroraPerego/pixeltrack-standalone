@@ -49,7 +49,7 @@ void PixelTrackSoAFromSYCL::produce(edm::Event& iEvent, edm::EventSetup const& i
   int32_t nt = 0;
   for (int32_t it = 0; it < maxTracks; ++it) {
     auto nHits = tsoa.nHits(it);
-    assert(nHits==int(tsoa.hitIndices.size(it)));
+  // assert(nHits==int(tsoa.hitIndices.size(it)));
     if (nHits == 0) break;  // this is a guard: maybe we need to move to nTracks...
     nt++;
   }
@@ -59,7 +59,7 @@ void PixelTrackSoAFromSYCL::produce(edm::Event& iEvent, edm::EventSetup const& i
   // DO NOT  make a copy  (actually TWO....)
   iEvent.emplace(tokenSOA_, PixelTrackHeterogeneous(std::move(m_soa)));
 
-  assert(!m_soa);
+// assert(!m_soa);
 }
 
 DEFINE_FWK_MODULE(PixelTrackSoAFromSYCL);

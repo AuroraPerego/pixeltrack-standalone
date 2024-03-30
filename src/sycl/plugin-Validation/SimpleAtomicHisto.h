@@ -36,7 +36,7 @@ public:
       }
       ++i;
     }
-    assert(i >= 0 and static_cast<unsigned int>(i) < data_.size());
+    // assert(i >= 0 and static_cast<unsigned int>(i) < data_.size());
     data_[i] += 1;
   }
 

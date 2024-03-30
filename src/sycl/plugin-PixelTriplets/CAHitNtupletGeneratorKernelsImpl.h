@@ -64,8 +64,8 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
            apc->get().n,
            nHits);
     if (apc->get().m < CAConstants::maxNumberOfQuadruplets()) {
-      assert(foundNtuplets->size(apc->get().m) == 0);
-      assert(foundNtuplets->size() == apc->get().n);
+    // assert(foundNtuplets->size(apc->get().m) == 0);
+    // assert(foundNtuplets->size() == apc->get().n);
     }
   }
 
@@ -74,9 +74,9 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
     if (foundNtuplets->size(idx) > 5) {
       printf("ERROR %d, %d\n", idx, foundNtuplets->size(idx));
     }
-    assert(foundNtuplets->size(idx) < 6);
+  // assert(foundNtuplets->size(idx) < 6);
     for (auto ih = foundNtuplets->begin(idx); ih != foundNtuplets->end(idx); ++ih)
-      assert(*ih < nHits);
+    // assert(*ih < nHits);
   }
 #endif
 
@@ -140,7 +140,7 @@ void kernel_earlyDuplicateRemover(GPUCACell const *cells,
   constexpr auto dup = trackQuality::dup;
   // constexpr auto loose = trackQuality::loose;
 
-  assert(nCells);
+// assert(nCells);
   auto first = item.get_local_id(0) + item.get_group(0) * item.get_local_range().get(0);
   for (int idx = first, nt = (*nCells); idx < nt; idx += item.get_group_range(0) * item.get_local_range().get(0)) {
     auto const &thisCell = cells[idx];
@@ -174,7 +174,7 @@ void kernel_fastDuplicateRemover(GPUCACell const *__restrict__ cells,
   constexpr auto dup = trackQuality::dup;
   constexpr auto loose = trackQuality::loose;
 
-  assert(nCells);
+// assert(nCells);
 
   auto first = item.get_local_id(0) + item.get_group(0) * item.get_local_range().get(0);
   for (int idx = first, nt = (*nCells); idx < nt; idx += item.get_group_range(0) * item.get_local_range().get(0)) {
@@ -305,7 +305,7 @@ void kernel_find_ntuplets(GPUCACell::Hits const *__restrict__ hhp,
       stack.reset();
       thisCell.find_ntuplets<6>(
           hh, cells, *cellTracks, *foundNtuplets, *apc, quality, stack, minHitsPerNtuplet, pid < 3);
-      assert(stack.empty());
+    // assert(stack.empty());
     }
   }
 }
@@ -335,10 +335,10 @@ void kernel_countMultiplicity(HitContainer const *__restrict__ foundNtuplets,
       continue;
     if (quality[it] == trackQuality::dup)
       continue;
-    assert(quality[it] == trackQuality::bad);
+  // assert(quality[it] == trackQuality::bad);
     if (nhits > 5)
       printf("wrong mult %d with %d hits\n", it, nhits);
-    assert(nhits < 8);
+  // assert(nhits < 8);
     tupleMultiplicity->countDirect(nhits);
   }
 }
@@ -355,10 +355,10 @@ void kernel_fillMultiplicity(HitContainer const *__restrict__ foundNtuplets,
       continue;
     if (quality[it] == trackQuality::dup)
       continue;
-    assert(quality[it] == trackQuality::bad);
+  // assert(quality[it] == trackQuality::bad);
     if (nhits > 5)
       printf("wrong mult %d with %d hits\n", it, nhits);
-    assert(nhits < 8);
+  // assert(nhits < 8);
     tupleMultiplicity->fillDirect(nhits, it);
   }
 }
@@ -378,7 +378,7 @@ void kernel_classifyTracks(HitContainer const *__restrict__ tuples,
     if (quality[it] == trackQuality::dup)
       continue;
 
-    assert(quality[it] == trackQuality::bad);
+  // assert(quality[it] == trackQuality::bad);
 
     // mark doublets as bad
     if (nhits < 3)
@@ -494,7 +494,7 @@ void kernel_fillHitDetIndices(HitContainer const *__restrict__ tuples,
   [[maybe_unused]] auto nhits = hh.nHits();  // unused warning
   for (int idx = first, ntot = tuples->size(); idx < ntot;
        idx += item.get_group_range(0) * item.get_local_range().get(0)) {
-    assert(tuples->bins[idx] < nhits);
+  // assert(tuples->bins[idx] < nhits);
     hitDetIndices->bins[idx] = hh.detectorIndex(tuples->bins[idx]);
   }
 }

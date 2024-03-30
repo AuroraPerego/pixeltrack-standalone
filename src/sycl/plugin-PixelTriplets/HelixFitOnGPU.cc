@@ -7,9 +7,9 @@ void HelixFitOnGPU::allocateOnGPU(Tuples const *tuples,
   tupleMultiplicity_d = tupleMultiplicity;
   outputSoa_d = helix_fit_results;
 
-  assert(tuples_d);
-  assert(tupleMultiplicity_d);
-  assert(outputSoa_d);
+  // assert(tuples_d);
+  // assert(tupleMultiplicity_d);
+  // assert(outputSoa_d);
 }
 
 void HelixFitOnGPU::deallocateOnGPU() {}

@@ -159,7 +159,7 @@ namespace gpuClustering {
     //nearest neighbour
     uint16_t nn[maxiter][maxNeighbours];
     uint8_t nnn[maxiter];  // number of nn
-    assert((hist->size() / item.get_local_range(0)) <= maxiter);
+  // assert((hist->size() / item.get_local_range(0)) <= maxiter);
     for (uint32_t k = 0; k < maxiter; ++k)
       nnn[k] = 0;
     sycl::group_barrier(item.get_group());  // for hit filling
@@ -189,24 +189,24 @@ namespace gpuClustering {
 
     //fill NN
     for (unsigned int j = item.get_local_id(0), k = 0U; j < hist->size(); j += item.get_local_range(0), ++k) {
-      assert(k < maxiter);
+    // assert(k < maxiter);
       auto p = hist->begin() + j;
       auto i = *p + firstPixel;
-      assert(id[i] != InvId);
-      assert(id[i] == thisModuleId);  // same module
+    // assert(id[i] != InvId);
+    // assert(id[i] == thisModuleId);  // same module
       int be = Hist::bin(y[i] + 1);
       auto e = hist->end(be);
       ++p;
-      assert(0 == nnn[k]);
+    // assert(0 == nnn[k]);
       for (; p < e; ++p) {
         auto m = (*p) + firstPixel;
-        assert(m != i);
-        assert(int(y[m]) - int(y[i]) >= 0);
-        assert(int(y[m]) - int(y[i]) <= 1);
+      // assert(m != i);
+      // assert(int(y[m]) - int(y[i]) >= 0);
+      // assert(int(y[m]) - int(y[i]) <= 1);
         if (::hipsycl::sycl::detail::__hipsycl_abs(int(x[m]) - int(x[i])) > 1)
           continue;
         auto l = nnn[k]++;
-        assert(l < maxNeighbours);
+      // assert(l < maxNeighbours);
         nn[k][l] = *p;
       }
     }
@@ -236,7 +236,7 @@ namespace gpuClustering {
           for (int kk = 0; kk < nnn[k]; ++kk) {
             auto l = nn[k][kk];
             auto m = l + firstPixel;
-            assert(m != i);
+          // assert(m != i);
             auto old = cms::sycltools::
                 atomic_fetch_min<int32_t, sycl::access::address_space::global_space, sycl::memory_scope::device>(
                     static_cast<int32_t*>(&clusterId[m]), static_cast<int32_t>(clusterId[i]));

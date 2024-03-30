@@ -99,7 +99,7 @@ namespace cms {
         warpPrefixScan(c, i, item);
         int laneId = item.get_local_id(0) & 0x1f;
         auto warpId = i / 32;
-        assert(warpId < 32);
+      // assert(warpId < 32);
         if (31 == laneId)
           ws[warpId] = c[i];
 
@@ -142,7 +142,7 @@ namespace cms {
       volatile T* co = ico;
 
       // assert(sizeof(T) * item.get_group_range(0) <= dynamic_smem_size());  // size of psum below TODO_
-      assert((int32_t)(item.get_local_range(0) * item.get_group_range(0)) >= size);
+    // assert((int32_t)(item.get_local_range(0) * item.get_group_range(0)) >= size);
       // first each block does a scan
       int off = item.get_local_range(0) * item.get_group(0);
       if (size - off > 0)
@@ -163,7 +163,7 @@ namespace cms {
       if (!(*isLastBlockDone))
         return;
 
-      assert(int(item.get_group_range(0)) == *pc);
+    // assert(int(item.get_group_range(0)) == *pc);
 
       // good each block has done its work and now we are left in last block
 

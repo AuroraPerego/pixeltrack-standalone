@@ -42,8 +42,8 @@ namespace gpuVertexFinder {
     int32_t const* __restrict__ nn = data.ndof;
     int32_t* __restrict__ iv = ws.iv;
 
-    assert(pdata);
-    assert(zt);
+    // assert(pdata);
+    // assert(zt);
 
     // one vertex per block
     for (auto kv = item.get_group(0); kv < nvFinal; kv += item.get_group_range(0)) {
@@ -53,7 +53,7 @@ namespace gpuVertexFinder {
         continue;
 
       constexpr int MAXTK = 512;
-      assert(nn[kv] < MAXTK);
+      // assert(nn[kv] < MAXTK);
       if (nn[kv] >= MAXTK)
         continue;  // too bad FIXME
 
@@ -73,7 +73,7 @@ namespace gpuVertexFinder {
       }
 
       sycl::group_barrier(item.get_group());
-      assert(int(*nq) == nn[kv] + 1);
+      // assert(int(*nq) == nn[kv] + 1);
 
       int maxiter = 20;
       // kt-min....

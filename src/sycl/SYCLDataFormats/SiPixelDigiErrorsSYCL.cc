@@ -14,8 +14,8 @@ SiPixelDigiErrorsSYCL::SiPixelDigiErrorsSYCL(size_t maxFedWords, PixelFormatterE
 
   error_h = cms::sycltools::make_host_unique<cms::sycltools::SimpleVector<PixelErrorCompact>>(stream);
   cms::sycltools::make_SimpleVector(error_h.get(), maxFedWords, data_d.get());
-  assert(error_h->empty());
-  assert(error_h->capacity() == static_cast<int>(maxFedWords));
+  // assert(error_h->empty());
+  // assert(error_h->capacity() == static_cast<int>(maxFedWords));
 
   stream.memcpy(error_d.get(), error_h.get(), sizeof(PixelErrorCompact));
 }

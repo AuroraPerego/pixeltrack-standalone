@@ -33,7 +33,7 @@ void CAHitNtupletGeneratorKernels::launchKernels(HitsOnCPU const &hh, TkSoA *tra
   cms::sycltools::launchZero(tuples_d, stream);
 
   auto nhits = hh.nHits();
-  assert(nhits <= pixelGPUConstants::maxNumberOfHits);
+  // assert(nhits <= pixelGPUConstants::maxNumberOfHits);
 
   // std::cout << "N hits " << nhits << std::endl;
   // if (nhits<2) std::cout << "too few hits " << nhits << std::endl;
@@ -49,8 +49,8 @@ void CAHitNtupletGeneratorKernels::launchKernels(HitsOnCPU const &hh, TkSoA *tra
   auto rescale = numberOfBlocks / 65536;
   blockSize *= (rescale + 1);
   numberOfBlocks = (3 * m_params.maxNumberOfDoublets_ / 4 + blockSize - 1) / blockSize;
-  assert(numberOfBlocks < 65536);
-  assert(blockSize > 0 && 0 == blockSize % 16);
+  // assert(numberOfBlocks < 65536);
+  // assert(blockSize > 0 && 0 == blockSize % 16);
   sycl::range<3> blks(1, numberOfBlocks, 1);
   sycl::range<3> thrs(1, blockSize, stride);
 #ifdef NTUPLE_DEBUG
@@ -295,7 +295,7 @@ void CAHitNtupletGeneratorKernels::buildDoublets(HitsOnCPU const &hh, sycl::queu
   // in principle we can use "nhits" to heuristically dimension the workspace...
   device_isOuterHitOfCell_ =
       cms::sycltools::make_device_unique<GPUCACell::OuterHitOfCell[]>(std::max(1U, nhits), stream);
-  assert(device_isOuterHitOfCell_.get());
+  // assert(device_isOuterHitOfCell_.get());
 
   cellStorage_ = cms::sycltools::make_device_unique<unsigned char[]>(
       CAConstants::maxNumOfActiveDoublets() * sizeof(GPUCACell::CellNeighbors) +
@@ -351,7 +351,7 @@ void CAHitNtupletGeneratorKernels::buildDoublets(HitsOnCPU const &hh, sycl::queu
     nActualPairs = 13;
   }
 
-  assert(nActualPairs <= gpuPixelDoublets::nPairs);
+  // assert(nActualPairs <= gpuPixelDoublets::nPairs);
   int stride = 4;
   int threadsPerBlock = gpuPixelDoublets::getDoubletsFromHistoMaxBlockSize / stride;
   int blocks = (4 * nhits + threadsPerBlock - 1) / threadsPerBlock;

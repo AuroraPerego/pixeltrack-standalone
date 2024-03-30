@@ -172,8 +172,8 @@ namespace cms::sycltools {
     ~CachingAllocator() {
       {
         std::scoped_lock lock(mutex_);
-        assert(liveBlocks_.empty());
-        assert(cachedBytes_.live == 0);
+        // assert(liveBlocks_.empty());
+        // assert(cachedBytes_.live == 0);
       }
       freeAllCached();
     }

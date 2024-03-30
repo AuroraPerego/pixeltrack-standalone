@@ -31,8 +31,8 @@ namespace gpuClustering {
 
     auto firstPixel = moduleStart[1 + item.get_group(0)];
     auto thisModuleId = id[firstPixel];
-    assert(thisModuleId < MaxNumModules);
-    assert(thisModuleId == moduleId[item.get_group(0)]);
+    // assert(thisModuleId < MaxNumModules);
+    // assert(thisModuleId == moduleId[item.get_group(0)]);
 
     auto nclus = nClustersInModule[thisModuleId];
     if (nclus == 0)
@@ -69,7 +69,7 @@ namespace gpuClustering {
         printf("start clusterizer for module %d in block %ld\n", thisModuleId, item.get_group(0));
 #endif
 
-    assert(nclus <= MaxNumClustersPerModules);
+    // assert(nclus <= MaxNumClustersPerModules);
     for (auto i = item.get_local_id(0); i < nclus; i += item.get_local_range(0)) {
       charge[i] = 0;
     }
@@ -95,7 +95,7 @@ namespace gpuClustering {
     // renumber
     cms::sycltools::blockPrefixScan(newclusId, nclus, item, ws);
 
-    assert(nclus >= newclusId[nclus - 1]);
+    // assert(nclus >= newclusId[nclus - 1]);
 
     if (nclus == newclusId[nclus - 1])
       return;

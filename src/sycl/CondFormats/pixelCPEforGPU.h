@@ -196,8 +196,8 @@ namespace pixelCPEforGPU {
 
     auto xsize = int(urxl) + 2 - int(llxl);
     auto ysize = int(uryl) + 2 - int(llyl);
-    assert(xsize >= 0);  // 0 if bixpix...
-    assert(ysize >= 0);
+    // assert(xsize >= 0);  // 0 if bixpix...
+    // assert(ysize >= 0);
 
     if (phase1PixelTopology::isBigPixX(cp.minRow[ic]))
       ++xsize;

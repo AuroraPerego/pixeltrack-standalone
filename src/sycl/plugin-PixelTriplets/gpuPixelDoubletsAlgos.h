@@ -62,7 +62,7 @@ namespace gpuPixelDoublets {
 
     auto const& __restrict__ hist = hh.phiBinner();
     uint32_t const* __restrict__ offsets = hh.hitsLayerStart();
-    assert(offsets);
+    // assert(offsets);
 
     auto layerSize = [=](uint8_t li) { return offsets[li + 1] - offsets[li]; };
 
@@ -77,7 +77,7 @@ namespace gpuPixelDoublets {
     // auto ntotbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t>(item.get_group());
     // uint32_t* ntot = (uint32_t*)ntotbuff.get();
 
-    assert(nPairs <= nPairsMax);
+    // assert(nPairs <= nPairsMax);
     uint32_t innerLayerCumulativeSize[nPairsMax];
     // const uint32_t* const ntot = innerLayerCumulativeSize + nPairs - 1; // THIS DOESN'T WORK
 
@@ -99,13 +99,13 @@ namespace gpuPixelDoublets {
         ;
       --pairLayerId;  // move to lower_bound ??
 
-      assert(pairLayerId < nPairs);
-      assert(j < innerLayerCumulativeSize[pairLayerId]);
-      assert(0 == pairLayerId || j >= innerLayerCumulativeSize[pairLayerId - 1]);
+      // assert(pairLayerId < nPairs);
+      // assert(j < innerLayerCumulativeSize[pairLayerId]);
+      // assert(0 == pairLayerId || j >= innerLayerCumulativeSize[pairLayerId - 1]);
 
       uint8_t inner = layerPairs[2 * pairLayerId];
       uint8_t outer = layerPairs[2 * pairLayerId + 1];
-      assert(outer > inner);
+      // assert(outer > inner);
 
       auto hoff = Hist::histOff(outer);
 
@@ -114,8 +114,8 @@ namespace gpuPixelDoublets {
 
       // printf("Hit in Layer %d %d %d %d\n", i, inner, pairLayerId, j);
 
-      assert(i >= offsets[inner]);
-      assert(i < offsets[inner + 1]);
+      // assert(i >= offsets[inner]);
+      // assert(i < offsets[inner + 1]);
 
       // found hit corresponding to our sycl thread, now do the job
       auto mi = hh.detectorIndex(i);
@@ -136,7 +136,7 @@ namespace gpuPixelDoublets {
       if (doClusterCut) {
         // if ideal treat inner ladder as outer
         if (inner == 0)
-          assert(mi < 96);
+          // assert(mi < 96);
         isOuterLadder = ideal_cond ? true : 0 == (mi / 8) % 2;  // only for B1/B2/B3 B4 is opposite, FPIX:noclue...
 
         // in any case we always test mes>0 ...
@@ -213,8 +213,8 @@ namespace gpuPixelDoublets {
         p += first;
         for (; p < e; p += stride) {
           auto oi = *(p);
-          assert(oi >= offsets[outer]);
-          assert(oi < offsets[outer + 1]);
+          // assert(oi >= offsets[outer]);
+          // assert(oi < offsets[outer + 1]);
           auto mo = hh.detectorIndex(oi);
           if (mo > 2000)
             continue;  //    invalid

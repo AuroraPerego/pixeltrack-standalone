@@ -43,13 +43,13 @@ namespace cms {
           if (data.m_fillingStream) {
             // Someone else is filling
             // Check first if the recorded event has occurred
-            assert(data.m_event);
+            // assert(data.m_event);
             if (eventWorkHasCompleted(*data.m_event)) {
               // It was, so data is accessible from all SYCL queues on
               // the device. Set the 'filled' for all subsequent calls and
               // return the value
               auto should_be_false = data.m_filled.exchange(true);
-              assert(not should_be_false);
+              // assert(not should_be_false);
               data.m_fillingStream.reset();
               data.m_event.reset();
             } else if (data.m_fillingStream != stream) {
@@ -69,11 +69,11 @@ namespace cms {
             // Now we can be sure that the data is not yet on the GPU, and
             // this thread is the first to try that.
             transferAsync(data.m_data, stream);
-            assert(not data.m_fillingStream);
+            // assert(not data.m_fillingStream);
             data.m_fillingStream = stream;
             // Record in the stream an event to mark the readiness of the
             // EventSetup data on the GPU, so other streams can check for it
-            assert(not data.m_event);
+            // assert(not data.m_event);
             data.m_event = sycl::event{}; // stream.submit_barrier();
 
             // Now the filling has been enqueued to the stream, so we

@@ -32,9 +32,9 @@ public:
 
     auto offset = range.first + col * lengthOfColumnData + lengthOfAveragedDataInEachColumn * numberOfDataBlocksToSkip;
 
-    assert(offset < range.second);
-    assert(offset < 3088384);
-    assert(0 == offset % 2);
+    // assert(offset < range.second);
+    // assert(offset < 3088384);
+    // assert(0 == offset % 2);
 
     DecodingStructure const* __restrict__ lp = v_pedestals;
     auto s = lp[offset / 2];

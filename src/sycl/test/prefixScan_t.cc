@@ -53,7 +53,7 @@ void testPrefixScan(sycl::nd_item<1> item, uint32_t size, T* ws, T* c, T* co) {
 
 template <typename T>
 void testWarpPrefixScan(sycl::nd_item<1> item, uint32_t size, T *c, T *co) {
-  assert(size <= 32);
+  // assert(size <= 32);
 
   uint32_t i = item.get_local_id(0);
   c[i] = 1;

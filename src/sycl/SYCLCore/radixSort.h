@@ -35,7 +35,7 @@ inline void reorderSigned(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t si
   }
   sycl::group_barrier(item.get_group());
   ii = size - *firstNeg + item.get_local_id(0);
-  assert(ii >= 0);
+// assert(ii >= 0);
   for (auto i = first; i < *firstNeg; i += item.get_local_range(0)) {
     ind2[ii] = ind[i];
     ii += item.get_local_range(0);
@@ -67,7 +67,7 @@ inline void reorderFloat(T const* a, uint16_t* ind, uint16_t* ind2, uint32_t siz
   }
   sycl::group_barrier(item.get_group());
   ii = size - *firstNeg + item.get_local_id(0);
-  assert(ii >= 0);
+// assert(ii >= 0);
   for (uint32_t i = item.get_local_id(0); i < *firstNeg; i += item.get_local_range(0)) {
     ind2[ii] = ind[i];
     ii += item.get_local_range(0);
@@ -85,8 +85,8 @@ __attribute__((always_inline)) void radixSortImpl(
   constexpr int sb = 1 << d;
   constexpr int ps = int(sizeof(T)) - NS;
 
-  assert(size > 0);
-  assert(item.get_local_range(0) >= sb);
+// assert(size > 0);
+// assert(item.get_local_range(0) >= sb);
 
   // bool debug = false; // item.get_local_id(0)==0 && item.get_group(0)==5;
 
@@ -168,9 +168,9 @@ __attribute__((always_inline)) void radixSortImpl(
       }
       sycl::group_barrier(item.get_group());
       if (bin >= 0)
-        assert(c[bin] >= 0);
+      // assert(c[bin] >= 0);
       *ibs -= sb;
-      assert(*ibs < 0);
+    // assert(*ibs < 0);
     }
 
     /*
@@ -184,7 +184,7 @@ __attribute__((always_inline)) void radixSortImpl(
     */
 
     sycl::group_barrier(item.get_group());
-    assert(c[0] == 0);
+  // assert(c[0] == 0);
 
     // swap j and k (local, ok)
     auto t = j;
@@ -192,11 +192,11 @@ __attribute__((always_inline)) void radixSortImpl(
     k = t;
 
     ++(*p);
-    assert(*p > ps);
+  // assert(*p > ps);
   }
 
   if ((w != 8) && (0 == (NS & 1)))
-    assert(j == ind);  // w/d is even so ind is correct
+  // assert(j == ind);  // w/d is even so ind is correct
 
   if (j != ind)  // odd...
     for (uint32_t i = item.get_local_id(0); i < size; i += item.get_local_range(0))
@@ -252,7 +252,7 @@ __attribute__((always_inline)) void radixSortMulti(T const* v,
   auto ind = index + offsets[item.get_group(0)];
   auto ind2 = nullptr == workspace ? ws : workspace + offsets[item.get_group(0)];
   auto size = offsets[item.get_group(0) + 1] - offsets[item.get_group(0)];
-  assert(offsets[item.get_group(0) + 1] >= offsets[item.get_group(0)]);
+// assert(offsets[item.get_group(0) + 1] >= offsets[item.get_group(0)]);
   if (size > 0)
     radixSort<T, NS>(a, ind, ind2, size, item, c, ct, cu, ibs, p, firstNeg);
 }

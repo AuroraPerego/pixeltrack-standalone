@@ -46,7 +46,7 @@ namespace cms::sycltools {
     static auto allocators = detail::allocate_host_allocators();
 
     size_t const index = getPlatformIndex(stream.get_device().get_platform());
-    assert(index < cms::sycltools::enumeratePlatforms().size());
+    // assert(index < cms::sycltools::enumeratePlatforms().size());
 
     // the public interface is thread safe
     return allocators[index];

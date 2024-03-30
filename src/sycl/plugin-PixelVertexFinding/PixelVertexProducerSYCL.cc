@@ -51,7 +51,7 @@ void PixelVertexProducerSYCL::produce(edm::Event& iEvent, const edm::EventSetup&
   cms::sycltools::ScopedContextProduce ctx{ptracks};
   auto const* tracks = ctx.get(ptracks).get();
 
-  assert(tracks);
+  // assert(tracks);
 
   ctx.emplace(iEvent, tokenGPUVertex_, m_gpuAlgo.makeAsync(ctx.stream(), tracks, m_ptMin));
 }

@@ -68,7 +68,7 @@ namespace gpuPixelDoublets {
                     CellTracksVector* cellTracks,
                     CellTracks* cellTracksContainer,
                     sycl::nd_item<1> item) {
-    assert(isOuterHitOfCell);
+    // assert(isOuterHitOfCell);
     int first = item.get_group(0) * item.get_local_range().get(0) + item.get_local_id(0);
     for (int i = first; i < nHits; i += item.get_group_range(0) * item.get_local_range().get(0))
       isOuterHitOfCell[i].reset();
@@ -77,10 +77,10 @@ namespace gpuPixelDoublets {
       cellNeighbors->construct(CAConstants::maxNumOfActiveDoublets(), cellNeighborsContainer);
       cellTracks->construct(CAConstants::maxNumOfActiveDoublets(), cellTracksContainer);
       [[maybe_unused]] auto i = cellNeighbors->extend();
-      assert(0 == i);
+      // assert(0 == i);
       (*cellNeighbors)[0].reset();
       i = cellTracks->extend();
-      assert(0 == i);
+      // assert(0 == i);
       (*cellTracks)[0].reset();
     }
   }

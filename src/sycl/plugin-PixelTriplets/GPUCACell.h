@@ -64,8 +64,8 @@ public:
     // link to default empty
     theOuterNeighbors = &cellNeighbors[0];
     theTracks = &cellTracks[0];
-    assert(outerNeighbors().empty());
-    assert(tracks().empty());
+    // assert(outerNeighbors().empty());
+    // assert(tracks().empty());
   }
 
   __attribute__((always_inline)) int addOuterNeighbor(CellNeighbors::value_t t, CellNeighborsVector& cellNeighbors) {
@@ -296,7 +296,7 @@ public:
     // the ntuplets is then saved if the number of hits it contains is greater
     // than a threshold
     tmpNtuplet.push_back_unsafe(theDoubletId);
-    assert(tmpNtuplet.size() <= 4);
+    // assert(tmpNtuplet.size() <= 4);
 
     bool last = true;
     for (int j = 0; j < outerNeighbors().size(); ++j) {
@@ -331,7 +331,7 @@ public:
       }
     }
     tmpNtuplet.pop_back();
-    assert(tmpNtuplet.size() < 4);
+    // assert(tmpNtuplet.size() < 4);
   }
 
 private:

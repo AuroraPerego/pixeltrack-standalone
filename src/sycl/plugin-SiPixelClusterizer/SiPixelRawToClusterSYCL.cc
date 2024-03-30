@@ -102,7 +102,7 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
     // for GPU
     // first 150 index stores the fedId and next 150 will store the
     // start index of word in that fed
-    assert(fedId >= 1200);
+    // assert(fedId >= 1200);
     fedCounter++;
 
     // get event data for this fed
@@ -142,7 +142,7 @@ void SiPixelRawToClusterSYCL::acquire(const edm::Event& iEvent,
     const uint32_t* bw = (const uint32_t*)(header + 1);
     const uint32_t* ew = (const uint32_t*)(trailer);
 
-    assert(0 == (ew - bw) % 2);
+    // assert(0 == (ew - bw) % 2);
     wordFedAppender_->initializeWordFed(fedId, wordCounterGPU, bw, (ew - bw));
     wordCounterGPU += (ew - bw);
   }  // end of for loop

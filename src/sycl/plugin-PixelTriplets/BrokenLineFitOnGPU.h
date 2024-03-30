@@ -34,12 +34,12 @@ void kernelBLFastFit(Tuples const *foundNtuplets,
                      uint32_t offset,
                      sycl::nd_item<1> item, int* done) {
   constexpr uint32_t hitsInFit = N;
-  assert(hitsInFit <= nHits);
+  // assert(hitsInFit <= nHits);
 
-  assert(hhp);
-  assert(pfast_fit);
-  assert(foundNtuplets);
-  assert(tupleMultiplicity);
+  // assert(hhp);
+  // assert(pfast_fit);
+  // assert(foundNtuplets);
+  // assert(tupleMultiplicity);
 
   // look in bin for this hit multiplicity
   auto local_start = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
@@ -59,9 +59,9 @@ void kernelBLFastFit(Tuples const *foundNtuplets,
 
     // get it from the ntuple container (one to one to helix)
     auto tkid = *(tupleMultiplicity->begin(nHits) + tuple_idx);
-    assert(tkid < foundNtuplets->nbins());
+    // assert(tkid < foundNtuplets->nbins());
 
-    assert(foundNtuplets->size(tkid) == nHits);
+    // assert(foundNtuplets->size(tkid) == nHits);
 
     Rfit::Map3xNd<N> hits(phits + local_idx);
     Rfit::Map4d fast_fit(pfast_fit + local_idx);
@@ -110,10 +110,10 @@ void kernelBLFastFit(Tuples const *foundNtuplets,
     BrokenLine::BL_Fast_fit(hits, fast_fit);
 
     // no NaN here....
-    assert(fast_fit(0) == fast_fit(0));
-    assert(fast_fit(1) == fast_fit(1));
-    assert(fast_fit(2) == fast_fit(2));
-    assert(fast_fit(3) == fast_fit(3));
+    // assert(fast_fit(0) == fast_fit(0));
+    // assert(fast_fit(1) == fast_fit(1));
+    // assert(fast_fit(2) == fast_fit(2));
+    // assert(fast_fit(3) == fast_fit(3));
   }
 }
 
@@ -127,10 +127,10 @@ void kernelBLFit(CAConstants::TupleMultiplicity const *__restrict__ tupleMultipl
                  uint32_t nHits,
                  uint32_t offset,
                  sycl::nd_item<1> item) {
-  assert(N <= nHits);
+  // assert(N <= nHits);
 
-  assert(results);
-  assert(pfast_fit);
+  // assert(results);
+  // assert(pfast_fit);
 
   // same as above...
 

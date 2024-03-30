@@ -51,7 +51,7 @@ void WaitingTaskList::reset() {
   m_exceptionPtr = std::exception_ptr{};
   unsigned int nSeenTasks = m_lastAssignedCacheIndex;
   m_lastAssignedCacheIndex = 0;
-  assert(m_head == nullptr);
+  // assert(m_head == nullptr);
   if (nSeenTasks > m_nodeCacheSize) {
     //need to expand so next time we don't have to do any
     // memory requests

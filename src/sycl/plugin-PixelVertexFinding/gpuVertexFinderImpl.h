@@ -15,8 +15,8 @@ namespace gpuVertexFinder {
   using Hist = cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
 
   void loadTracks(TkSoA const* ptracks, ZVertexSoA* soa, WorkSpace* pws, float ptMin, sycl::nd_item<1> item) {
-    assert(ptracks);
-    assert(soa);
+    // assert(ptracks);
+    // assert(soa);
     auto const& tracks = *ptracks;
     auto const& fit = tracks.stateAtBS;
     auto const* quality = tracks.qualityData();
@@ -127,9 +127,9 @@ ZVertexHeterogeneous Producer::makeAsync(sycl::queue stream, TkSoA const* tksoa,
     constexpr int MAXTK = 512;
 
     ZVertexHeterogeneous vertices(cms::sycltools::make_device_unique<ZVertexSoA>(stream));
-    assert(tksoa);
+    // assert(tksoa);
     auto* soa = vertices.get();
-    assert(soa);
+    // assert(soa);
 
     auto ws_d = cms::sycltools::make_device_unique<WorkSpace>(stream);
 

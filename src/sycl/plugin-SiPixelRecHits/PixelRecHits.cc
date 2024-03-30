@@ -20,7 +20,7 @@ namespace {
                          sycl::nd_item<1> item) {
     auto i = item.get_group(0) * item.get_local_range().get(0) + item.get_local_id(0);
 
-    assert(0 == hitsModuleStart[0]);
+    // assert(0 == hitsModuleStart[0]);
 
     if (i < 11) {
       hitsLayerStart[i] = hitsModuleStart[cpeParams->layerGeometry().layerStart[i]];

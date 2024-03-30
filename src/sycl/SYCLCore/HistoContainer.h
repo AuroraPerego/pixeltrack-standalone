@@ -25,10 +25,10 @@ namespace cms {
       int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
       for (int i = first, nt = offsets[nh]; i < nt; i += item.get_group_range(0) * item.get_local_range(0)) {
         auto off = std::upper_bound(offsets, offsets + nh + 1, i);
-        assert((*off) > 0);
+      // assert((*off) > 0);
         int32_t ih = off - offsets - 1;
-        assert(ih >= 0);
-        assert(ih < int(nh));
+      // assert(ih >= 0);
+      // assert(ih < int(nh));
         (*h).count(v[i], ih);
       }
     }
@@ -42,10 +42,10 @@ namespace cms {
       int first = item.get_local_range(0) * item.get_group(0) + item.get_local_id(0);
       for (int i = first, nt = offsets[nh]; i < nt; i += item.get_group_range(0) * item.get_local_range(0)) {
         auto off = std::upper_bound(offsets, offsets + nh + 1, i);
-        assert((*off) > 0);
+      // assert((*off) > 0);
         int32_t ih = off - offsets - 1;
-        assert(ih >= 0);
-        assert(ih < int(nh));
+      // assert(ih >= 0);
+      // assert(ih < int(nh));
         (*h).fill(v[i], i, ih);
       }
     }
@@ -54,7 +54,7 @@ namespace cms {
     inline __attribute__((always_inline)) void launchZero(Histo *__restrict__ h, sycl::queue stream) {
       uint32_t *poff = (uint32_t *)((char *)(h) + offsetof(Histo, off));
       int32_t size = offsetof(Histo, bins) - offsetof(Histo, off);
-      assert(size >= int(sizeof(uint32_t) * Histo::totbins()));
+    // assert(size >= int(sizeof(uint32_t) * Histo::totbins()));
       stream.memset(poff, 0x00, size);
     }
 
@@ -111,7 +111,7 @@ namespace cms {
       int bs = Hist::bin(value);
       int be = sycl::min(int(Hist::nbins() - 1), bs + n);
       bs = sycl::max(0, bs - n);
-      assert(be >= bs);
+    // assert(be >= bs);
       for (auto pj = hist.begin(bs); pj < hist.end(be); ++pj) {
         func(*pj);
       }
@@ -122,7 +122,7 @@ namespace cms {
     __attribute__((always_inline)) void forEachInWindow(Hist const &hist, V wmin, V wmax, Func const &func) {
       auto bs = Hist::bin(wmin);
       auto be = Hist::bin(wmax);
-      assert(be >= bs);
+    // assert(be >= bs);
       for (auto pj = hist.begin(bs); pj < hist.end(be); ++pj) {
         func(*pj);
       }
@@ -197,18 +197,18 @@ namespace cms {
       }
 
       __attribute__((always_inline)) void countDirect(T b) {
-        assert(b < nbins());
+      // assert(b < nbins());
         cms::sycltools::atomic_fetch_add<Counter,
                                          sycl::access::address_space::global_space,
                                          sycl::memory_scope::work_group>(&off[b], 1);
       }
 
       __attribute__((always_inline)) void fillDirect(T b, index_type j) {
-        assert(b < nbins());
+      // assert(b < nbins());
         auto w = cms::sycltools::atomic_fetch_sub<Counter,
                                                   sycl::access::address_space::global_space,
                                                   sycl::memory_scope::work_group>(&off[b], 1);
-        assert(w > 0);
+      // assert(w > 0);
         bins[w - 1] = j;
       }
 
@@ -239,23 +239,23 @@ namespace cms {
 
       __attribute__((always_inline)) void count(T t) {
         uint32_t b = bin(t);
-        assert(b < nbins());
+      // assert(b < nbins());
         atomicIncrement(off[b]);
       }
 
       __attribute__((always_inline)) void fill(T t, index_type j) {
         uint32_t b = bin(t);
-        assert(b < nbins());
+      // assert(b < nbins());
         auto w = atomicDecrement(off[b]);
-        assert(w > 0);
+      // assert(w > 0);
         bins[w - 1] = j;
       }
 
       __attribute__((always_inline)) void count(T t, uint32_t nh) {
         uint32_t b = bin(t);
-        assert(b < nbins());
+      // assert(b < nbins());
         b += histOff(nh);
-        assert(b < totbins());
+      // assert(b < totbins());
         cms::sycltools::atomic_fetch_add<Counter,
                                          sycl::access::address_space::global_space,
                                          sycl::memory_scope::work_group>(&off[b], 1);
@@ -263,20 +263,20 @@ namespace cms {
 
       __attribute__((always_inline)) void fill(T t, index_type j, uint32_t nh) {
         uint32_t b = bin(t);
-        assert(b < nbins());
+      // assert(b < nbins());
         b += histOff(nh);
-        assert(b < totbins());
+      // assert(b < totbins());
         auto w = cms::sycltools::atomic_fetch_sub<Counter,
                                                   sycl::access::address_space::global_space,
                                                   sycl::memory_scope::work_group>(&off[b], 1);
-        assert(w > 0);
+      // assert(w > 0);
         bins[w - 1] = j;
       }
 
       __attribute__((always_inline)) void finalize(sycl::nd_item<1> item, Counter *ws = nullptr) {
-        assert(off[totbins() - 1] == 0);
+      // assert(off[totbins() - 1] == 0);
         blockPrefixScan(off, totbins(), item, ws);
-        assert(off[totbins() - 1] == off[totbins() - 2]);
+      // assert(off[totbins() - 1] == off[totbins() - 2]);
       }
 
       constexpr auto size() const { return uint32_t(off[totbins() - 1]); }

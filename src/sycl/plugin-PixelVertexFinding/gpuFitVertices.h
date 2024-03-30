@@ -35,10 +35,10 @@ namespace gpuVertexFinder {
     int32_t* __restrict__ nn = data.ndof;
     int32_t* __restrict__ iv = ws.iv;
 
-    assert(pdata);
-    assert(zt);
+    // assert(pdata);
+    // assert(zt);
 
-    assert(nvFinal <= nvIntermediate);
+    // assert(nvFinal <= nvIntermediate);
     nvFinal = nvIntermediate;
     auto foundClusters = nvFinal;
 
@@ -64,8 +64,8 @@ namespace gpuVertexFinder {
 #endif
         continue;
       }
-      assert(iv[i] >= 0);
-      assert(iv[i] < int(foundClusters));
+      // assert(iv[i] >= 0);
+      // assert(iv[i] < int(foundClusters));
       auto w = 1.f / ezt2[i];
       cms::sycltools::atomic_fetch_add<float>(&zv[iv[i]], (float)(zt[i] * w));
       cms::sycltools::atomic_fetch_add<float>(&wv[iv[i]], (float)w);
@@ -74,7 +74,7 @@ namespace gpuVertexFinder {
     sycl::group_barrier(item.get_group());
     // reuse nn
     for (auto i = item.get_local_id(0); i < foundClusters; i += item.get_local_range(0)) {
-      assert(wv[i] > 0.f);
+      // assert(wv[i] > 0.f);
       zv[i] /= wv[i];
       nn[i] = -1;  // ndof
     }

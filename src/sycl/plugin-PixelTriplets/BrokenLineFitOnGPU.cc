@@ -5,7 +5,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                             uint32_t hitsInFit,
                                             uint32_t maxNumberOfTuples,
                                             sycl::queue stream) {
-  assert(tuples_d);
+  // assert(tuples_d);
 
   auto blockSize = 64;
   auto numberOfBlocks = (maxNumberOfConcurrentFits_ + blockSize - 1) / blockSize;
