@@ -36,8 +36,8 @@ namespace cms::sycltools {
           // wait for an event, so all subsequent work in the stream
           // will run only after the event has "occurred" (i.e. data
           // product became available).
-	      // FIXME_EVENT
-		  dataEvent.wait();
+          // FIXME_EVENT
+          dataEvent.wait();
           //stream().submit_barrier({dataEvent});
         }
       }
@@ -70,8 +70,8 @@ namespace cms::sycltools {
 
   ScopedContextProduce::~ScopedContextProduce() {
     // the barrier should be a no-op on an ordered queue, but is used to mark the end of the data processing
-	// FIXME_EVENT
-    event_ = sycl::event{}; //stream().submit_barrier();
+    // FIXME_EVENT
+    event_ = stream().get_wait_list().size() ? stream().get_wait_list().back() : sycl::event{};
   }
 
   ////////////////////
