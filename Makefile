@@ -134,11 +134,11 @@ ifeq ($(wildcard $(ONEAPI_BASE)),)
 endif
 
 # use Intel oneAPI DPC++/C++ Compiler
-SYCL_BASE     := /data/user/aperego/AdaptiveCpp/build
+SYCL_BASE     := /data/user/aperego/AdaptiveCpp/build2
 SYCL_PATH     := $(SYCL_BASE)/bin
 SYCL_LDPATH   := $(SYCL_BASE)/lib
 SYCL_LIBDIR   := $(SYCL_BASE)/lib
-SYCL_CXX      := $(SYCL_BASE)/bin/acpp --gcc-install-dir=/cvmfs/cms.cern.ch/el9_amd64_gcc11/external/gcc/11.4.1-30ebdc301ebd200f2ae0e3d880258e65/lib/gcc/x86_64-redhat-linux-gnu/11.4.1
+SYCL_CXX      := $(SYCL_BASE)/bin/acpp -DGPU_DEBUG --acpp-cpu-cxx=/usr/bin/c++ --gcc-install-dir=/usr/lib/gcc/x86_64-redhat-linux/11 # --gcc-install-dir=/cvmfs/cms.cern.ch/el9_amd64_gcc11/external/gcc/11.4.1-30ebdc301ebd200f2ae0e3d880258e65/lib/gcc/x86_64-redhat-linux-gnu/11.4.1 --acpp-cpu-cxx=/usr/bin/c++
 
 ifneq ($(wildcard $(SYCL_BASE)),)
   # SYCL targets
@@ -164,7 +164,7 @@ ifneq ($(wildcard $(SYCL_BASE)),)
 
   # compile JIT and AOT for all the targets
   #SYCL_TARGETS      := $(subst $(SPACE),$(COMMA),$(strip $(JIT_TARGETS) $(AOT_CPU_TARGETS) $(AOT_INTEL_TARGETS) $(AOT_CUDA_TARGETS) $(AOT_ROCM_TARGETS)))
-  SYCL_FLAGS        := --acpp-targets=cuda:sm_70 -Wno-unknown-cuda-version
+  SYCL_FLAGS        := --acpp-targets="omp.library-only;generic;cuda:sm_70" -Wno-unknown-cuda-version
   #-fsycl -fsycl-targets=$(SYCL_TARGETS) -Xclang -opaque-pointers
   #SYCL_LDFLAGS      := -fsycl-fp32-prec-sqrt -flink-huge-device-code $(JIT_FLAGS) $(AOT_CPU_FLAGS) $(AOT_INTEL_FLAGS) $(AOT_CUDA_FLAGS) $(AOT_ROCM_FLAGS)
 
@@ -280,7 +280,7 @@ export EIGEN_CXXFLAGS := -isystem $(EIGEN_BASE) -DEIGEN_DONT_PARALLELIZE
 export EIGEN_LDFLAGS :=
 export EIGEN_NVCXX_CXXFLAGS := -DEIGEN_USE_GPU -DEIGEN_UNROLLING_LIMIT=64
 export EIGEN_NVCC_CXXFLAGS := --diag-suppress 20014
-export EIGEN_SYCL_CXXFLAGS := -DEIGEN_USE_SYCL -DEIGEN_NO_CUDA
+export EIGEN_SYCL_CXXFLAGS := -DEIGEN_USE_SYCL
 # the flag EIGEN_NO_CUDA prevents Eigen from using CUDA even if __CUDA_ARCH__ is defined( \
     this happens when compiling AOT for CUDA or AMD backend,                              \
     not clear if this is a bug or not,                                                    \
