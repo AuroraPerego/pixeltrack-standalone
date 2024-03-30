@@ -137,11 +137,9 @@ namespace cms {
 
     // in principle not limited....
     template <typename T>
-    void multiBlockPrefixScan(T const* ici, T* ico, int32_t size, int32_t* pc, sycl::nd_item<1> item, T* psum) {
+    void multiBlockPrefixScan(T const* ici, T* ico, int32_t size, int32_t* pc, sycl::nd_item<1> item, T* psum, T* ws, bool* isLastBlockDone) {
       volatile T const* ci = ici;
       volatile T* co = ico;
-      auto wsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<T[32]>(item.get_group());
-      T* ws = (T*)wsbuff.get();
 
       // assert(sizeof(T) * item.get_group_range(0) <= dynamic_smem_size());  // size of psum below TODO_
       assert((int32_t)(item.get_local_range(0) * item.get_group_range(0)) >= size);
@@ -151,9 +149,6 @@ namespace cms {
         blockPrefixScan(ci + off, co + off, std::min(int(item.get_local_range(0)), size - off), item, ws);
 
       // count blocks that finished
-      auto isLastBlockDonebuff = sycl::ext::oneapi::group_local_memory_for_overwrite<bool>(item.get_group());
-      bool* isLastBlockDone = (bool*)isLastBlockDonebuff.get();
-
       if (0 == item.get_local_id(0)) {
         sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
         auto value = cms::sycltools::atomic_fetch_add<int32_t,
@@ -173,9 +168,6 @@ namespace cms {
       // good each block has done its work and now we are left in last block
 
       // let's get the partial sums from each block
-      // auto psumbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<T[nblocks]>(item.get_group());
-      // T* psum = (T*)psumbuff.get();
-
       for (int i = item.get_local_id(0), ni = item.get_group_range(0); i < ni; i += item.get_local_range(0)) {
         int32_t j = item.get_local_range(0) * i + item.get_local_range(0) - 1;
         psum[i] = (j < size) ? co[j] : T(0);

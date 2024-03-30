@@ -464,7 +464,7 @@ namespace pixelgpudetails {
 
   void fillHitsModuleStart(uint32_t const *__restrict__ cluStart,
                            uint32_t *__restrict__ moduleStart,
-                           sycl::nd_item<1> item) {
+                           sycl::nd_item<1> item, uint32_t *ws) {
     assert(gpuClustering::MaxNumModules < 2048);  // easy to extend at least till 32*1024
     assert(1 == item.get_group_range(0));
     assert(0 == item.get_group(0));
@@ -475,9 +475,6 @@ namespace pixelgpudetails {
     for (int i = first, iend = gpuClustering::MaxNumModules; i < iend; i += item.get_local_range(0)) {
       moduleStart[i + 1] = std::min(gpuClustering::maxHitsInModule(), cluStart[i]);
     }
-
-    auto wsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint16_t[32]>(item.get_group());
-    uint16_t *ws = (uint16_t *)wsbuff.get();
 
     cms::sycltools::blockPrefixScan(moduleStart + 1, moduleStart + 1, 1024, item, ws);
     cms::sycltools::blockPrefixScan(
@@ -662,6 +659,24 @@ namespace pixelgpudetails {
         auto clusters_s_kernel = clusters_d.c_moduleStart();
         auto clusters_in_kernel = clusters_d.clusInModule();
         auto clusters_id_kernel = clusters_d.moduleId();
+		sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            local_gMaxHit_acc(1, cgh);
+        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            local_mSize_acc(1, cgh);
+        sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            local_totGood_acc(1, cgh);
+        sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            local_n40_acc(1, cgh);
+        sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            local_n60_acc(1, cgh);
+        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            local_n0_acc(1, cgh);
+        sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            foundClusters_acc(1, cgh);
+        sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            ws_acc(32, cgh);
+        sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            hist_acc(1, cgh);
         cgh.parallel_for<class findClusGPU_kernel>(
             sycl::nd_range<1>(sycl::range<1>(blocks * threadsPerBlock), sycl::range<1>(threadsPerBlock)),
             [=](sycl::nd_item<1> item)
@@ -674,7 +689,16 @@ namespace pixelgpudetails {
                            clusters_id_kernel,
                            digis_clus_kernel,
                            wordCounter,
-                           item);
+                           item,
+                                               (uint32_t *)local_gMaxHit_acc.get_pointer(),
+                                               (int *)local_mSize_acc.get_pointer(),
+                                               (uint32_t *)local_totGood_acc.get_pointer(),
+                                               (uint32_t *)local_n40_acc.get_pointer(),
+                                               (uint32_t *)local_n60_acc.get_pointer(),
+                                               (int *)local_n0_acc.get_pointer(),
+                                               (unsigned int *)foundClusters_acc.get_pointer(),
+											   (unsigned int *)ws_acc.get_pointer(),
+											   (Hist *)hist_acc.get_pointer());
                 });
       });
 #ifdef GPU_DEBUG
@@ -691,6 +715,14 @@ namespace pixelgpudetails {
         auto clusters_in_kernel = clusters_d.clusInModule();
         auto clusters_cs_kernel = clusters_d.c_moduleId();
         auto digis_clus_kernel = digis_d.clus();
+		sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                    charge_acc(MaxNumClustersPerModules, cgh);
+        sycl::accessor<uint8_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            ok_acc(MaxNumClustersPerModules, cgh);
+        sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            newclusId_acc(MaxNumClustersPerModules, cgh);
+        sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                    local_ws_acc(32, cgh);
         cgh.parallel_for<class clusterChargeCut_kernel>(
             sycl::nd_range<1>(sycl::range<1>(blocks * threadsPerBlock), sycl::range<1>(threadsPerBlock)),
             [=](sycl::nd_item<1> item)
@@ -702,7 +734,11 @@ namespace pixelgpudetails {
                                    clusters_cs_kernel,
                                    digis_clus_kernel,
                                    wordCounter,
-                                   item);
+                                   item,
+                                                       (int32_t *)charge_acc.get_pointer(),
+                                                       (uint8_t *)ok_acc.get_pointer(),
+                                                       (uint16_t *)newclusId_acc.get_pointer(),
+                                                       (uint16_t *)local_ws_acc.get_pointer());
                 });
       });
 
@@ -714,11 +750,13 @@ namespace pixelgpudetails {
         // apply charge cut
         auto clusters_in_kernel = clusters_d.c_clusInModule();
         auto clusters_s_kernel = clusters_d.clusModuleStart();
+		sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                    local_ws_acc(32, cgh);
         cgh.parallel_for<class fillHitsModuleStart_kernel>(
             sycl::nd_range<1>(sycl::range<1>(1024), sycl::range<1>(1024)),
             [=](sycl::nd_item<1> item)
                 [[intel::reqd_sub_group_size(32)]] {  // explicitly specify sub-group size (32 is the maximum)
-                  fillHitsModuleStart(clusters_in_kernel, clusters_s_kernel, item);
+                  fillHitsModuleStart(clusters_in_kernel, clusters_s_kernel, item, (uint32_t *)local_ws_acc.get_pointer());
                 });
       });
       // MUST be ONE block

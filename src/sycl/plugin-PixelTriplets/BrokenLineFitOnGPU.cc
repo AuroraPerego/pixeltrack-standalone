@@ -20,6 +20,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
   for (uint32_t offset = 0; offset < maxNumberOfTuples; offset += maxNumberOfConcurrentFits_) {
     // fit triplets
     stream.submit([&](sycl::handler &cgh) {
+	  sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(1, cgh);
       auto tuples_d_kernel = tuples_d;
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
       auto hv_kernel = hv;
@@ -36,7 +37,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                                                        fast_fit_resultsGPU_kernel,
                                                                        3,
                                                                        offset,
-                                                                       item);
+                                                                       item, (int *)done_acc.get_pointer());
                                                   });
     });
 
@@ -64,6 +65,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
 
     // fit quads
     stream.submit([&](sycl::handler &cgh) {
+	  sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(1, cgh);
       auto tuples_d_kernel = tuples_d;
       auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
       auto hv_kernel = hv;
@@ -81,7 +83,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                                                        fast_fit_resultsGPU_kernel,
                                                                        4,
                                                                        offset,
-                                                                       item);
+                                                                       item, (int *)done_acc.get_pointer());
                                                   });
     });
 
@@ -110,6 +112,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
     if (fit5as4_) {
       // fit penta (only first 4)
       stream.submit([&](sycl::handler &cgh) {
+	    sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(1, cgh);
         auto tuples_d_kernel = tuples_d;
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
         auto hv_kernel = hv;
@@ -127,7 +130,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                                                          fast_fit_resultsGPU_kernel,
                                                                          5,
                                                                          offset,
-                                                                         item);
+                                                                         item, (int *)done_acc.get_pointer());
                                                     });
       });
 
@@ -156,6 +159,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
     } else {
       // fit penta (all 5)
       stream.submit([&](sycl::handler &cgh) {
+	    sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local> done_acc(1, cgh);
         auto tuples_d_kernel = tuples_d;
         auto tupleMultiplicity_d_kernel = tupleMultiplicity_d;
         auto hv_kernel = hv;
@@ -173,7 +177,7 @@ void HelixFitOnGPU::launchBrokenLineKernels(HitsView const *hv,
                                                                          fast_fit_resultsGPU_kernel,
                                                                          5,
                                                                          offset,
-                                                                         item);
+                                                                         item,(int *)done_acc.get_pointer());
                                                     });
       });
 

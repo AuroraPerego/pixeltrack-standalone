@@ -21,7 +21,11 @@ namespace gpuClustering {
                         uint32_t const* __restrict__ moduleId,     // module id of each module
                         int32_t* __restrict__ clusterId,           // modified: cluster id of each pixel
                         uint32_t numElements,
-                        sycl::nd_item<1> item) {
+                        sycl::nd_item<1> item,
+                        int32_t* charge,
+                        uint8_t* ok,
+                        uint16_t* newclusId,
+                        uint16_t* ws) {
     if (item.get_group(0) >= moduleStart[0])
       return;
 
@@ -35,7 +39,7 @@ namespace gpuClustering {
       return;
 
     if (item.get_local_id(0) == 0 && nclus > MaxNumClustersPerModules) {
-      printf("Warning too many clusters in module %d in block %d: %d > %d\n",
+      printf("Warning too many clusters in module %d in block %ld: %d > %d\n",
              thisModuleId,
              item.get_group(0),
              nclus,
@@ -62,18 +66,8 @@ namespace gpuClustering {
 #ifdef GPU_DEBUG
     if (thisModuleId % 100 == 1)
       if (item.get_local_id(0) == 0)
-        printf("start clusterizer for module %d in block %d\n", thisModuleId, item.get_group(0));
+        printf("start clusterizer for module %d in block %ld\n", thisModuleId, item.get_group(0));
 #endif
-
-    auto chargebuff =
-        sycl::ext::oneapi::group_local_memory_for_overwrite<int32_t[MaxNumClustersPerModules]>(item.get_group());
-    int32_t* charge = (int32_t*)chargebuff.get();
-    auto okbuff =
-        sycl::ext::oneapi::group_local_memory_for_overwrite<uint8_t[MaxNumClustersPerModules]>(item.get_group());
-    uint8_t* ok = (uint8_t*)okbuff.get();
-    auto newclusIdbuff =
-        sycl::ext::oneapi::group_local_memory_for_overwrite<uint16_t[MaxNumClustersPerModules]>(item.get_group());
-    uint16_t* newclusId = (uint16_t*)newclusIdbuff.get();
 
     assert(nclus <= MaxNumClustersPerModules);
     for (auto i = item.get_local_id(0); i < nclus; i += item.get_local_range(0)) {
@@ -99,8 +93,6 @@ namespace gpuClustering {
     sycl::group_barrier(item.get_group());
 
     // renumber
-    auto wsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint16_t[32]>(item.get_group());
-    uint16_t* ws = (uint16_t*)wsbuff.get();
     cms::sycltools::blockPrefixScan(newclusId, nclus, item, ws);
 
     assert(nclus >= newclusId[nclus - 1]);

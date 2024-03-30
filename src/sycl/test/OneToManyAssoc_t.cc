@@ -23,11 +23,9 @@ using Multiplicity = cms::sycltools::OneToManyAssoc<uint16_t, 8, MaxTk>;
 using TK = std::array<uint16_t, 4>;
 using cms::sycltools::AtomicPairCounter;
 
-void countMultiLocal(TK const* __restrict__ tk, Multiplicity* __restrict__ assoc, int32_t n, sycl::nd_item<1> item) {
+void countMultiLocal(TK const* __restrict__ tk, Multiplicity* __restrict__ assoc, int32_t n, sycl::nd_item<1> item, Multiplicity::CountersOnly* local) {
   int first = item.get_local_range().get(0) * item.get_group(0) + item.get_local_id(0);
   for (int i = first; i < n; i += item.get_group_range(0) * item.get_local_range().get(0)) {
-    auto localbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<Multiplicity::CountersOnly>(item.get_group());
-    Multiplicity::CountersOnly* local = (Multiplicity::CountersOnly*)localbuff.get();
     if (item.get_local_id(0) == 0)
       local->zero();
     sycl::group_barrier(item.get_group());
@@ -291,8 +289,10 @@ int main(int argc, char** argv) {
     auto v_d_get = v_d.get();
     auto m2_d_get = m2_d.get();
 
+    sycl::accessor<Multiplicity::CountersOnly, 1, sycl::access_mode::read_write, sycl::target::local> local_acc(1, cgh);
+
     cgh.parallel_for(sycl::nd_range(sycl::range(nBlocks * nThreads), sycl::range(nThreads)),
-                     [=](sycl::nd_item<1> item) { countMultiLocal(v_d_get, m2_d_get, N, item); });
+                     [=](sycl::nd_item<1> item) { countMultiLocal(v_d_get, m2_d_get, N, item, (Multiplicity::CountersOnly*)local_acc.get_pointer()); });
   });
   queue.submit([&](sycl::handler& cgh) {
     auto m1_d_get = m1_d.get();

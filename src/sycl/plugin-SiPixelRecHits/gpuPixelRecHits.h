@@ -22,7 +22,8 @@ namespace gpuPixelRecHits {
                int numElements,
                SiPixelClustersSYCL::DeviceConstView const* __restrict__ pclusters,
                TrackingRecHit2DSOAView* phits,
-               sycl::nd_item<1> item) {
+               sycl::nd_item<1> item, pixelCPEforGPU::ClusParams* clusParams) {
+
     // FIXME
     // the compiler seems NOT to optimize loads from views (even in a simple test case)
     // The whole gimnastic here of copying or not is a pure heuristic exercise that seems to produce the fastest code with the above signature
@@ -60,10 +61,6 @@ namespace gpuPixelRecHits {
     // to be moved in common namespace...
     constexpr uint16_t InvId = 9999;  // must be > MaxNumModules
     constexpr int32_t MaxHitsInIter = pixelCPEforGPU::MaxHitsInIter;
-
-    using ClusParams = pixelCPEforGPU::ClusParams;
-    auto clusParamsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<ClusParams>(item.get_group());
-    ClusParams* clusParams = (ClusParams*)clusParamsbuff.get();
 
     // as usual one block per module
 

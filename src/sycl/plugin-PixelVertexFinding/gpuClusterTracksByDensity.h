@@ -25,13 +25,16 @@ namespace gpuVertexFinder {
   //
   // based on Rodrighez&Laio algo
   //
-  __attribute__((always_inline)) void clusterTracksByDensity(gpuVertexFinder::ZVertices* pdata,
+  inline void clusterTracksByDensity(gpuVertexFinder::ZVertices* pdata,
                                                              gpuVertexFinder::WorkSpace* pws,
                                                              int minT,       // min number of neighbours to be "seed"
                                                              float eps,      // max absolute distance to cluster
                                                              float errmax,   // max error to be "seed"
                                                              float chi2max,  // max normalized distance to cluster
-                                                             sycl::nd_item<1> item) {
+                                                             sycl::nd_item<1> item,
+                                            Hist *hist,
+                                            Hist::Counter* hws,
+                                            unsigned int* foundClusters) {
     using namespace gpuVertexFinder;
 
 #ifdef VERTEX_DEBUG
@@ -56,11 +59,6 @@ namespace gpuVertexFinder {
 
     assert(pdata);
     assert(zt);
-
-    auto hwsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<Hist::Counter[32]>(item.get_group());
-    Hist::Counter* hws = (Hist::Counter*)hwsbuff.get();
-    auto histbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<Hist>(item.get_group());
-    Hist* hist = (Hist*)histbuff.get();
 
     for (auto j = item.get_local_id(0); j < Hist::totbins(); j += item.get_local_range(0)) {
       hist->off[j] = 0;
@@ -196,8 +194,6 @@ namespace gpuVertexFinder {
     sycl::group_barrier(item.get_group());
 #endif
 
-    auto foundClustersbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<unsigned int>(item.get_group());
-    unsigned int* foundClusters = (unsigned int*)foundClustersbuff.get();
     *foundClusters = 0;
     sycl::group_barrier(item.get_group());
 
@@ -246,8 +242,11 @@ namespace gpuVertexFinder {
                                     float eps,      // max absolute distance to cluster
                                     float errmax,   // max error to be "seed"
                                     float chi2max,  // max normalized distance to cluster
-                                    sycl::nd_item<1> item) {
-    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item);
+                                    sycl::nd_item<1> item,
+                                    Hist *hist,
+									Hist::Counter* hws,
+                                    unsigned int* foundClusters) {
+    clusterTracksByDensity(pdata, pws, minT, eps, errmax, chi2max, item, hist, hws, foundClusters);
   }
 
 }  // namespace gpuVertexFinder

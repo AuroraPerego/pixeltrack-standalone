@@ -25,7 +25,11 @@ namespace gpuVertexFinder {
                               float eps,      // max absolute distance to cluster
                               float errmax,   // max error to be "seed"
                               float chi2max,  // max normalized distance to cluster
-                              sycl::nd_item<1> item) {
+                              sycl::nd_item<1> item,
+                              Hist *hist,
+                              Hist::Counter* hws,
+                              unsigned int* foundClusters,
+							  int* nloops) {
 #ifdef VERTEX_DEBUG
     if (0 == item.get_local_id(0))
       printf("params %d %f %f %f\n", minT, eps, errmax, chi2max);
@@ -48,11 +52,6 @@ namespace gpuVertexFinder {
 
     assert(pdata);
     assert(zt);
-
-    auto hwsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<Hist::Counter[32]>(item.get_group());
-    Hist::Counter* hws = (Hist::Counter*)hwsbuff.get();
-    auto histbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<Hist>(item.get_group());
-    Hist* hist = (Hist*)histbuff.get();
 
     for (auto j = item.get_local_id(0); j < Hist::totbins(); j += item.get_local_range(0)) {
       hist->off[j] = 0;
@@ -109,8 +108,6 @@ namespace gpuVertexFinder {
       cms::sycltools::forEachInBins(*hist, izt[i], 1, loop);
     }
 
-    auto nloopsbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<int>(item.get_group());
-    int* nloops = (int*)nloopsbuff.get();
     *nloops = 0;
 
     sycl::group_barrier(item.get_group());
@@ -178,8 +175,6 @@ namespace gpuVertexFinder {
       cms::sycltools::forEachInBins(*hist, izt[i], 1, loop);
     }
 
-    auto foundClustersbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<unsigned int>(item.get_group());
-    unsigned int* foundClusters = (unsigned int*)foundClustersbuff.get();
     *foundClusters = 0;
     sycl::group_barrier(item.get_group());
 

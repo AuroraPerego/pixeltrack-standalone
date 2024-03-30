@@ -66,6 +66,8 @@ namespace cms {
       auto nblocks = (Histo::totbins() + nthreads - 1) / nthreads;
       stream.submit([&](sycl::handler &cgh) {
         sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::target::local> psum_acc(nblocks, cgh);
+		sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::target::local> ws_acc(32, cgh);
+        sycl::accessor<bool, 0, sycl::access_mode::read_write, sycl::target::local> isLastBlockDone_acc(cgh);
 
         auto Histo_totbins_kernel = Histo::totbins();
 
@@ -74,7 +76,7 @@ namespace cms {
             [=](sycl::nd_item<1> item)
                 [[intel::reqd_sub_group_size(32)]] {  // explicitly specify sub-group size (16 is the default)
                   multiBlockPrefixScan<uint32_t>(
-                      poff, poff, Histo_totbins_kernel, ppsws, item, (uint32_t *)psum_acc.get_pointer());
+                      poff, poff, Histo_totbins_kernel, ppsws, item, (uint32_t *)psum_acc.get_pointer(), (uint32_t*)ws_acc.get_pointer(), (bool *)isLastBlockDone_acc.get_pointer());
                 });
       });
     }

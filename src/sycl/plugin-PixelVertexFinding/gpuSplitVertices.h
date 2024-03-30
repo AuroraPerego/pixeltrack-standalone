@@ -17,10 +17,18 @@
 namespace gpuVertexFinder {
   using sycl::fabs;
 
-  __attribute__((always_inline)) void splitVertices(ZVertices* pdata,
+  inline void splitVertices(ZVertices* pdata,
                                                     WorkSpace* pws,
                                                     float maxChi2,
-                                                    sycl::nd_item<1> item) {
+                                                    sycl::nd_item<1> item,
+                                   uint32_t *it,
+                                   float *zz,
+                                   uint8_t *newV,
+                                   float *ww,
+                                   uint32_t *nq,
+                                   float *znew,
+                                   float *wnew,
+                                   uint32_t *igv) {
     auto& __restrict__ data = *pdata;
     auto& __restrict__ ws = *pws;
     auto nt = ws.ntrks;
@@ -49,17 +57,6 @@ namespace gpuVertexFinder {
       if (nn[kv] >= MAXTK)
         continue;  // too bad FIXME
 
-      auto itbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t[MAXTK]>(item.get_group());
-      uint32_t* it = (uint32_t*)itbuff.get();  // track index
-      auto zzbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<float[MAXTK]>(item.get_group());
-      float* zz = (float*)zzbuff.get();  // z pos
-      auto newVbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint8_t[MAXTK]>(item.get_group());
-      uint8_t* newV = (uint8_t*)newVbuff.get();  // 0 or 1
-      auto wwbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<float[MAXTK]>(item.get_group());
-      float* ww = (float*)wwbuff.get();  // z weight
-
-      auto nqbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t>(item.get_group());
-      uint32_t* nq = (uint32_t*)nqbuff.get();  // number of track for this vertex
       *nq = 0;                                 // number of track for this vertex
       sycl::group_barrier(item.get_group());
 
@@ -74,11 +71,6 @@ namespace gpuVertexFinder {
           it[old] = k;
         }
       }
-
-      auto znewbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<float[2]>(item.get_group());
-      float* znew = (float*)znewbuff.get();  // the new vertices
-      auto wnewbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<float[2]>(item.get_group());
-      float* wnew = (float*)wnewbuff.get();  // the new vertices
 
       sycl::group_barrier(item.get_group());
       assert(int(*nq) == nn[kv] + 1);
@@ -136,8 +128,6 @@ namespace gpuVertexFinder {
         continue;
 
       // get a new global vertex
-      auto igvbuff = sycl::ext::oneapi::group_local_memory_for_overwrite<uint32_t>(item.get_group());
-      uint32_t* igv = (uint32_t*)igvbuff.get();
       if (0 == item.get_local_id(0))
         *igv = cms::sycltools::atomic_fetch_add<uint32_t>(&ws.nvIntermediate, (uint32_t)1);
       sycl::group_barrier(item.get_group());
@@ -149,8 +139,16 @@ namespace gpuVertexFinder {
     }  // loop on vertices
   }
 
-  void splitVerticesKernel(ZVertices* pdata, WorkSpace* pws, float maxChi2, sycl::nd_item<1> item) {
-    splitVertices(pdata, pws, maxChi2, item);
+  void splitVerticesKernel(ZVertices* pdata, WorkSpace* pws, float maxChi2, sycl::nd_item<1> item,
+                                    uint32_t *it,
+                                    float *zz,
+                                    uint8_t *newV,
+                                    float *ww,
+                                    uint32_t *nq,
+                                    float *znew,
+                                    float *wnew,
+                                    uint32_t *igv) {
+    splitVertices(pdata, pws, maxChi2, item, it, zz, newV, ww, nq, znew, wnew, igv);
   }
 }  // namespace gpuVertexFinder
 

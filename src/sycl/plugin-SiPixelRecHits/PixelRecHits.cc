@@ -25,7 +25,7 @@ namespace {
     if (i < 11) {
       hitsLayerStart[i] = hitsModuleStart[cpeParams->layerGeometry().layerStart[i]];
 #ifdef GPU_DEBUG
-      printf("LayerStart[%d] %d: %d\n", i, cpeParams->layerGeometry().layerStart[i], hitsLayerStart[i]);
+      printf("LayerStart[%ld] %d: %d\n", i, cpeParams->layerGeometry().layerStart[i], hitsLayerStart[i]);
 #endif
     }
   }
@@ -47,8 +47,10 @@ namespace pixelgpudetails {
 #ifdef GPU_DEBUG
     std::cout << "launching getHits kernel for " << blocks << " blocks" << std::endl;
 #endif
-    if (blocks)  // protect from empty events
+    if (blocks) { // protect from empty events
+	  using clusParams = pixelCPEforGPU::ClusParams;
       stream.submit([&](sycl::handler& cgh) {
+		sycl::accessor<clusParams, 1, sycl::access_mode::read_write, sycl::access::target::local> clusParams_acc(32, cgh);
         auto cpeParams_kernel = cpeParams;
         auto bs_d_kernel = bs_d.data();
         auto digis_view_kernel = digis_d.view();
@@ -63,9 +65,10 @@ namespace pixelgpudetails {
                                                                           digis_n_kernel,
                                                                           clusters_d_kernel,
                                                                           hits_d_kernel,
-                                                                          item);
+                                                                          item, (clusParams*)clusParams_acc.get_pointer());
                                                });
       });
+	}
 
 #ifdef GPU_DEBUG
     stream.wait();

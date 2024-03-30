@@ -279,6 +279,24 @@ int main(int argc, char **argv) {
         auto d_clusInModule_get = d_clusInModule.get();
         auto d_moduleId_get = d_moduleId.get();
         auto d_clus_get = d_clus.get();
+		sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            local_gMaxHit_acc(1, cgh);
+        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            local_mSize_acc(1, cgh);
+        sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            local_totGood_acc(1, cgh);
+        sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            local_n40_acc(1, cgh);
+        sycl::accessor<uint32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            local_n60_acc(1, cgh);
+        sycl::accessor<int, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            local_n0_acc(1, cgh);
+        sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            foundClusters_acc(1, cgh);
+        sycl::accessor<unsigned int, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            ws_acc(32, cgh);
+        sycl::accessor<Hist, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            hist_acc(1, cgh);
 
         cgh.parallel_for<class findClus_kernel_t>(
             sycl::nd_range<1>(blocksPerGrid * threadsPerBlock, threadsPerBlock),
@@ -291,7 +309,16 @@ int main(int argc, char **argv) {
                        d_moduleId_get,
                        d_clus_get,
                        n,
-                       item);
+                       item,
+                       (uint32_t *)local_gMaxHit_acc.get_pointer(),
+                       (int *)local_mSize_acc.get_pointer(),
+                       (uint32_t *)local_totGood_acc.get_pointer(),
+                       (uint32_t *)local_n40_acc.get_pointer(),
+                       (uint32_t *)local_n60_acc.get_pointer(),
+                       (int *)local_n0_acc.get_pointer(),
+                       (unsigned int *)foundClusters_acc.get_pointer(),
+											   (unsigned int *)ws_acc.get_pointer(),
+											   (Hist *)hist_acc.get_pointer());
             });
       });
     queue.memcpy(&nModules, d_moduleStart.get(), sizeof(uint32_t));
@@ -316,12 +343,24 @@ int main(int argc, char **argv) {
       auto d_clusInModule_get = d_clusInModule.get();
       auto d_moduleId_get = d_moduleId.get();
       auto d_clus_get = d_clus.get();
+		sycl::accessor<int32_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                    charge_acc(MaxNumClustersPerModules, cgh);
+        sycl::accessor<uint8_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            ok_acc(MaxNumClustersPerModules, cgh);
+        sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+            newclusId_acc(MaxNumClustersPerModules, cgh);
+        sycl::accessor<uint16_t, 1, sycl::access_mode::read_write, sycl::access::target::local>
+                    local_ws_acc(32, cgh);
 
       cgh.parallel_for<class clusterChargeCut_kernel>(
           sycl::nd_range<1>(blocksPerGrid * threadsPerBlock, threadsPerBlock),
           [=](sycl::nd_item<1> item) [[intel::reqd_sub_group_size(32)]] {
             clusterChargeCut(
-                d_id_get, d_adc_get, d_moduleStart_get, d_clusInModule_get, d_moduleId_get, d_clus_get, n, item);
+                d_id_get, d_adc_get, d_moduleStart_get, d_clusInModule_get, d_moduleId_get, d_clus_get, n, item,
+                                                       (int32_t *)charge_acc.get_pointer(),
+                                                       (uint8_t *)ok_acc.get_pointer(),
+                                                       (uint16_t *)newclusId_acc.get_pointer(),
+                                                       (uint16_t *)local_ws_acc.get_pointer());
           });
     });
 
