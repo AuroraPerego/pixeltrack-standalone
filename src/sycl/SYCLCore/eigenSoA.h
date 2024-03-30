@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdint>
 
+#define SYCL_EXTERNAL
 #include <Eigen/Core>
 
 namespace eigenSoA {

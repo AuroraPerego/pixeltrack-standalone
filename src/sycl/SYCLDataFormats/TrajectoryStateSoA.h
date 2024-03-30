@@ -1,5 +1,6 @@
 #ifndef SYCLDataFormatsTrackTrajectoryStateSOA_H
 #define SYCLDataFormatsTrackTrajectoryStateSOA_H
+#define SYCL_EXTERNAL
 
 #include <Eigen/Dense>
 #include "SYCLCore/eigenSoA.h"

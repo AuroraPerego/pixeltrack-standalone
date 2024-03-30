@@ -2,6 +2,7 @@
 #define DataFormat_Math_choleskyInversion_h
 
 #include <cmath>
+#define SYCL_EXTERNAL
 
 #include <Eigen/Core>
 
