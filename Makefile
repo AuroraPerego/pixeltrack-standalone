@@ -164,7 +164,7 @@ ifneq ($(wildcard $(SYCL_BASE)),)
 
   # compile JIT and AOT for all the targets
   #SYCL_TARGETS      := $(subst $(SPACE),$(COMMA),$(strip $(JIT_TARGETS) $(AOT_CPU_TARGETS) $(AOT_INTEL_TARGETS) $(AOT_CUDA_TARGETS) $(AOT_ROCM_TARGETS)))
-  SYCL_FLAGS        := --acpp-targets="omp.library-only;generic;cuda:sm_70" -Wno-unknown-cuda-version
+  SYCL_FLAGS        := --acpp-targets="omp.library-only;generic;cuda:sm_70" -Wno-unknown-cuda-version -isystem /data/user/aperego/AdaptiveCpp/include
   #-fsycl -fsycl-targets=$(SYCL_TARGETS) -Xclang -opaque-pointers
   #SYCL_LDFLAGS      := -fsycl-fp32-prec-sqrt -flink-huge-device-code $(JIT_FLAGS) $(AOT_CPU_FLAGS) $(AOT_INTEL_FLAGS) $(AOT_CUDA_FLAGS) $(AOT_ROCM_FLAGS)
 
