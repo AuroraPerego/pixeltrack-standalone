@@ -24,6 +24,13 @@ namespace cms::sycltools {
       }
     }
     temp.insert(temp.end(), cpus.begin(), cpus.end());
+	// Lambda function to check if device name contains "host"
+    auto contains_host = [](const sycl::device& dev) {
+        return dev.get_info<sycl::info::device::name>().find("host") != std::string::npos;
+    };
+
+    // Remove devices containing "host" in their name
+    temp.erase(std::remove_if(temp.begin(), temp.end(), contains_host), temp.end());
 
     for (auto it = gpus.begin(); it != gpus.end(); it++) {
       if (it + 1 == gpus.end()) {
