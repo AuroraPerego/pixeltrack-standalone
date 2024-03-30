@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
   sycl::queue queue = sycl::queue(device, sycl::property::queue::in_order());
 
   std::cout << "AtomicPairCounter offload to " << device.get_info<sycl::info::device::name>() << " on backend "
-            << device.get_backend() << std::endl;
+            << std::endl;
 
   AtomicPairCounter *dc_d = sycl::malloc_device<AtomicPairCounter>(1, queue);
   queue.memset(dc_d, 0, sizeof(AtomicPairCounter)).wait();

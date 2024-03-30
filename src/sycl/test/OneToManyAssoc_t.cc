@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
   sycl::device device = cms::sycltools::chooseDevice(0);
   sycl::queue queue = sycl::queue(device, sycl::property::queue::in_order());
   std::cout << "OneToMany offload to " << device.get_info<sycl::info::device::name>() << " on backend "
-            << device.get_backend() << std::endl;
+            << std::endl;
 
   auto v_d = cms::sycltools::make_device_unique<std::array<uint16_t, 4>[]>(N, queue);
   assert(v_d.get());

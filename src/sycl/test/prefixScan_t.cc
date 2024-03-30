@@ -138,7 +138,7 @@ int main(int argc, char **argv) try {
   sycl::queue queue = sycl::queue(device, sycl::property::queue::in_order());
 
   std::cout << "Prefixscan offload to " << device.get_info<sycl::info::device::name>() << " on backend "
-            << device.get_backend() << std::endl;
+            << std::endl;
 
   // query the device for the maximum workgroup size
   // FIXME the OpenCL CPU device reports a maximum workgroup size of 8192,

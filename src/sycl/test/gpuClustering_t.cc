@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
   sycl::queue queue = sycl::queue(device, sycl::property::queue::in_order());
 
   std::cout << "gpuClustering offload to " << device.get_info<sycl::info::device::name>() << " on backend "
-            << device.get_backend() << std::endl;
+            << std::endl;
 
   int numElements = 256 * 2000;
   // these in reality are already on GPU
