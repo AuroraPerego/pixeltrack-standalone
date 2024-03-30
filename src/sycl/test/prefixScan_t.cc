@@ -58,8 +58,9 @@ void testWarpPrefixScan(sycl::nd_item<1> item, uint32_t size, T *c, T *co) {
   c[i] = 1;
   sycl::group_barrier(item.get_group());
 
-  warpPrefixScan(c, co, i, item);
-  warpPrefixScan(c, i, item);
+  auto laneId = i & 31;
+  warpPrefixScan(laneId, c, co, i, item);
+  warpPrefixScan(laneId, c, i, item);
   sycl::group_barrier(item.get_group());
 
   //assert(1 == c[0]);
