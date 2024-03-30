@@ -20,8 +20,6 @@
 #include "CAConstants.h"
 #include "CircleEq.h"
 
-using ::hipsycl::sycl::detail::__hipsycl_abs;
-
 class GPUCACell {
 public:
   using ptrAsInt = unsigned long long;
@@ -179,7 +177,7 @@ public:
 
   __attribute__((always_inline)) static bool areAlignedRZ(
       float r1, float z1, float ri, float zi, float ro, float zo, const float ptmin, const float thetaCut) {
-    float radius_diff = abs(r1 - ro);
+    float radius_diff = ::hipsycl::sycl::detail::__hipsycl_abs(r1 - ro);
     float distance_13_squared = radius_diff * radius_diff + (z1 - zo) * (z1 - zo);
 
     float pMin = ptmin * sycl::sqrt(distance_13_squared);  // this needs to be divided by
@@ -207,7 +205,7 @@ public:
     if (eq.curvature() > maxCurv)
       return false;
 
-    return abs(eq.dca0()) < region_origin_radius_plus_tolerance * abs(eq.curvature());
+    return ::hipsycl::sycl::detail::__hipsycl_abs(eq.dca0()) < region_origin_radius_plus_tolerance * ::hipsycl::sycl::detail::__hipsycl_abs(eq.curvature());
   }
 
   __attribute__((always_inline)) static bool dcaCutH(float x1,
@@ -223,7 +221,7 @@ public:
     if (eq.curvature() > maxCurv)
       return false;
 
-    return abs(eq.dca0()) < region_origin_radius_plus_tolerance * abs(eq.curvature());
+    return ::hipsycl::sycl::detail::__hipsycl_abs(eq.dca0()) < region_origin_radius_plus_tolerance * ::hipsycl::sycl::detail::__hipsycl_abs(eq.curvature());
   }
 
   inline bool hole0(Hits const& hh, GPUCACell const& innerCell) const {
@@ -243,7 +241,7 @@ public:
     auto ro = get_outer_r(hh);
     auto zo = get_outer_z(hh);
     auto z0 = zi + (r0 - ri) * (zo - zi) / (ro - ri);
-    auto z_in_ladder = abs(z0 - hh.averageGeometry().ladderZ[il]);
+    auto z_in_ladder = ::hipsycl::sycl::detail::__hipsycl_abs(z0 - hh.averageGeometry().ladderZ[il]);
     auto z_in_module = z_in_ladder - module_length * int(z_in_ladder / module_length);
     auto gap = z_in_module < module_tolerance || z_in_module > (module_length - module_tolerance);
     return gap;
@@ -270,7 +268,7 @@ public:
     auto ro = get_outer_r(hh);
     auto zo = get_outer_z(hh);
     auto z4 = zo + (r4 - ro) * (zo - zi) / (ro - ri);
-    auto z_in_ladder = abs(z4 - hh.averageGeometry().ladderZ[il]);
+    auto z_in_ladder = ::hipsycl::sycl::detail::__hipsycl_abs(z4 - hh.averageGeometry().ladderZ[il]);
     auto z_in_module = z_in_ladder - module_length * int(z_in_ladder / module_length);
     auto gap = z_in_module < module_tolerance || z_in_module > (module_length - module_tolerance);
     auto holeP = z4 > hh.averageGeometry().ladderMaxZ[il] && z4 < hh.averageGeometry().endCapZ[0];
