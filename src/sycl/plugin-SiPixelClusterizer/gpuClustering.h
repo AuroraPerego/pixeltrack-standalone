@@ -9,7 +9,6 @@
 #include "SYCLCore/HistoContainer.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
-#include "SYCLCore/printf.h"
 
 #include "SYCLDataFormats/gpuClusteringConstants.h"
 

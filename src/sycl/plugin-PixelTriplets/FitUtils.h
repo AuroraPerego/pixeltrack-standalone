@@ -3,7 +3,6 @@
 
 #include <sycl/sycl.hpp>
 
-#include "SYCLCore/printf.h"
 #include "SYCLCore/sycl_assert.h"
 
 #include "choleskyInversion.h"

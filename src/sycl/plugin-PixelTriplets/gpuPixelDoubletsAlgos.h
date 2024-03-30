@@ -14,7 +14,6 @@
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/AtomicPairCounter.h"
 #include "SYCLCore/syclAtomic.h"
-#include "SYCLCore/printf.h"
 
 #include "CAConstants.h"
 #include "GPUCACell.h"

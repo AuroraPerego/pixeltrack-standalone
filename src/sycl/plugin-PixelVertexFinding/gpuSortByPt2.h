@@ -8,7 +8,6 @@
 #include "SYCLCore/HistoContainer.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
-#include "SYCLCore/printf.h"
 #include "SYCLCore/radixSort.h"
 
 #include "gpuVertexFinder.h"

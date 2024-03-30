@@ -9,7 +9,6 @@
 #include "SYCLCore/HistoContainer.h"
 #include "SYCLCore/device_unique_ptr.h"
 #include "SYCLCore/chooseDevice.h"
-#include "SYCLCore/printf.h"
 
 using namespace cms::sycltools;
 

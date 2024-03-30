@@ -9,7 +9,6 @@
 #include <cstdint>
 
 #include "SYCLCore/AtomicPairCounter.h"
-#include "SYCLCore/printf.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/syclAtomic.h"
 #include "CondFormats/pixelCPEforGPU.h"

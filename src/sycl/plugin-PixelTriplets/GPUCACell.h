@@ -10,7 +10,6 @@
 #include <sycl/sycl.hpp>
 #include <atomic>
 
-#include "SYCLCore/printf.h"
 #include "SYCLCore/SimpleVector.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/VecArray.h"

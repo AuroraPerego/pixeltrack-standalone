@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "Framework/Event.h"
-#include "SYCLCore/printf.h"
 
 #include "CAHitNtupletGeneratorOnGPU.h"
 

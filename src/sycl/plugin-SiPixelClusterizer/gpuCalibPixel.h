@@ -7,7 +7,6 @@
 
 #include "CondFormats/SiPixelGainForHLTonGPU.h"
 #include "SYCLCore/sycl_assert.h"
-#include "SYCLCore/printf.h"
 
 #include "SYCLDataFormats/gpuClusteringConstants.h"
 

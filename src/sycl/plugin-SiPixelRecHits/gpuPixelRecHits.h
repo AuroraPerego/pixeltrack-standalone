@@ -10,7 +10,6 @@
 #include "SYCLCore/sycl_assert.h"
 #include "CondFormats/pixelCPEforGPU.h"
 #include "SYCLCore/AtomicPairCounter.h"
-#include "SYCLCore/printf.h"
 
 //#define GPU_DEBUG
 

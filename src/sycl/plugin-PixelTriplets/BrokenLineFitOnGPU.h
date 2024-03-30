@@ -10,7 +10,6 @@
 
 #include "CondFormats/pixelCPEforGPU.h"
 #include "SYCLDataFormats/TrackingRecHit2DSYCL.h"
-#include "SYCLCore/printf.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/AtomicPairCounter.h"
 

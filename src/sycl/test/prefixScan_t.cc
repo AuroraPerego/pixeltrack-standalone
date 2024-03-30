@@ -6,7 +6,6 @@
 
 #include "SYCLCore/chooseDevice.h"
 #include "SYCLCore/prefixScan.h"
-#include "SYCLCore/printf.h"
 
 template <typename T>
 void testPrefixScan(sycl::nd_item<1> item, uint32_t size, T* ws, T* c, T* co) {

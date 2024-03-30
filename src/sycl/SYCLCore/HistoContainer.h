@@ -11,7 +11,6 @@
 #include "SYCLCore/syclAtomic.h"
 #include "SYCLCore/sycl_assert.h"
 #include "SYCLCore/prefixScan.h"
-#include "SYCLCore/printf.h"
 
 namespace cms {
   namespace sycltools {

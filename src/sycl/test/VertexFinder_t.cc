@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "SYCLCore/chooseDevice.h"
-#include "SYCLCore/printf.h"
 
 #ifdef USE_DBSCAN
 #include "plugin-PixelVertexFinding/gpuClusterTracksDBSCAN.h"
