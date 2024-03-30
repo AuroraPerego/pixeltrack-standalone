@@ -183,13 +183,13 @@ namespace gpuPixelRecHits {
       first = clusters.clusModuleStart(me) + startClus;
 
       for (int ic = item.get_local_id(0); ic < nClusInIter; ic += item.get_local_range().get(0)) {
-        auto h = first + ic;  // output index in global memory
+        int h = first + ic;  // output index in global memory
 
         // this cannot happen anymore
-        if (h >= TrackingRecHit2DSOAView::maxHits())
+        if ((unsigned int)h >= TrackingRecHit2DSOAView::maxHits())
           break;  // overflow...
-        assert(h < hits.nHits());
-        assert(h < clusters.clusModuleStart(me + 1));
+        assert((unsigned int)h < hits.nHits());
+        assert((unsigned int)h < clusters.clusModuleStart(me + 1));
 
         // printf("maxRow[%d]= %d\n", ic, clusParams->maxRow[ic]);
         pixelCPEforGPU::position(cpeParams->commonParams(), cpeParams->detParams(me), *clusParams, ic);

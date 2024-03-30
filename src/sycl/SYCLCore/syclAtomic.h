@@ -50,7 +50,7 @@ namespace cms {
       //          break;
       //      }
       //      return old;
-      return atm.fetch_add(1);
+      return atm.fetch_add(static_cast<T>(1));
     }
 
     template <typename T,

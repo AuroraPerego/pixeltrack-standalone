@@ -8,7 +8,7 @@
 // #define ONLY_TRIPLETS_IN_HOLE
 
 #include <sycl/sycl.hpp>
-#include <stdatomic.h>
+#include <atomic>
 
 #include "SYCLCore/printf.h"
 #include "SYCLCore/SimpleVector.h"

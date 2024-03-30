@@ -27,7 +27,6 @@ private:
 
   // Tracking cuts before sending tracks to vertex algo
   const float m_ptMin;
-  std::optional<bool> isCpu_;
 };
 
 PixelVertexProducerSYCL::PixelVertexProducerSYCL(edm::ProductRegistry& reg)
@@ -52,12 +51,9 @@ void PixelVertexProducerSYCL::produce(edm::Event& iEvent, const edm::EventSetup&
   cms::sycltools::ScopedContextProduce ctx{ptracks};
   auto const* tracks = ctx.get(ptracks).get();
 
-  if (!isCpu_)
-    isCpu_ = ctx.stream().get_device().is_cpu();
-
   assert(tracks);
 
-  ctx.emplace(iEvent, tokenGPUVertex_, m_gpuAlgo.makeAsync(ctx.stream(), tracks, m_ptMin, *isCpu_));
+  ctx.emplace(iEvent, tokenGPUVertex_, m_gpuAlgo.makeAsync(ctx.stream(), tracks, m_ptMin));
 }
 
 DEFINE_FWK_MODULE(PixelVertexProducerSYCL);

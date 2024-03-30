@@ -43,16 +43,16 @@ namespace BrokenLine {
 
   /*!
     \brief Computes the Coulomb multiple scattering variance of the planar angle.
-    
+
     \param length length of the track in the material.
     \param B magnetic field in Gev/cm/c.
     \param R radius of curvature (needed to evaluate p).
     \param Layer denotes which of the four layers of the detector is the endpoint of the multiple scattered track. For example, if Layer=3, then the particle has just gone through the material between the second and the third layer.
-    
+
     \todo add another Layer variable to identify also the start point of the track, so if there are missing hits or multiple hits, the part of the detector that the particle has traversed can be exactly identified.
-    
+
     \warning the formula used here assumes beta=1, and so neglects the dependence of theta_0 on the mass of the particle at fixed momentum.
-    
+
     \return the variance of the planar angle ((theta_0)^2 /3).
   */
   inline double MultScatt(const double& length, const double B, const double R, int Layer, double slope) {
@@ -72,9 +72,9 @@ namespace BrokenLine {
 
   /*!
     \brief Computes the 2D rotation matrix that transforms the line y=slope*x into the line y=0.
-    
+
     \param slope tangent of the angle of rotation.
-    
+
     \return 2D rotation matrix.
   */
   inline Rfit::Matrix2d RotationMatrix(double slope) {
@@ -88,7 +88,7 @@ namespace BrokenLine {
 
   /*!
     \brief Changes the Karimäki parameters (and consequently their covariance matrix) under a translation of the coordinate system, such that the old origin has coordinates (x0,y0) in the new coordinate system. The formulas are taken from Karimäki V., 1990, Effective circle fitting for particle trajectories, Nucl. Instr. and Meth. A305 (1991) 187.
-    
+
     \param circle circle fit in the old coordinate system.
     \param x0 x coordinate of the translation vector.
     \param y0 y coordinate of the translation vector.
@@ -121,7 +121,7 @@ namespace BrokenLine {
 
   /*!
     \brief Computes the data needed for the Broken Line fit procedure that are mainly common for the circle and the line fit.
-    
+
     \param hits hits coordinates.
     \param hits_cov hits covariance matrix.
     \param fast_fit pre-fit result in the form (X0,Y0,R,tan(theta)).
@@ -175,11 +175,11 @@ namespace BrokenLine {
 
   /*!
     \brief Computes the n-by-n band matrix obtained minimizing the Broken Line's cost function w.r.t u. This is the whole matrix in the case of the line fit and the main n-by-n block in the case of the circle fit.
-    
+
     \param w weights of the first part of the cost function, the one with the measurements and not the angles (\sum_{i=1}^n w*(y_i-u_i)^2).
     \param S total distance traveled by the particle from the pre-fitted closest approach.
     \param VarBeta kink angles' variance.
-    
+
     \return the n-by-n matrix of the linear system
   */
   template <int N>
@@ -216,11 +216,11 @@ namespace BrokenLine {
 
   /*!
     \brief A very fast helix fit.
-    
+
     \param hits the measured hits.
-    
+
     \return (X0,Y0,R,tan(theta)).
-    
+
     \warning sign of theta is (intentionally, for now) mistaken for negative charges.
   */
 
@@ -250,7 +250,7 @@ namespace BrokenLine {
 
   /*!
     \brief Performs the Broken Line fit in the curved track case (that is, the fit parameters are the interceptions u and the curvature correction \Delta\kappa).
-    
+
     \param hits hits coordinates.
     \param hits_cov hits covariance matrix.
     \param fast_fit pre-fit result in the form (X0,Y0,R,tan(theta)).
@@ -260,7 +260,7 @@ namespace BrokenLine {
     -par parameter of the line in this form: (phi, d, k); \n
     -cov covariance matrix of the fitted parameter; \n
     -chi2 value of the cost function in the minimum.
-    
+
     \details The function implements the steps 2 and 3 of the Broken Line fit with the curvature correction.\n
     The step 2 is the least square fit, done by imposing the minimum constraint on the cost function and solving the consequent linear system. It determines the fitted parameters u and \Delta\kappa and their covariance matrix.
     The step 3 is the correction of the fast pre-fitted parameters for the innermost part of the track. It is first done in a comfortable coordinate system (the one in which the first hit is the origin) and then the parameters and their covariance matrix are transformed to the original coordinate system.
@@ -395,7 +395,7 @@ namespace BrokenLine {
 
   /*!
     \brief Performs the Broken Line fit in the straight track case (that is, the fit parameters are only the interceptions u).
-    
+
     \param hits hits coordinates.
     \param hits_cov hits covariance matrix.
     \param fast_fit pre-fit result in the form (X0,Y0,R,tan(theta)).
@@ -405,7 +405,7 @@ namespace BrokenLine {
     -par parameter of the line in this form: (cot(theta), Zip); \n
     -cov covariance matrix of the fitted parameter; \n
     -chi2 value of the cost function in the minimum.
-    
+
     \details The function implements the steps 2 and 3 of the Broken Line fit without the curvature correction.\n
     The step 2 is the least square fit, done by imposing the minimum constraint on the cost function and solving the consequent linear system. It determines the fitted parameters u and their covariance matrix.
     The step 3 is the correction of the fast pre-fitted parameters for the innermost part of the track. It is first done in a comfortable coordinate system (the one in which the first hit is the origin) and then the parameters and their covariance matrix are transformed to the original coordinate system.
@@ -507,7 +507,7 @@ namespace BrokenLine {
     -circle fit of the hits projected in the transverse plane by Broken Line algorithm (see BL_Circle_fit() for further info); \n
     -line fit of the hits projected on the (pre-fitted) cilinder surface by Broken Line algorithm (see BL_Line_fit() for further info); \n
     Points must be passed ordered (from inner to outer layer).
-    
+
     \param hits Matrix3xNd hits coordinates in this form: \n
     |x1|x2|x3|...|xn| \n
     |y1|y2|y3|...|yn| \n
@@ -528,11 +528,11 @@ namespace BrokenLine {
     |(x1,z3)|(x2,z3)|(x3,z3)|(x4,z3)|.|(y1,z3)|(y2,z3)|(y3,z3)|(y4,z3)|.|(z1,z3)|(z2,z3)|(z3,z3)|(z4,z3)| \n
     |(x1,z4)|(x2,z4)|(x3,z4)|(x4,z4)|.|(y1,z4)|(y2,z4)|(y3,z4)|(y4,z4)|.|(z1,z4)|(z2,z4)|(z3,z4)|(z4,z4)|
     \param B magnetic field in the center of the detector in Gev/cm/c, in order to perform the p_t calculation.
-    
+
     \warning see BL_Circle_fit(), BL_Line_fit() and Fast_fit() warnings.
-    
+
     \bug see BL_Circle_fit(), BL_Line_fit() and Fast_fit() bugs.
-    
+
     \return (phi,Tip,p_t,cot(theta)),Zip), their covariance matrix and the chi2's of the circle and line fits.
   */
   template <int N>

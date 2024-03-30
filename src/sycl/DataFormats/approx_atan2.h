@@ -15,10 +15,10 @@ I=[-1+10^(-4);1.0];
 filename="atan.txt";
 print("") > filename;
 for deg from 3 to 11 do begin
-  p = fpminimax(f, deg,[|1,23...|],I, floating, absolute); 
+  p = fpminimax(f, deg,[|1,23...|],I, floating, absolute);
   display=decimal;
   acc=floor(-log2(sup(supnorm(p, f, I, absolute, 2^(-20)))));
-  print( "   // degree = ", deg, 
+  print( "   // degree = ", deg,
          "  => absolute accuracy is ",  acc, "bits" ) >> filename;
   print("template<> constexpr float approx_atan2f_P<", deg, ">(float x){") >> filename;
   display=hexadecimal;
