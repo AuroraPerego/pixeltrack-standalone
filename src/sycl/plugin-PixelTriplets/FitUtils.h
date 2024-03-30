@@ -11,7 +11,7 @@
 
 namespace Rfit {
 
-  using sycl::abs;
+  using ::hipsycl::sycl::detail::__hipsycl_abs;
   using sycl::atan2;
   using sycl::sqrt;
 

@@ -23,13 +23,13 @@
 
 namespace gpuPixelDoublets {
 
-  using sycl::abs;
+  using ::hipsycl::sycl::detail::__hipsycl_abs;
   using CellNeighbors = CAConstants::CellNeighbors;
   using CellTracks = CAConstants::CellTracks;
   using CellNeighborsVector = CAConstants::CellNeighborsVector;
   using CellTracksVector = CAConstants::CellTracksVector;
 
-  __attribute__((always_inline)) void doubletsFromHisto(uint8_t const* __restrict__ layerPairs,
+  inline void doubletsFromHisto(uint8_t const* __restrict__ layerPairs,
                                                         uint32_t nPairs,
                                                         GPUCACell* cells,
                                                         uint32_t* nCells,
@@ -249,7 +249,7 @@ namespace gpuPixelDoublets {
 
 #ifdef GPU_DEBUG
       if (tooMany > 0)
-        printf("OuterHitOfCell full for %d in layer %d/%d, %d,%d %d\n", i, inner, outer, nmin, tot, tooMany);
+        printf("OuterHitOfCell full for %ld in layer %d/%d, %d,%d %d\n", i, inner, outer, nmin, tot, tooMany);
 #endif
     }  // loop in block...
   }

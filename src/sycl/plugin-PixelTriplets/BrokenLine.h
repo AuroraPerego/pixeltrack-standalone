@@ -3,13 +3,15 @@
 
 #include <sycl/sycl.hpp>
 
+#define SYCL_EXTERNAL
+
 #include <Eigen/Eigenvalues>
 
 #include "FitUtils.h"
 
 namespace BrokenLine {
 
-  using sycl::abs;
+  using ::hipsycl::sycl::detail::__hipsycl_abs;
   using sycl::atan;
   using sycl::atan2;
   using sycl::cos;

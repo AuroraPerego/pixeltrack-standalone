@@ -31,7 +31,7 @@ namespace edm {
 
     int upper() const {
       auto lm = mean();
-      return lm += (sycl::abs(m_buffer[0] - lm) + sycl::abs(m_buffer[N / 2] - lm));
+      return lm += (::hipsycl::sycl::detail::__hipsycl_abs(m_buffer[0] - lm) + ::hipsycl::sycl::detail::__hipsycl_abs(m_buffer[N / 2] - lm));
     }  // about 2 sigma
 
     void update(unsigned int q) {

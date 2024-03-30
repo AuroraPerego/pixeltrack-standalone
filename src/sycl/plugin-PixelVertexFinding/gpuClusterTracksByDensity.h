@@ -16,7 +16,7 @@
 
 namespace gpuVertexFinder {
 
-  using sycl::abs;
+  using ::hipsycl::sycl::detail::__hipsycl_abs;
 
   using Hist = cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
 

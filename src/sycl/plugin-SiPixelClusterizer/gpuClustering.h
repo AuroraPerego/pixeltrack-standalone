@@ -203,7 +203,7 @@ namespace gpuClustering {
         assert(m != i);
         assert(int(y[m]) - int(y[i]) >= 0);
         assert(int(y[m]) - int(y[i]) <= 1);
-        if (sycl::abs(int(x[m]) - int(x[i])) > 1)
+        if (::hipsycl::sycl::detail::__hipsycl_abs(int(x[m]) - int(x[i])) > 1)
           continue;
         auto l = nnn[k]++;
         assert(l < maxNeighbours);

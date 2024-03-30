@@ -20,7 +20,7 @@
 #include "CAConstants.h"
 #include "CircleEq.h"
 
-using sycl::abs;
+using ::hipsycl::sycl::detail::__hipsycl_abs;
 
 class GPUCACell {
 public:

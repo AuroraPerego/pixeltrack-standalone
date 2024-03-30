@@ -33,7 +33,7 @@ end;
 #include <algorithm>
 
 #include <sycl/sycl.hpp>
-using sycl::abs;
+using ::hipsycl::sycl::detail::__hipsycl_abs;
 
 template <int DEGREE>
 constexpr float approx_atan2f_P(float x);

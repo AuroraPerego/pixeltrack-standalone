@@ -20,7 +20,7 @@
 #include "gpuFishbone.h"
 #include "gpuPixelDoublets.h"
 
-using sycl::abs;
+using ::hipsycl::sycl::detail::__hipsycl_abs;
 
 using HitsOnGPU = TrackingRecHit2DSOAView;
 using HitsOnCPU = TrackingRecHit2DSYCL;
