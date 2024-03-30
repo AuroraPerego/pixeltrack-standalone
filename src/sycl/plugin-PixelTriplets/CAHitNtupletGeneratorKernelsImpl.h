@@ -72,7 +72,7 @@ void kernel_checkOverflows(HitContainer const *foundNtuplets,
       printf("ERROR %d, %d\n", idx, foundNtuplets->size(idx));
     }
   // assert(foundNtuplets->size(idx) < 6);
-    for (auto ih = foundNtuplets->begin(idx); ih != foundNtuplets->end(idx); ++ih)
+   // for (auto ih = foundNtuplets->begin(idx); ih != foundNtuplets->end(idx); ++ih)
     // assert(*ih < nHits);
   }
 #endif
