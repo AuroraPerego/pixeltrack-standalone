@@ -150,7 +150,8 @@ namespace cms {
 
       // count blocks that finished
       if (0 == item.get_local_id(0)) {
-        sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+        //sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+		hipsycl::sycl::detail::mem_fence();
         auto value = cms::sycltools::atomic_fetch_add<int32_t,
                                                       sycl::access::address_space::global_space,
                                                       sycl::memory_scope::device>(pc, static_cast<int32_t>(1));
