@@ -10,7 +10,7 @@
 
 namespace Rfit {
 
-  using ::hipsycl::sycl::detail::__hipsycl_abs;
+  using sycl::fabs;
   using sycl::atan2;
   using sycl::sqrt;
 

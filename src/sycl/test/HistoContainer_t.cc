@@ -111,7 +111,7 @@ void go(sycl::queue queue) {
           if (kk != kl && kk != kh)
             nm += h.size(kk + off);
           for (auto p = h.begin(kk + off); p < h.end(kk + off); ++p) {
-            if (std::min(::hipsycl::sycl::detail::__hipsycl_abs(T(v[*p] - me)), ::hipsycl::sycl::detail::__hipsycl_abs(T(me - v[*p]))) > window) {
+            if (std::min(sycl::abs(T(v[*p] - me)), sycl::abs(T(me - v[*p]))) > window) {
             } else {
               ++tot;
             }

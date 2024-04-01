@@ -13,7 +13,7 @@
 
 namespace gpuVertexFinder {
 
-  using ::hipsycl::sycl::detail::__hipsycl_abs;
+  using sycl::fabs;
   using Hist = cms::sycltools::HistoContainer<uint8_t, 256, 16000, 8, uint16_t>;
 
   // this algo does not really scale as it works in a single block...

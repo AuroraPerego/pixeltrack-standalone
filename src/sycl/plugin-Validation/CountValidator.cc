@@ -99,7 +99,7 @@ void CountValidator::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
       }
     }
 
-    auto rel = ::hipsycl::sycl::detail::__hipsycl_abs(float(nTracks - int(count.nTracks())) / count.nTracks());
+    auto rel = sycl::fabs(float(nTracks - int(count.nTracks())) / count.nTracks());
     if (static_cast<unsigned int>(nTracks) != count.nTracks()) {
       std::lock_guard<std::mutex> guard(sumTrackDifferenceMutex);
       sumTrackDifference += rel;
@@ -115,7 +115,7 @@ void CountValidator::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) 
     auto const& count = iEvent.get(vertexCountToken_);
     auto const& vertices = iEvent.get(vertexToken_);
 
-    auto diff = ::hipsycl::sycl::detail::__hipsycl_abs(int(vertices->nvFinal) - int(count.nVertices()));
+    auto diff = sycl::abs(int(vertices->nvFinal) - int(count.nVertices()));
     if (diff != 0) {
       sumVertexDifference += diff;
     }

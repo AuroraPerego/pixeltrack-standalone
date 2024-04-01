@@ -13,7 +13,7 @@
 
 namespace pixelCPEforGPU {
 
-  using ::hipsycl::sycl::detail::__hipsycl_abs;
+  using sycl::fabs;
   using Frame = SOAFrame<float>;
   using Rotation = SOARotation<float>;
 
@@ -143,7 +143,7 @@ namespace pixelCPEforGPU {
       auto W_pred = theThickness * cot_angle  // geometric correction (in cm)
                     - lorentz_shift;          // (in cm) &&& check fpix!
 
-      W_eff = abs(W_pred) - W_inner;
+      W_eff = fabs(W_pred) - W_inner;
 
       //--- If the observed charge width is inconsistent with the expectations
       //--- based on the track, do *not* use W_pred-W_inner.  Instead, replace
@@ -208,8 +208,8 @@ namespace pixelCPEforGPU {
     if (phase1PixelTopology::isBigPixY(cp.maxCol[ic]))
       ++ysize;
 
-    int unbalanceX = 8. * abs(float(cp.Q_f_X[ic] - cp.Q_l_X[ic])) / float(cp.Q_f_X[ic] + cp.Q_l_X[ic]);
-    int unbalanceY = 8. * abs(float(cp.Q_f_Y[ic] - cp.Q_l_Y[ic])) / float(cp.Q_f_Y[ic] + cp.Q_l_Y[ic]);
+    int unbalanceX = 8. * fabs(float(cp.Q_f_X[ic] - cp.Q_l_X[ic])) / float(cp.Q_f_X[ic] + cp.Q_l_X[ic]);
+    int unbalanceY = 8. * fabs(float(cp.Q_f_Y[ic] - cp.Q_l_Y[ic])) / float(cp.Q_f_Y[ic] + cp.Q_l_Y[ic]);
     xsize = 8 * xsize - unbalanceX;
     ysize = 8 * ysize - unbalanceY;
 
