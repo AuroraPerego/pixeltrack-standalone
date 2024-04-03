@@ -138,7 +138,7 @@ SYCL_BASE     := /data/user/aperego/AdaptiveCpp/build2
 SYCL_PATH     := $(SYCL_BASE)/bin
 SYCL_LDPATH   := $(SYCL_BASE)/lib
 SYCL_LIBDIR   := $(SYCL_BASE)/lib
-SYCL_CXX      := $(SYCL_BASE)/bin/acpp -DGPU_DEBUG --acpp-cpu-cxx=/usr/bin/c++ --gcc-install-dir=/usr/lib/gcc/x86_64-redhat-linux/11 # --gcc-install-dir=/cvmfs/cms.cern.ch/el9_amd64_gcc11/external/gcc/11.4.1-30ebdc301ebd200f2ae0e3d880258e65/lib/gcc/x86_64-redhat-linux-gnu/11.4.1 --acpp-cpu-cxx=/usr/bin/c++
+SYCL_CXX      := $(SYCL_BASE)/bin/acpp --gcc-install-dir=/cvmfs/cms.cern.ch/el9_amd64_gcc11/external/gcc/11.4.1-30ebdc301ebd200f2ae0e3d880258e65/lib/gcc/x86_64-redhat-linux-gnu/11.4.1
 
 ifneq ($(wildcard $(SYCL_BASE)),)
   # SYCL targets

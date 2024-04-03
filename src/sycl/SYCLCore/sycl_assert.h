@@ -16,3 +16,27 @@
 #endif  //__SYCL_DEVICE_ONLY__
 
 #include <cassert>
+
+//#include <sycl/sycl.hpp>
+
+//extern "C"
+//{
+//extern void __assertfail(const char * __assertion,
+//                                             const char *__file,
+//                                             unsigned int __line,
+//                                             const char *__function,
+//                                             size_t charsize)
+//#ifndef __SYCL_DEVICE_ONLY__
+//{
+//  fprintf(stderr, "Host-part of CUDA's assertfail: Assertion %s in file %s @ %ud, func %s\n",
+//          __assertion, __file, __line, __function);
+//}
+//#endif
+//;
+//}
+//
+//void __assert_fail(const char *expr, const char *file, unsigned int line,
+//                   const char *func) {
+//  __assertfail(expr, file, line, func, 1);
+//}
+//

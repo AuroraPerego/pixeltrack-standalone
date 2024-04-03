@@ -48,7 +48,7 @@ namespace cms {
               // It was, so data is accessible from all SYCL queues on
               // the device. Set the 'filled' for all subsequent calls and
               // return the value
-              auto should_be_false = data.m_filled.exchange(true);
+              // auto should_be_false = data.m_filled.exchange(true);
               // assert(not should_be_false);
               data.m_fillingStream.reset();
               data.m_event.reset();
@@ -57,8 +57,8 @@ namespace cms {
               // Submit a barrier to our queae and return the value.
               // Subsequent work in our queue will wait for the event to occur
               // (i.e. for the transfer to finish).
-			  // FIXME_EVENT
-			  (*data.m_event).wait();
+              // FIXME_EVENT
+              (*data.m_event).wait();
               // stream.submit_barrier({*data.m_event});
             }
             // Filling is still going on, in the same SYCL queue.
@@ -74,7 +74,7 @@ namespace cms {
             // Record in the stream an event to mark the readiness of the
             // EventSetup data on the GPU, so other streams can check for it
             // assert(not data.m_event);
-            data.m_event = sycl::event{}; // stream.submit_barrier();
+            data.m_event = sycl::event{};  // stream.submit_barrier();
 
             // Now the filling has been enqueued to the stream, so we
             // can return the GPU data immediately, since all subsequent

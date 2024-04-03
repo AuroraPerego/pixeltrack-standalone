@@ -38,7 +38,11 @@ namespace cms::sycltools {
     // This function is thread safe
     std::shared_ptr<sycl::queue> get(sycl::device const& dev) {
       return cache_[cms::sycltools::getDeviceIndex(dev)].makeOrGet([dev]() {
-        return std::make_unique<sycl::queue>(dev, syclExceptionHandler, sycl::property::queue::in_order());
+        return std::make_unique<sycl::queue>(
+            dev,
+            syclExceptionHandler,
+            sycl::property_list{sycl::property::queue::in_order(),
+                                sycl::property::queue::hipSYCL_coarse_grained_events()});
       });
     }
 

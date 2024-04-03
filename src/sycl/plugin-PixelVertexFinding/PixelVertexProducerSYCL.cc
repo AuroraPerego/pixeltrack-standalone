@@ -30,7 +30,7 @@ private:
 };
 
 PixelVertexProducerSYCL::PixelVertexProducerSYCL(edm::ProductRegistry& reg)
-    : m_gpuAlgo(true,   // oneKernel
+    : m_gpuAlgo(false,  // oneKernel
                 true,   // useDensity
                 false,  // useDBSCAN
                 false,  // useIterative

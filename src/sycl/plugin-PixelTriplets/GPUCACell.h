@@ -71,8 +71,8 @@ public:
       auto i = cellNeighbors.extend();  // maybe waisted....
       if (i > 0) {
         cellNeighbors[i].reset();
-//		hipsycl::sycl::mem_fence();
-        hipsycl::sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+        hipsycl::sycl::detail::mem_fence();
+        //  hipsycl::sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
 
         auto zero = (ptrAsInt)(&cellNeighbors[0]);
         cms::sycltools::atomic_compare_exchange_strong<ptrAsInt>(
@@ -80,8 +80,8 @@ public:
       } else
         return -1;
     }
-//	hipsycl::sycl::mem_fence();
-        hipsycl::sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+    hipsycl::sycl::detail::mem_fence();
+    //    hipsycl::sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
     return outerNeighbors().push_back(t);
   }
 
@@ -90,8 +90,8 @@ public:
       auto i = cellTracks.extend();  // maybe waisted....
       if (i > 0) {
         cellTracks[i].reset();
-//	    hipsycl::sycl::mem_fence();
-        hipsycl::sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+        hipsycl::sycl::detail::mem_fence();
+        //  hipsycl::sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
 
         auto zero = (ptrAsInt)(&cellTracks[0]);
         cms::sycltools::atomic_compare_exchange_strong<ptrAsInt>(
@@ -100,8 +100,8 @@ public:
       } else
         return -1;
     }
-//	hipsycl::sycl::mem_fence();
-        hipsycl::sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
+    hipsycl::sycl::detail::mem_fence();
+    //    hipsycl::sycl::atomic_fence(sycl::memory_order::acq_rel, sycl::memory_scope::device);
     return tracks().push_back(t);
   }
 
