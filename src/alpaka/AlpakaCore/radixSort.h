@@ -113,14 +113,7 @@ namespace cms::alpakatools {
         auto laneId = idx & 0x1f;
 
         for (int offset = 1; offset < 32; offset <<= 1) {
-#if defined(__CUDA_ARCH__) && !defined(__SYCL_DEVICE_ONLY__)
-          auto y = __shfl_up_sync(0xffffffff, x, offset);
-#elif defined(__HIP_DEVICE_COMPILE__)
-          auto y = __shfl_up(x, offset);
-#elif defined(__SYCL_DEVICE_ONLY__)
-	  auto item = acc.m_item.get_sub_group();
-	  auto y = sycl::shift_group_right(item.get_sub_group(), x, offset); //FIXME_ get_sub_group in alpaka?
-#endif
+          auto y = alpaka::shfl_up(acc, std::int32_t(x), offset);
           if (laneId >= (uint32_t)offset)
             x += y;
         }

@@ -105,8 +105,10 @@ LLVM_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Werro
 
 # flags to compile AOT:
 AOT_INTEL_FLAGS   := -fsycl-targets=spir64_x86_64,spir64_gen -Xsycl-target-backend=spir64_gen "-device 0x020a"
-AOT_CUDA_FLAGS    := -fsycl-targets=spir64_x86_64#,nvptx64-nvidia-cuda -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings
-AOT_HIP_FLAGS     := -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend --offload-arch=gfx900 --rocm-path=$(ROCM_BASE) -Wno-linker-warnings 
+AOT_CUDA_FLAGS    := -fsycl-targets=nvidia_gpu_sm_60,spir64_x86_64 --cuda-path=$(CUDA_BASE)#,amdgcn-amd-amdhsa -Xsycl-target-backend=amdgcn-amd-amdhsa --offload-arch=gfx900 --rocm-path=$(ROCM_BASE) -Wno-linker-warnings
+#nvptx64-nvidia-cuda $(foreach ARCH,$(CUDA_ARCH),-Xsycl-target-backend=nvptx64-nvidia-cuda --offload-arch=sm_$(ARCH)) -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings
+#-fsycl-targets=nvptx64-nvidia-cuda -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings
+AOT_HIP_FLAGS     := -fsycl-targets=amdgcn-amd-amdhsa -Xsycl-target-backend=amdgcn-amd-amdhsa --offload-arch=gfx900 --rocm-path=$(ROCM_BASE) -Wno-linker-warnings 
 
 # INTEL flags: compile AOT for all the CPUs and for the GPU on olice-05
 # CUDA flags : compile AOT for for NVIDIA GPUs
@@ -143,14 +145,16 @@ endif
 
 else
 # use llvm 
-SYCL_BASE      := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/nightly/20221208
+SYCL_BASE      := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/nightly/20230119
+#/data/user/fwyzard/sycl/build/sycl-nightly/20230309
+#cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/nightly/20230119
 USER_SYCLFLAGS := -std=c++17 -Wno-unused-const-variable
 
 # make CPUs visible
 export OCL_ICD_FILENAMES := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/intel/sycl/runtime/intel/oclcpuexp_2022.14.8.0.04/x64/libintelocl.so
 
 export SYCL_CXX      := $(SYCL_BASE)/bin/clang++
-export SYCL_CXXFLAGS := -fsycl $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS) #$(AOT_CUDA_FLAGS) # $(AOT_HIP_FLAGS)
+export SYCL_CXXFLAGS := -fsycl $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS) $(AOT_CUDA_FLAGS) # $(AOT_HIP_FLAGS) #-fsycl-host-compiler=$(CXX) -fsycl-host-compiler-options='$(HOST_CXXFLAGS) $(USER_CXXFLAGS)'
 # at the moment it's not possible to compile AOT for both CUDA and AMD together (and AMD is still a bit buggy on its own)
 
 endif
