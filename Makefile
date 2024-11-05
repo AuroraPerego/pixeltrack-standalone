@@ -1,5 +1,10 @@
 export BASE_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
+# Speacial characters
+COMMA:= ,
+EMPTY:=
+SPACE:= $(EMPTY) $(EMPTY)
+
 # Compiler
 export CC  := gcc
 export CXX := g++
@@ -53,7 +58,7 @@ export TEST_DIR := $(BASE_DIR)/test
 
 # System external definitions
 # CUDA
-CUDA_BASE := /usr/local/cuda
+CUDA_BASE := /usr/local/cuda-12
 ifeq ($(wildcard $(CUDA_BASE)),)
 # CUDA platform not found
 CUDA_BASE :=
@@ -63,7 +68,7 @@ CUDA_LIBDIR := $(CUDA_BASE)/lib64
 USER_CUDAFLAGS :=
 export CUDA_BASE
 export CUDA_DEPS := $(CUDA_LIBDIR)/libcudart.so
-export CUDA_ARCH := 50 60 70
+export CUDA_ARCH := 60 70
 export CUDA_CXXFLAGS := -I$(CUDA_BASE)/include
 export CUDA_TEST_CXXFLAGS := -DGPU_DEBUG
 export CUDA_LDFLAGS := -L$(CUDA_LIBDIR) -lcudart -lcudadevrt
@@ -95,21 +100,24 @@ export NVCXX := $(NVHPC_BASE)/compilers/bin/nvc++
 endif
 
 # ROCm
-ROCM_BASE := /opt/rocm-5.0.2
+#ROCM_BASE := /data/user/aperego/chipstar/chipStar/build
+ROCM_BASE := /cvmfs/patatrack.cern.ch/externals/x86_64/rhel8/amd/rocm-5.6.1
 ifeq ($(wildcard $(ROCM_BASE)),)
 # ROCm platform not found
 ROCM_BASE :=
 else
 # ROCm platform at $(ROCM_BASE)
-ROCM_LIBDIR := $(ROCM_BASE)/lib
+#ROCM_LIBDIR := $(ROCM_BASE)/lib
 export ROCM_BASE
-export ROCM_DEPS := $(ROCM_LIBDIR)/libamdhip64.so
+#export ROCM_DEPS := $(ROCM_LIBDIR)/libamdhip64.so
 export ROCM_HIPCC := $(ROCM_BASE)/bin/hipcc
 HIPCC_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Werror=format-contains-nul -Wno-non-template-friend -Werror=return-local-addr -Werror=unused-but-set-variable
-export HIPCC_CXXFLAGS := -fno-gpu-rdc --amdgpu-target=gfx900 $(filter-out $(HIPCC_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) --target=$(GCC_TARGET) --gcc-toolchain=$(GCC_TOOLCHAIN)
-export HIPCC_LDFLAGS := $(LDFLAGS) --target=$(GCC_TARGET) --gcc-toolchain=$(GCC_TOOLCHAIN)
+export HIPCC_CXXFLAGS := -DALPAKA_DISABLE_VENDOR_RNG -fno-gpu-rdc $(filter-out $(HIPCC_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) --target=$(GCC_TARGET) --gcc-toolchain=$(GCC_TOOLCHAIN) --offload=spirv64 -nohipwrapperinc
+#export HIPCC_CXXFLAGS := -fno-gpu-rdc --amdgpu-target=gfx900 $(filter-out $(HIPCC_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) --target=$(GCC_TARGET) --gcc-toolchain=$(GCC_TOOLCHAIN)
+export HIPCC_LDFLAGS := -DALPAKA_DISABLE_VENDOR_RNG $(LDFLAGS) --target=$(GCC_TARGET) --gcc-toolchain=$(GCC_TOOLCHAIN)
 # flags to be used by GCC when compiling host code that includes hip_runtime.h
-export ROCM_CXXFLAGS := -D__HIP_PLATFORM_HCC__ -D__HIP_PLATFORM_AMD__ -I$(ROCM_BASE)/include -I$(ROCM_BASE)/hiprand/include -I$(ROCM_BASE)/rocrand/include
+export ROCM_CXXFLAGS := -D__HIP_PLATFORM_SPIRV__ -I$(ROCM_BASE)/include #-I$(ROCM_BASE)/hiprand/include -I$(ROCM_BASE)/rocrand/include
+#export ROCM_CXXFLAGS := -D__HIP_PLATFORM_HCC__ -D__HIP_PLATFORM_AMD__ -I$(ROCM_BASE)/include -I$(ROCM_BASE)/hiprand/include -I$(ROCM_BASE)/rocrand/include
 export ROCM_LDFLAGS := -L$(ROCM_LIBDIR) -lamdhip64
 export ROCM_TEST_CXXFLAGS := -DGPU_DEBUG
 endif
@@ -118,13 +126,13 @@ endif
 SYCL_USE_INTEL_ONEAPI := true
 
 # Intel GPU ids
-OCLOC_IDS := tgllp acm_g10 pvc
+OCLOC_IDS := acm_g10 pvc
 
 # Compiler flags supported by GCC but not by the LLVM-based compilers (clang, hipcc, dpcpp, etc.)
 LLVM_UNSUPPORTED_CXXFLAGS := --param vect-max-version-for-alias-checks=50 -Werror=format-contains-nul -Wno-non-template-friend -Werror=return-local-addr -Werror=unused-but-set-variable
 
 # flags to compile AOT:
-AOT_INTEL_FLAGS := -fsycl-targets=intel_gpu_pvc -Xsycl-target-backend '-options -ze-intel-enable-auto-large-GRF-mode'
+AOT_INTEL_FLAGS := -fsycl-targets=intel_gpu_acm_g10 #-Xsycl-target-backend '-options -ze-intel-enable-auto-large-GRF-mode'
 AOT_CUDA_FLAGS  := -fsycl-targets=nvidia_gpu_sm_60 -fno-bundle-offload-arch --cuda-path=$(CUDA_BASE) -Wno-unknown-cuda-version -Wno-linker-warnings
 AOT_HIP_FLAGS   := -fsycl-targets=amd_gpu_gfx900 --rocm-path=$(ROCM_BASE) -Wno-linker-warnings
 AOT_CPU_FLAGS   := -fsycl-targets=spir64_x86_64
@@ -148,12 +156,12 @@ ifdef USE_SYCL_ONEAPI
                                                    # --config="/eos/user/a/aperego/dev/pixeltrack-standalone/config.txt"
                                                    # the config.txt file can be used to source only specific tools
                                                    # or a specific version of a tool of the oneAPI package
-    SYCL_BASE         := $(ONEAPI_BASE)/compiler/latest/linux
+    SYCL_BASE         := $(ONEAPI_BASE)/compiler/2024.0
     SYCL_LIBDIR       := $(SYCL_BASE)/lib
     TBB_BASE          := $(ONEAPI_BASE)/tbb/latest
     TBB_LIBDIR        := $(TBB_BASE)/lib/intel64/gcc4.8
     USER_SYCLFLAGS    :=
-    export SYCL_CXX      := $(SYCL_BASE)/bin-llvm/clang++
+    export SYCL_CXX      := $(SYCL_BASE)/bin/compiler/clang++
     export SYCL_CXXFLAGS := -O3 -fsycl -Wno-sycl-strict -fp-model=precise -fimf-arch-consistency=true -no-fma $(filter-out $(LLVM_UNSUPPORTED_CXXFLAGS),$(CXXFLAGS)) $(USER_SYCLFLAGS)
     # math flags : -fp-model=precise -fimf-arch-consistency=true -no-fma
     # workaround for the unexpected intrinsic in ONEAPI 2022.2.0 (SYCL BUG): -fno-sycl-early-optimizations
@@ -196,11 +204,11 @@ ifneq ($(wildcard $(SYCL_BASE)),)
   #JIT_TARGETS      := spir64
   #JIT_FLAGS        :=
   # compile AOT for x86_64 CPUs, targetting the Intel OpenCL runtime
-  AOT_CPU_TARGETS  := spir64_x86_64
-  AOT_CPU_FLAGS    :=
+  #AOT_CPU_TARGETS  := spir64_x86_64
+  #AOT_CPU_FLAGS    :=
   # compile AOT for the Intel GPUs identified by the $(OCLOC_IDS) architectures
-  AOT_INTEL_TARGETS := $(foreach ARCH,$(OCLOC_IDS),intel_gpu_$(ARCH))
-  AOT_INTEL_FLAGS   := -Xsycl-target-backend=spir64_gen '-q -options -ze-intel-enable-auto-large-GRF-mode'
+  #AOT_INTEL_TARGETS := $(foreach ARCH,$(OCLOC_IDS),intel_gpu_$(ARCH))
+  #AOT_INTEL_FLAGS   := -Xsycl-target-backend=spir64_gen '-q -options -ze-intel-enable-auto-large-GRF-mode'
   # compile AOT for the NVIDIA GPUs identified by the $(CUDA_ARCH) CUDA architectures
   #AOT_CUDA_TARGETS := $(foreach ARCH,$(CUDA_ARCH),nvidia_gpu_sm_$(ARCH))
   # currently supports a single CUDA arch, use the lowest architecture for forward compatibility
@@ -209,8 +217,8 @@ ifneq ($(wildcard $(SYCL_BASE)),)
   # compile AOT for the AMD GPUs identified by the $(ROCM_ARCH) ROCm architectures
   #AOT_ROCM_TARGETS := $(foreach ARCH,$(ROCM_ARCH),amd_gpu_$(ARCH))
   # currently supports a single ROCm arch
-  AOT_ROCM_TARGETS := amd_gpu_$(firstword $(ROCM_ARCH))
-  AOT_ROCM_FLAGS   := --rocm-path=$(ROCM_BASE)
+  #AOT_ROCM_TARGETS := amd_gpu_$(firstword $(ROCM_ARCH))
+  #AOT_ROCM_FLAGS   := --rocm-path=$(ROCM_BASE)
 
   # compile JIT and AOT for all the targets
   SYCL_TARGETS      := $(subst $(SPACE),$(COMMA),$(strip $(JIT_TARGETS) $(AOT_CPU_TARGETS) $(AOT_INTEL_TARGETS) $(AOT_CUDA_TARGETS) $(AOT_ROCM_TARGETS)))
@@ -303,7 +311,9 @@ export DATA_DEPS := $(DATA_BASE)/data_ok
 DATA_TAR_GZ := $(DATA_BASE)/data.tar.gz
 
 # External definitions
-EXTERNAL_BASE := $(BASE_DIR)/external
+EXTERNAL_BASE := /data/user/fwyzard/pixeltrack-standalone/external
+EXTERNAL_BASE2 := /data/user/aperego/pixeltrack-standalone/external
+#$(BASE_DIR)/external
 
 HWLOC_BASE := $(EXTERNAL_BASE)/hwloc
 export HWLOC_DEPS := $(HWLOC_BASE)
@@ -334,7 +344,7 @@ TBB_CXXFLAGS += -DTBB_ALLOCATOR_TRAITS_BROKEN
 TBB_CMAKEFLAGS += -DCMAKE_CXX_FLAGS=-DTBB_ALLOCATOR_TRAITS_BROKEN
 endif
 
-EIGEN_BASE := $(EXTERNAL_BASE)/eigen
+EIGEN_BASE := $(EXTERNAL_BASE2)/eigen
 export EIGEN_DEPS := $(EIGEN_BASE)
 export EIGEN_CXXFLAGS := -isystem $(EIGEN_BASE) -DEIGEN_DONT_PARALLELIZE
 export EIGEN_LDFLAGS :=
@@ -346,7 +356,7 @@ export EIGEN_SYCL_CXXFLAGS := -DEIGEN_USE_SYCL -DEIGEN_NO_CUDA
     not clear if this is a bug or not,                                                    \
     keep that flag for the moment)
 
-BOOST_BASE := /usr
+BOOST_BASE := /data/user/fwyzard/alpaka-group/boost
 # Minimum required version of Boost, e.g. 1.78.0
 BOOST_MIN_VERSION := 107800
 # Check if an external version of Boost is present and recent enough
@@ -370,7 +380,7 @@ export BACKTRACE_CXXFLAGS := -isystem $(BACKTRACE_BASE)/include
 export BACKTRACE_LDFLAGS := -L$(BACKTRACE_BASE)/lib -lbacktrace
 export BACKTRACE_SYCL_CXXFLAGS :=
 
-ALPAKA_BASE := $(EXTERNAL_BASE)/alpaka
+ALPAKA_BASE := $(EXTERNAL_BASE2)/alpaka
 export ALPAKA_DEPS := $(ALPAKA_BASE)
 export ALPAKA_CXXFLAGS := -isystem $(ALPAKA_BASE)/include
 

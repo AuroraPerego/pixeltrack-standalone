@@ -221,22 +221,22 @@ namespace cms::alpakatools {
     /// Constructor to re-use the CUDA stream of acquire() (ExternalWork module)
     explicit ScopedContextProduce(ContextState<Queue>& state)
 #if defined(ALPAKA_ACC_SYCL_ENABLED)
-        : ScopedContextGetterBase(state.releaseStreamPtr()), event_{std::make_shared<Event>(device())} {event_->setEvent(stream().getNativeHandle().submit_barrier());}
+        : ScopedContextGetterBase(state.releaseStreamPtr()), event_{std::make_shared<Event>(device())} {event_->setEvent(stream().getNativeHandle().ext_oneapi_submit_barrier());}
 #else
         : ScopedContextGetterBase(state.releaseStreamPtr()), event_{getEventCache<Event>().get(device())} {}
 #endif
 
     explicit ScopedContextProduce(ProductBase<Queue> const& data)
 #if defined(ALPAKA_ACC_SYCL_ENABLED)
-        : ScopedContextGetterBase(data), event_{std::make_shared<Event>(device())} {event_->setEvent(stream().getNativeHandle().submit_barrier());}
+        : ScopedContextGetterBase(data), event_{std::make_shared<Event>(device())} {event_->setEvent(stream().getNativeHandle().ext_oneapi_submit_barrier());}
 #else
         : ScopedContextGetterBase(data), event_{getEventCache<Event>().get(device())} {}
 #endif
 
     explicit ScopedContextProduce(edm::StreamID streamID)
 #if defined(ALPAKA_ACC_SYCL_ENABLED)
-        : ScopedContextGetterBase(streamID), event_{std::make_shared<Event>(device())} {event_->setEvent(stream().getNativeHandle().submit_barrier());}
-#else	    
+        : ScopedContextGetterBase(streamID), event_{std::make_shared<Event>(device())} {event_->setEvent(stream().getNativeHandle().ext_oneapi_submit_barrier());}
+#else
         : ScopedContextGetterBase(streamID), event_{getEventCache<Event>().get(device())} {}
 #endif
 

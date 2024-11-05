@@ -21,33 +21,34 @@ namespace cms::hip {
     const auto dev = currentDevice();
     auto event = makeOrGet(dev);
     // captured work has completed, or a just-created event
-    if (eventWorkHasCompleted(event.get())) {
-      return event;
-    }
+  //  if (eventWorkHasCompleted(event.get())) {
+  //    return event;
+  //  }
 
-    // Got an event with incomplete captured work. Try again until we
-    // get a completed (or a just-created) event. Need to keep all
-    // incomplete events until a completed event is found in order to
-    // avoid ping-pong with an incomplete event.
-    std::vector<SharedEventPtr> ptrs{std::move(event)};
-    bool completed;
-    do {
-      event = makeOrGet(dev);
-      completed = eventWorkHasCompleted(event.get());
-      if (not completed) {
-        ptrs.emplace_back(std::move(event));
-      }
-    } while (not completed);
+  //  // Got an event with incomplete captured work. Try again until we
+  //  // get a completed (or a just-created) event. Need to keep all
+  //  // incomplete events until a completed event is found in order to
+  //  // avoid ping-pong with an incomplete event.
+  //  std::vector<SharedEventPtr> ptrs{std::move(event)};
+  //  bool completed;
+  //  do {
+  //    event = makeOrGet(dev);
+  //    completed = eventWorkHasCompleted(event.get());
+  //    if (not completed) {
+  //      ptrs.emplace_back(std::move(event));
+  //    }
+  //  } while (not completed);
     return event;
   }
 
   SharedEventPtr EventCache::makeOrGet(int dev) {
-    return cache_[dev].makeOrGet([dev]() {
+    //return cache_[dev].makeOrGet([dev]() {
       hipEvent_t event;
       // it should be a bit faster to ignore timings
       cudaCheck(hipEventCreateWithFlags(&event, hipEventDisableTiming));
+      //hipEventSynchronize(event);
       return std::unique_ptr<BareEvent, Deleter>(event, Deleter{dev});
-    });
+   // });
   }
 
   void EventCache::clear() {

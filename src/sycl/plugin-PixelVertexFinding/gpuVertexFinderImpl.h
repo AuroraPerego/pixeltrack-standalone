@@ -51,8 +51,8 @@ namespace gpuVertexFinder {
       auto& data = *pws;
       auto it = cms::sycltools::atomic_fetch_add<uint32_t>(&data.ntrks, (uint32_t)1);
       data.itrk[it] = idx;
-      data.zt[it] = tracks.zip(idx);
-      data.ezt2[it] = fit.covariance(idx)(14);
+      //data.zt[it] = tracks.zip(idx);
+      //data.ezt2[it] = fit.covariance(idx)(14);
       data.ptt2[it] = pt * pt;
     }
   }
